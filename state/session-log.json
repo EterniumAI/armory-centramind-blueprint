@@ -1,0 +1,14 @@
+{
+  "sessions": [
+    {
+      "id": "S-001",
+      "date": "2026-01-01",
+      "summary": "Initial CentraMind workspace setup. Configured all 4 layers.",
+      "projectsTouched": ["my-project"],
+      "completed": ["Workspace configuration", "First skill created"],
+      "pending": ["Set up Supabase", "Deploy Command Center"],
+      "decisions": ["Using Supabase for dashboard data", "File-based state as source of truth"],
+      "blockers": []
+    }
+  ]
+}

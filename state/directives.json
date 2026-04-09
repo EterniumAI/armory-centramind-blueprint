@@ -1,0 +1,27 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-01-01",
+  "directives": [
+    {
+      "id": "d-001",
+      "title": "Session Handoff Required",
+      "priority": "high",
+      "rule": "Every work session ends with /handoff. No exceptions. State files must be updated before closing.",
+      "status": "active"
+    },
+    {
+      "id": "d-002",
+      "title": "Commit Before Context Switch",
+      "priority": "medium",
+      "rule": "Commit current work before switching to a different project or task. Uncommitted work is invisible work.",
+      "status": "active"
+    },
+    {
+      "id": "d-003",
+      "title": "Read Before Writing",
+      "priority": "medium",
+      "rule": "Always read existing code and context before making changes. Understand what exists before modifying it.",
+      "status": "active"
+    }
+  ]
+}

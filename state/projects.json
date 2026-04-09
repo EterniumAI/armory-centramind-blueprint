@@ -1,0 +1,16 @@
+{
+  "my-project": {
+    "name": "My Project",
+    "status": "active",
+    "repo": "https://github.com/you/your-project",
+    "completeness": 0.1,
+    "description": "Replace this with your real project description",
+    "stack": ["React", "Supabase"],
+    "blockers": [],
+    "nextActions": ["Configure CentraMind workspace", "Set up Supabase tables"],
+    "deployment": {
+      "url": "",
+      "status": "none"
+    }
+  }
+}
