@@ -1,24 +1,25 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #00D4FF;
-  --color-primary-glow: #00eeff;
-  --color-accent: #E4C790;
-  --color-bg: #0A0A0A;
-  --color-bg-surface: #111113;
-  --color-bg-card: #1A1A1E;
-  --color-bg-elevated: #222228;
-  --color-text-main: #e8e8ec;
-  --color-text-muted: #8b8b96;
-  --color-text-subtle: #5a5a65;
-  --color-border: rgba(255, 255, 255, 0.08);
-  --color-border-accent: rgba(0, 212, 255, 0.25);
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
+  --color-primary: #18b5f0;
+  --color-primary-glow: #18b5f066;
+  --color-primary-dim: #18b5f015;
+  --color-accent: #18b5f0;
+  --color-bg: #050505;
+  --color-bg-surface: #0a0a0a;
+  --color-bg-card: #0f0f0f;
+  --color-bg-elevated: #161616;
+  --color-text-main: #f0f0f0;
+  --color-text-muted: #888888;
+  --color-text-subtle: #555555;
+  --color-border: rgba(255, 255, 255, 0.06);
+  --color-border-accent: rgba(24, 181, 240, 0.2);
+  --color-success: #22c55e;
+  --color-warning: #eab308;
   --color-error: #ef4444;
-  --font-display: "Plus Jakarta Sans", sans-serif;
-  --font-sans: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Montserrat", sans-serif;
+  --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 }
 
@@ -28,9 +29,62 @@ body {
   color: var(--color-text-main);
   margin: 0;
   min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-bg-elevated) var(--color-bg);
+  scrollbar-color: #1a1a1a #050505;
 }
+
+::selection {
+  background: rgba(24, 181, 240, 0.3);
+  color: white;
+}
+
+/* Glass panel */
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Glow effects */
+.glow-sm { box-shadow: 0 0 20px rgba(24, 181, 240, 0.12); }
+.glow-md { box-shadow: 0 0 40px rgba(24, 181, 240, 0.18); }
+
+/* Fade in */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.5s ease-out forwards; }
+
+/* Stagger children */
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 60ms; }
+.stagger > *:nth-child(3) { animation-delay: 120ms; }
+.stagger > *:nth-child(4) { animation-delay: 180ms; }
+.stagger > *:nth-child(5) { animation-delay: 240ms; }
+.stagger > *:nth-child(6) { animation-delay: 300ms; }
+.stagger > *:nth-child(7) { animation-delay: 360ms; }
+.stagger > *:nth-child(8) { animation-delay: 420ms; }
+
+/* Pulse dot */
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+.pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+
+/* Number input arrows hidden */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] { -moz-appearance: textfield; }
+
+html { scroll-behavior: smooth; }
