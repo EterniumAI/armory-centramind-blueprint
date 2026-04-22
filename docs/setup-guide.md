@@ -2,210 +2,161 @@
 
 Welcome in.
 
-What you just downloaded is the exact setup I use every day to run my one-person company with an AI that never forgets me, never forgets the business, and shows up ready every time I open my laptop.
+What you're about to go through isn't a technical setup. It's a conversation.
 
-You don't need to be technical. You don't need to know what a database is. You don't need to have built software before. If you can follow a recipe, you can set this up in about fifteen minutes, and once you do, you'll have something most people don't even know is possible.
+In about fifteen minutes, I'm going to ask you a handful of questions about your business, your time, and the work that eats your week. When we're done, you'll walk away with a plan that tells you exactly what an AI operating system for your business should look like, what it should do first, and how much time and money it could save you.
 
-This guide is going to walk you through it like I would walk my own mom through it.
+That plan is called your Blueprint.
 
-Let's go.
+You don't need to know any tech. You don't need to install anything. You just need to answer honestly.
 
----
-
-## What You're About To Have
-
-Picture this.
-
-You open your laptop in the morning. You say good morning to your AI. It already knows who you are, what you're working on, what you decided yesterday, and what's on fire right now. It doesn't ask you to explain yourself. It doesn't start from zero. It picks up exactly where you left off.
-
-That's what this is.
-
-I'm giving you the three things that make it work.
-
-1. **A brain that remembers.** Every conversation, every decision, every note gets saved somewhere safe. Your AI can go back and read it any time.
-2. **A dashboard.** A simple, beautiful page on your computer that shows you what your AI is doing and what it knows. You open it in your web browser, same way you open Facebook.
-3. **A set of shortcuts.** Little commands your AI learns. "Give me my morning briefing." "Close out the day." You type one line, and it handles the rest.
-
-Put together, this turns your AI from a chatbot that forgets you every time you close the window into something that feels like a real teammate.
-
-And the whole thing is yours. Free. No subscription. No "pro tier" to unlock the good stuff.
+Let's walk through what's coming.
 
 ---
 
-## The Three Tools You Need
+## What CentraMind Actually Is
 
-Before we start, you'll need three free accounts. I'll walk you through why each one exists so you're not flying blind.
+Before you start, it helps to know the vocabulary. There are three pieces that work together, and people confuse them all the time.
 
-**Claude.** This is the AI itself. Think of it as the person on the other end of the conversation. It's made by a company called Anthropic, and it's the smartest AI I've ever used for actually getting work done. You'll use the free app they make called Claude Code, which runs right on your computer.
+**CentraMind** is the AI operating system I built for my own company. It's what lets me run a one-person business with an AI teammate that never forgets me, never loses context, and picks up every morning exactly where we left off.
 
-**Supabase.** This is where your AI's memory lives. Every note, every log, every bit of context your AI collects gets saved here. It's free, it's safe, and you'll never have to touch it directly. Think of it as a filing cabinet your AI knows how to organize.
+**The Blueprint** is the questionnaire you're about to take. It's not the system. It's the plan for your version of the system. Think of it like meeting with an architect before you build a house. You don't get walls yet. You get drawings, a materials list, and a realistic timeline. That's your Blueprint.
 
-**GitHub.** This is where the actual code that makes everything work is stored. You'll download it once. Don't worry, you won't be writing any code yourself.
+**The Build** is what happens next. Once you have your Blueprint, you decide how you want your CentraMind to come to life. You can build it yourself with the free starter kit, or you can have me and my team build it for you. Either way works.
 
-You'll also need something called **Node.js**, which is a little engine that runs the dashboard on your computer. You install it once and forget it exists. Same energy as installing a printer driver.
+Simple, in order:
 
-Five minutes to sign up for all three. Go do that now.
-
-Links are at the back of this guide.
+> You take the Blueprint. The Blueprint tells you what your CentraMind needs to be. Then you build your CentraMind.
 
 ---
 
-## The Setup, Step By Step
+## Before You Start The Questionnaire
 
-Follow these in order. Don't skip ahead.
+Grab a notebook. Or a coffee. Or both.
 
-### Step One. Download The Files
+The questionnaire lives in your browser. You don't download anything. You don't install anything. You just go to:
 
-Open your web browser and go to this address:
+> **blueprint.tyrinbarney.com**
 
-```
-github.com/EterniumAI/armory-centramind-blueprint
-```
+When you land there, you'll be asked for your email. That's so I can send your completed Blueprint to you as a keepsake (and so I can let you know when new tools and walkthroughs drop). I don't sell your email. I don't spam you. I send you things worth reading.
 
-You'll see a green button that says **Code**. Click it. A small menu opens. Click **Download ZIP**.
-
-A file lands in your downloads folder. Double-click it to unzip. You now have a folder called `armory-centramind-blueprint`. Drag it somewhere you'll remember. Your desktop works great.
-
-That's it for step one.
-
-### Step Two. Turn On The Memory
-
-Go to **supabase.com** and log in. Click the big green **New Project** button.
-
-Give it a name. I always name mine after whatever I'm building. Something like "my-ai-brain" is fine. Pick a password (save it somewhere safe), pick the region closest to where you live, and click **Create Project**.
-
-Wait about a minute while it gets built. Go refill your coffee.
-
-When it's ready, look on the left side of the screen for an icon that looks like a little database. Click it. A text editor opens in the middle of your screen.
-
-Now open the folder you downloaded from GitHub. Inside it, find a folder called `supabase`, then another called `migrations`, and inside that, a file called `001_core_schema.sql`.
-
-Open that file with any text editor (TextEdit on a Mac, Notepad on Windows). Select everything inside it. Copy it. Paste it into that text editor in Supabase, then click the green **Run** button.
-
-A message appears saying it worked. Your AI now has a place to store its memories.
-
-### Step Three. Give Your Copy The Keys
-
-Still in Supabase, look at the very bottom of the left sidebar. Click the gear icon that says **Settings**. Then click **API**.
-
-You'll see two things on this page that matter.
-
-- A **Project URL** (looks like a web address)
-- An **anon public** key (a long string of letters and numbers)
-
-Go back to the folder you downloaded. Inside it, create a new blank text file. Name it exactly `.env`. Yes, with the dot at the front and nothing before it.
-
-Open that file and paste these two lines in, replacing the placeholder with what you just copied from Supabase.
-
-```
-VITE_SUPABASE_URL=your-project-url-here
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
-
-Save. Close. You just handed your copy the keys to its own memory.
-
-### Step Four. Wake It Up
-
-Open the terminal. (On a Mac, press Command-Space, type "terminal", hit enter. On Windows, open "Command Prompt". Same thing, different name.)
-
-Type this, replacing the path with wherever you dragged your folder:
-
-```
-cd ~/Desktop/armory-centramind-blueprint
-```
-
-Then type:
-
-```
-npm install
-```
-
-And hit enter. Your computer will pull down all the pieces it needs. Watch the scrolling. Get a snack. When it stops, type:
-
-```
-npm run dev
-```
-
-Your terminal will show you a web address that looks like `http://localhost:5173`. Click it, or copy it into your browser.
-
-Your dashboard appears. That's it. You're live.
+Now let me tell you what you're about to be asked.
 
 ---
 
-## The Shortcut Path (If You Have Claude Code)
+## The Five Steps Of The Questionnaire
 
-If you've already installed Claude Code on your computer, the setup compresses from fifteen minutes to five.
+### Step One. Your Process Audit
 
-Open your terminal, navigate into the folder you downloaded, and type:
+I'm going to show you a menu of everyday business activities. Writing emails. Scheduling. Client intake. Social media. Invoicing. Customer support. Content creation. Meeting notes.
 
-```
-claude
-```
+You'll check the boxes for the ones that apply to you. Don't overthink it. If you spend real hours on it every week, check it.
 
-Claude will boot up inside your terminal. Then tell it:
+This tells me what your business actually does, not what you wish it did.
 
-> Set this project up for me. My Supabase URL is [paste it] and my anon key is [paste it]. Run the migration, make the env file, and start the dev server.
+### Step Two. Your AI Mapping
 
-Claude handles the rest. It reads the instructions that ship with the project, knows what to do, and tells you when it's ready.
+For every process you checked, I'll suggest which AI tools are best suited to handle that type of work. You'll confirm or adjust each one.
 
-This is the way.
+This is the "which muscles does your AI need" step. Every business is different. Some of you need an AI that mostly writes. Others need one that mostly plans. Some need one that handles customer questions.
+
+### Step Three. Your Architecture
+
+I'll ask you to pick a size. There are three:
+
+**Solo Operator.** You're a one-person or two-person shop. You want an AI teammate that feels like a brilliant assistant. Most people are here.
+
+**Team Fleet.** You have a small team. You want multiple AI operators, each specialized, coordinating with each other. This is what I run at Eternium.
+
+**Enterprise Grid.** You're a bigger company. You need multiple departments to each have their own AI fleet, with reporting and access controls across the whole thing.
+
+Pick the one that sounds like you today, not the one you aspire to in three years. We can always scale up.
+
+### Step Four. Your ROI
+
+I'll ask three numbers:
+
+1. How many hours per week does your team spend on repetitive work?
+2. What's your hourly rate (or average team rate)?
+3. How many people are on your team?
+
+From those, I can show you what this is worth to you. In hours saved per week, and in dollars saved per year. Both numbers will surprise you.
+
+### Step Five. Your Blueprint
+
+When you finish, you'll see your personalized plan on screen. It contains:
+
+- A summary of every process your AI will eventually handle
+- Your recommended architecture size
+- Your projected time and money savings
+- A month-by-month roadmap for the first ninety days
+
+That's your Blueprint. You keep it. You reference it every time you make a decision about AI in your business.
 
 ---
 
-## Your First Day Inside
+## What Happens After You Have Your Blueprint
 
-You opened the dashboard. The setup is done. Now what?
+You've got your plan in hand. Now you pick a path.
 
-Here are the four moves that unlock everything.
+### Path One. Build It Yourself With The Free Starter Kit
 
-**One. Introduce yourself.** Open the file called `OWNER.md` in the folder you downloaded. Inside, there's a placeholder profile. Replace it with yours. What you're building, what you care about, what you want your AI to know about you. The more honest and specific you are here, the more your AI will feel like it actually knows you.
+I'm releasing a free starter kit called **CentraMind Starter**. It's the bones of the exact system I use, given away under an open-source license. Your Blueprint tells you how to configure it for your specific business. If you're comfortable with a little tinkering (or you have Claude Code installed and can let it drive), this is the path for you.
 
-**Two. Write down what matters this week.** Open the file called `TODO.md`. Write three real tasks you want handled. Not aspirational goals. Real things with real deadlines. Your AI reads this every time it starts up and treats them like priorities.
+When the Starter kit is live, you'll get access to it at:
 
-**Three. Try your first shortcut.** In Claude Code, type `/standup`. Hit enter. Watch what happens. Your AI pulls your profile, your tasks, your recent history, and tells you what today looks like. This is what a real morning briefing feels like.
+> **centramind.tyrinbarney.com**
 
-**Four. Close out your day.** When you're done working, type `/handoff`. Your AI writes a letter to itself, so tomorrow it remembers where you left off. No more starting from scratch. No more re-explaining yourself.
+Join the community so you get the announcement the day it drops.
 
-That's it. You now have continuity. You have memory. You have a dashboard. You have an AI that actually knows you.
+### Path Two. Let My Team Build It For You
 
-Most people never get here. You just did.
+If you'd rather skip the tinkering, I offer a done-for-you build service called **CentraMind Build**. You hand me your Blueprint. My team and I take it from paper to live system, branded for your company, running on your infrastructure, with your team trained on how to operate it.
 
----
+If that sounds like the right move, the contact details are at the back of this guide.
 
-## Make It Yours
+### Path Three. Stay Close And Learn
 
-This whole thing is MIT licensed. In plain English, that means you can do whatever you want with it. Use it. Change it. Rebrand it. Sell your own version. Run it inside your company. I'm not gatekeeping.
-
-One file controls the entire look. It's called `theme.config.js` in the main folder. Open it. You'll see the colors. Change them. Everything updates. No hunting through code.
-
-Make it feel like yours.
+Not ready to build anything yet? That's okay. Join the Digital Armory community and watch me run CentraMind in real time. See what works. See what breaks. See how the system evolves. When you're ready to build yours, you'll know what you're doing.
 
 ---
 
-## When You Get Stuck
+## A Few Things To Know Before You Start
 
-You will. Everybody does. Here's where to go.
+**Your Blueprint is for you.** I don't share it. I don't sell it. I don't hand it to anyone else. It's your private plan.
 
-**The Digital Armory.** This is the private community I run for people doing what you're doing. Real humans answer real questions. New plug-ins drop here first.
+**The questionnaire is free forever.** You can retake it as your business changes. Most of my community members redo theirs every quarter.
 
-Join us at **tyrinbarney.com/community**
+**It takes fifteen minutes.** Not fifty. If you're honest about what you do and how you spend your time, you'll fly through it.
 
-**My YouTube channel.** Full walkthroughs, real-time setups, the stories of what broke and how I fixed it. Subscribe if you want to see how this plays out in production.
+**There are no wrong answers.** This is a mirror, not a test. The more honest you are, the more useful your Blueprint becomes.
 
-**youtube.com/@tyrinbarney**
+---
 
-**The source code.** For when you're ready to look under the hood.
+## Where To Go When You Get Stuck
 
-**github.com/EterniumAI/armory-centramind-blueprint**
+The questionnaire itself is forgiving, and you can always go back a step. But once you have your Blueprint and you're ready to act on it, here's where to go.
+
+**The Digital Armory.** This is the private community I run for everyone building their own CentraMind. Real humans answer real questions. Launch updates drop here first.
+
+Join at **tyrinbarney.com/community**
+
+**My YouTube channel.** Full walkthroughs of my own CentraMind. Real-time rebuilds. The stories of what broke in production and how I fixed it.
+
+Subscribe at **youtube.com/@tyrinbarney**
+
+**Talk to me about the done-for-you build.** If you're serious about having me and my team put this together for you, start at **tyrinbarney.com/community** and say hello. I read every note.
 
 ---
 
 ## One Last Thing
 
-Every business I run is built on top of this. The website you're reading from. The mobile apps shipping to clients. The content engine. The storefronts. All of it plugs into this exact foundation.
+The Blueprint is one small piece of a bigger idea. The idea is that every business, at every size, should be able to run with an AI that actually knows them, actually serves them, and never gets lost.
 
-You now have the same starting point I do.
+I'm building toward that. Every piece of the puzzle, one open-sourced release at a time.
 
-Go build.
+You taking this questionnaire and sharing what comes out of it is how this grows. Tell me what you got. Tell me what surprised you. Tell me what's still unclear. That feedback shapes the next release.
+
+Now go fill out your Blueprint.
 
 Ty
