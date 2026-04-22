@@ -1,22 +1,45 @@
-# CentraMind Blueprint: Quick Start
+# CentraMind Blueprint
 
-You just got your hands on the system that runs Eternium. Not a watered-down version. The actual architecture. Let's get you running.
+You just got the system that runs Eternium LLC. Not a demo. Not a gutted sample. The actual architecture Tyrin Barney uses every day to run a one-person AI company.
 
-## Two Paths
+This guide takes you from zero to a live Command Center in about 15 minutes.
 
-### Path 1: Start Immediately (2 minutes)
+---
 
-Already have an Eternium account? Skip the clone entirely.
+## What CentraMind Is
 
-1. Go to [eternium.ai/products/centramind-blueprint](https://eternium.ai/products/centramind-blueprint)
-2. Sign in and grab your API key
-3. Your Command Center dashboard is already hosted
+A Claude Code operating system. Four layers, stacked:
 
-Done. You're in. The dashboard reads from your Supabase project, and the API handles the heavy lifting.
+| Layer | What it does |
+|-------|--------------|
+| Central Intelligence | Claude Code reads your business context the moment it wakes up |
+| Contextual Memory | Persistent memory, session logs, skills that survive restarts |
+| Autonomous Agents | Reusable workflows (/standup, /handoff, your own skills) |
+| Command Center | A React dashboard that shows what Claude is doing, in real time |
 
-### Path 2: Run It Yourself (15 minutes)
+You clone the repo. You wire it to Supabase. You open your Command Center. Claude Code is now running your business with you.
 
-Want full control? Clone the repo and run it locally.
+---
+
+## Before You Start
+
+You need five things. None of them cost money to start.
+
+1. A computer (Mac, Windows, or Linux)
+2. **Node.js 18 or newer**: [nodejs.org](https://nodejs.org)
+3. **A free Supabase account**: [supabase.com](https://supabase.com) (this is your memory and database)
+4. **Git**: [git-scm.com](https://git-scm.com) (ships preinstalled on Mac and Linux)
+5. **Claude Code** (recommended, not required): [claude.com/claude-code](https://claude.com/claude-code)
+
+If any of those words are new, stop, install them, come back. Everything else in this guide assumes they exist on your machine.
+
+---
+
+## Quick Start (the 15-minute path)
+
+### Step 1. Clone the repo
+
+Open a terminal and run:
 
 ```
 git clone https://github.com/EterniumAI/armory-centramind-blueprint.git
@@ -24,27 +47,56 @@ cd armory-centramind-blueprint
 npm install
 ```
 
-Set up Supabase (free tier works fine):
-1. Create a project at [supabase.com](https://supabase.com)
-2. Go to SQL Editor, paste the contents of `supabase/migrations/001_core_schema.sql`, click Run
-3. Copy your Project URL and Anon Key from Settings > API
+That last line pulls the dependencies. Wait for it to finish.
 
-Create your `.env`:
+### Step 2. Create your Supabase project
+
+1. Log in to [supabase.com](https://supabase.com)
+2. Click **New Project**. Name it anything. Pick the region closest to you.
+3. Wait about a minute for it to provision.
+4. Once it's ready, open the **SQL Editor** (left sidebar, looks like a database icon).
+5. Open the file `supabase/migrations/001_core_schema.sql` in the repo you just cloned. Copy everything. Paste it into the SQL Editor. Click **Run**.
+
+Your database now has the tables CentraMind needs.
+
+### Step 3. Grab your Supabase keys
+
+In your Supabase dashboard:
+
+1. Click **Settings** (gear icon, bottom-left)
+2. Click **API**
+3. Copy the **Project URL** and the **anon / public** key
+
+### Step 4. Create your .env file
+
+In the repo folder, create a file named exactly `.env` and paste:
+
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-Fire it up:
+Replace the placeholders with what you copied from Supabase.
+
+### Step 5. Fire it up
+
+Back in your terminal:
+
 ```
 npm run dev
 ```
 
-Open `http://localhost:5173`. You should see your Command Center.
+Open `http://localhost:5173` in your browser.
 
-### Path 2b: Hand It to Claude Code (5 minutes)
+You should see your Command Center. If you do, you just cloned the operating system that runs a real AI company.
 
-If you have Claude Code installed, this is even faster:
+---
+
+## The Claude Code Shortcut
+
+5 minutes instead of 15.
+
+If you installed Claude Code, this whole process compresses.
 
 ```
 git clone https://github.com/EterniumAI/armory-centramind-blueprint.git
@@ -52,32 +104,65 @@ cd armory-centramind-blueprint
 claude
 ```
 
-Then tell it:
-```
-Set up this project. I need a Supabase project created, the migration run, and the .env configured. My Supabase credentials are: [paste your URL and anon key].
-```
+Then in Claude Code, tell it:
 
-Claude Code reads the CLAUDE.md, understands the project, and does the rest.
+> Set up this project. Create a Supabase project if I don't have one, run the migration, configure the .env, and start the dev server. My Supabase credentials are: [paste your URL and anon key here].
 
-## What's Inside
+Claude Code reads the `CLAUDE.md` file that ships with this repo, understands the architecture, and handles the rest.
 
-| Layer | Files | Purpose |
-|-------|-------|---------|
-| Central Intelligence | CLAUDE.md, OWNER.md, state/directives.json | AI knows your business |
-| Contextual Memory | state/session-log.json, memory/MEMORY.md | AI remembers across sessions |
-| Autonomous Agents | .claude/skills/ | Reusable workflows (/standup, /handoff) |
-| Human Override | TODO.md, HEARTBEAT.md, Command Center | You stay in control |
+---
 
-## What's Next
+## Your First 10 Minutes Inside
 
-- Fill in OWNER.md with YOUR info (the AI is only as good as the context you give it)
-- Run `/standup` every morning, `/handoff` every evening
-- Add your own skills in `.claude/skills/`
-- Read the full README for architecture details and rebrand instructions
+Once the Command Center is running, do these four things in order.
 
-## Get Help
+1. **Open `OWNER.md`.** Replace the placeholder profile with yours. This is Claude's understanding of who you are. The better the profile, the better Claude operates.
+2. **Open `TODO.md`.** Write three real tasks you want handled this week. Claude reads this on every session start.
+3. **Run `/standup` in Claude Code.** Watch it summarize your day from memory, HEARTBEAT, and TODO.
+4. **Run `/handoff` at the end of the day.** Watch it write the next session's boot briefing for itself.
 
-- **Full docs:** [github.com/EterniumAI/armory-centramind-blueprint](https://github.com/EterniumAI/armory-centramind-blueprint)
-- **Community:** [tyrinbarney.com/community](https://tyrinbarney.com/community)
-- **API keys:** [eternium.ai/api](https://eternium.ai/api)
-- **AI agent reference:** See `docs/architecture.md` in the repo (hand this to Claude Code)
+You now have continuity. Claude Code no longer forgets.
+
+---
+
+## What's Inside The Repo
+
+| Path | What lives there |
+|------|------------------|
+| `CLAUDE.md` | The identity Claude boots with |
+| `OWNER.md` | Your profile. Claude reads this to understand you |
+| `TODO.md` | Current priorities |
+| `HEARTBEAT.md` | Active alerts and session state |
+| `state/` | JSON source of truth (directives, session log) |
+| `memory/MEMORY.md` | Persistent long-term memory |
+| `.claude/skills/` | Your reusable workflows |
+| `src/` | The Command Center React app |
+| `supabase/migrations/` | Database schema |
+| `theme.config.js` | Brand colors (rebrand the whole thing from one file) |
+
+---
+
+## Rebrand It
+
+This is yours. The whole thing is MIT licensed. Rebrand, resell, run it inside your own company.
+
+One file controls the entire visual system: `theme.config.js`. Change colors there, everything updates. No component-level color hunting.
+
+---
+
+## Where To Go Next
+
+- **The full architecture reference:** `docs/architecture.md` in this repo. Hand it to Claude Code when you want it to reason about the system itself.
+- **The source code:** [github.com/EterniumAI/armory-centramind-blueprint](https://github.com/EterniumAI/armory-centramind-blueprint)
+- **The community:** [tyrinbarney.com/community](https://tyrinbarney.com/community). This is the Digital Armory. Questions get answered here. New plug-ins ship here first.
+- **Tyrin's YouTube:** [youtube.com/@tyrinbarney](https://youtube.com/@tyrinbarney). Walkthroughs, full system tours, the stories of what broke and how we fixed it.
+
+---
+
+## You're Standing On The Real Thing
+
+Every project at Eternium runs through a CentraMind instance. The website, the mobile apps, the clients, the content engine, the storefronts. All of them plug into this exact architecture.
+
+You now have the same foundation. Build on it.
+
+Ty
