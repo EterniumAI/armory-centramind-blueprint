@@ -1,31 +1,9 @@
 import { useMemo } from 'react';
 import { CATEGORIES } from './ProcessAudit';
-
-const TIER_NAMES = { solo: 'Solo Operator', team: 'Team Fleet', enterprise: 'Enterprise Grid' };
-
-const ROADMAP = {
-  solo: [
-    { phase: 'Week 1-2', title: 'Foundation', tasks: ['Set up Claude Code instance', 'Configure memory and context files', 'Build your first skill (standup or handoff)', 'Connect Supabase for dashboard'] },
-    { phase: 'Week 3-4', title: 'First Agent', tasks: ['Identify your highest-value process', 'Build a dedicated agent skill for it', 'Test with real data, iterate on prompts', 'Set up monitoring via dashboard'] },
-    { phase: 'Month 2', title: 'Expand', tasks: ['Add 2-3 more process-specific skills', 'Refine memory system for better context', 'Establish daily standup routine with your agent', 'Measure time saved vs. baseline'] },
-    { phase: 'Month 3', title: 'Optimize', tasks: ['Review and improve agent outputs', 'Add error handling and escalation rules', 'Document your system for team handoff', 'Evaluate readiness for Team Fleet tier'] },
-  ],
-  team: [
-    { phase: 'Week 1-2', title: 'Architecture', tasks: ['Deploy Sovereign orchestrator instance', 'Define operator roles and responsibilities', 'Set up shared context protocol', 'Build fleet dashboard'] },
-    { phase: 'Week 3-4', title: 'First Fleet', tasks: ['Launch 2-3 specialized operators', 'Configure dispatch routing rules', 'Test agent-to-agent coordination', 'Validate with real business processes'] },
-    { phase: 'Month 2', title: 'Scale', tasks: ['Add operators for remaining processes', 'Build custom skill libraries per role', 'Implement handoff protocols between agents', 'Set up cost tracking and alerts'] },
-    { phase: 'Month 3', title: 'Mature', tasks: ['Optimize dispatch patterns', 'Add approval workflows for sensitive tasks', 'Establish SLAs for agent response times', 'Plan department-level expansion'] },
-  ],
-  enterprise: [
-    { phase: 'Week 1-2', title: 'Infrastructure', tasks: ['Deploy multi-orchestrator hierarchy', 'Set up tenant isolation and access control', 'Build API gateway for agent provisioning', 'Configure audit and compliance logging'] },
-    { phase: 'Week 3-4', title: 'Department Pilots', tasks: ['Launch pilot fleet in 2 departments', 'Validate approval and escalation workflows', 'Test cross-department coordination', 'Establish cost allocation model'] },
-    { phase: 'Month 2', title: 'Organization-Wide', tasks: ['Roll out to all departments', 'Deploy department-specific skill libraries', 'Implement SLA monitoring and alerting', 'Build executive reporting dashboard'] },
-    { phase: 'Month 3', title: 'Optimize', tasks: ['Fine-tune routing and load balancing', 'Analyze cost-per-task metrics', 'Implement continuous improvement cycles', 'Plan integration with existing enterprise tools'] },
-  ],
-};
+import { computeRoi, roadmapForTier, TIER_NAMES } from '../../lib/blueprint-export';
 
 export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunch }) {
-  const { processes, tier, roi } = blueprint;
+  const { processes, tier } = blueprint;
 
   const processDetails = useMemo(() => {
     const allProcs = CATEGORIES.flatMap((c) =>
@@ -42,12 +20,11 @@ export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunc
     return Object.entries(counts).sort((a, b) => b[1] - a[1]);
   }, [processDetails]);
 
-  // ROI numbers
-  const automationRate = Math.min(0.3 + processes.length * 0.025, 0.7);
-  const weeklyHoursSaved = (roi.hoursPerWeek * roi.teamSize * automationRate).toFixed(1);
-  const annualSavings = Math.round(roi.hoursPerWeek * roi.teamSize * automationRate * roi.hourlyRate * 52);
+  const roi = useMemo(() => computeRoi(blueprint), [blueprint]);
+  const weeklyHoursSaved = roi.weekly_hours_saved.toFixed(1);
+  const annualSavings = roi.annual_savings_usd;
 
-  const roadmap = ROADMAP[tier] || ROADMAP.solo;
+  const roadmap = roadmapForTier(tier);
 
   return (
     <div>

@@ -1,14 +1,35 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
-import { serializeBlueprint, downloadBlueprint, bootstrapPrompt, roadmapForTier } from '../../lib/blueprint-export';
+import {
+    serializeBlueprint,
+    downloadBlueprint,
+    bootstrapPrompt,
+    computeRoi,
+    roadmapForTier,
+    TIER_NAMES,
+} from '../../lib/blueprint-export';
 
-const TIER_NAMES = { solo: 'Solo Operator', team: 'Team Fleet', enterprise: 'Enterprise Grid' };
+// Disk-state loaders. Each glob is eager so the module evaluates the file
+// at build time; Vite HMR re-evaluates on file changes in dev. Paths are
+// absolute from the project root (where vite.config.js lives).
+const projectGlob    = import.meta.glob('/state/project.json',    { eager: true, import: 'default' });
+const projectsGlob   = import.meta.glob('/state/projects.json',   { eager: true, import: 'default' });
+const sessionsGlob   = import.meta.glob('/state/session-log.json', { eager: true, import: 'default' });
+const directivesGlob = import.meta.glob('/state/directives.json', { eager: true, import: 'default' });
+const todoGlob       = import.meta.glob('/TODO.md',               { eager: true, query: '?raw', import: 'default' });
+const heartbeatGlob  = import.meta.glob('/HEARTBEAT.md',          { eager: true, query: '?raw', import: 'default' });
+const memoryGlob     = import.meta.glob('/memory/MEMORY.md',      { eager: true, query: '?raw', import: 'default' });
+const briefGlob      = import.meta.glob('/context/product-brief.md', { eager: true, query: '?raw', import: 'default' });
+
+const firstEntry = (g) => Object.values(g)[0];
 
 const TABS = [
-    { id: 'today',      label: 'Today' },
-    { id: 'claude',     label: 'Claude Code' },
-    { id: 'blueprint',  label: 'Your Blueprint' },
+    { id: 'overview',   label: 'Overview' },
+    { id: 'processes',  label: 'Processes' },
+    { id: 'priorities', label: 'Priorities' },
     { id: 'memory',     label: 'Memory' },
+    { id: 'sessions',   label: 'Sessions' },
+    { id: 'claude',     label: 'Claude Code' },
     { id: 'settings',   label: 'Settings' },
 ];
 
@@ -17,9 +38,9 @@ const storageKey = (email) => `centramind:${email || 'anon'}`;
 function loadState(email) {
     try {
         const raw = localStorage.getItem(storageKey(email));
-        return raw ? JSON.parse(raw) : { completedTasks: {}, memory: '' };
+        return raw ? JSON.parse(raw) : { scratchpad: '' };
     } catch {
-        return { completedTasks: {}, memory: '' };
+        return { scratchpad: '' };
     }
 }
 
@@ -28,85 +49,82 @@ function saveState(email, state) {
 }
 
 export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprint }) {
-    const [tab, setTab] = useState('today');
+    const [tab, setTab] = useState('overview');
     const [persisted, setPersisted] = useState(() => loadState(email));
 
     useEffect(() => { saveState(email, persisted); }, [email, persisted]);
 
-    const roadmap = useMemo(() => roadmapForTier(blueprint.tier), [blueprint.tier]);
-    const processDetails = useMemo(() => {
-        const all = CATEGORIES.flatMap((c) => c.processes.map((p) => ({ ...p, category: c.name })));
-        return blueprint.processes.map((id) => all.find((p) => p.id === id)).filter(Boolean);
-    }, [blueprint.processes]);
+    const workspace = useMemo(() => readWorkspace(blueprint, email), [blueprint, email]);
 
-    const automationRate = Math.min(0.3 + blueprint.processes.length * 0.025, 0.7);
-    const weeklyHoursSaved = +(blueprint.roi.hoursPerWeek * blueprint.roi.teamSize * automationRate).toFixed(1);
-    const annualSavings = Math.round(weeklyHoursSaved * blueprint.roi.hourlyRate * 52);
-
-    const toggleTask = useCallback((phaseIndex, taskIndex) => {
-        const key = `${phaseIndex}:${taskIndex}`;
-        setPersisted((prev) => ({
-            ...prev,
-            completedTasks: { ...prev.completedTasks, [key]: !prev.completedTasks[key] },
-        }));
-    }, []);
-
-    const updateMemory = useCallback((value) => {
-        setPersisted((prev) => ({ ...prev, memory: value }));
+    const updateScratchpad = useCallback((value) => {
+        setPersisted((prev) => ({ ...prev, scratchpad: value }));
     }, []);
 
     return (
         <div className="min-h-screen bg-bg">
-            {/* ── Top bar ─────────────────────────────────────── */}
+            {/* Top bar */}
             <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-success pulse-dot" />
+                        <div className={`w-2 h-2 rounded-full pulse-dot ${workspace.source === 'disk' ? 'bg-success' : 'bg-warning'}`} />
                         <span className="font-display font-bold text-sm tracking-wide text-text-main">
                             CentraMind
                         </span>
-                        <span className="hidden sm:inline text-xs text-text-subtle font-mono ml-2">
-                            / {email}
-                        </span>
+                        {email && (
+                            <span className="hidden sm:inline text-xs text-text-subtle font-mono ml-2">
+                                / {email}
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-2">
                         <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/5">
-                            {TIER_NAMES[blueprint.tier]}
+                            {TIER_NAMES[workspace.tier]}
+                        </span>
+                        <span
+                            className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-border text-text-subtle"
+                            title={workspace.source === 'disk'
+                                ? 'Reading live files from your repo root.'
+                                : 'Reading from your in-browser blueprint. Run the Claude Code bootstrap prompt in this folder to go live.'}
+                        >
+                            {workspace.source === 'disk' ? 'Live' : 'Preview'}
                         </span>
                     </div>
                 </div>
             </header>
 
-            {/* ── Welcome / stat strip ────────────────────────── */}
+            {/* Summary strip */}
             <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-6">
                 <div className="mb-6">
                     <p className="text-xs font-mono uppercase tracking-wider text-primary mb-2">
-                        Your CentraMind is live
+                        {workspace.source === 'disk' ? 'Workspace' : 'Preview'}
                     </p>
                     <h1 className="font-display font-bold text-2xl sm:text-3xl text-text-main mb-1">
-                        Welcome to your system.
+                        {workspace.source === 'disk'
+                            ? 'Your workspace at a glance.'
+                            : 'Your blueprint, in place.'}
                     </h1>
-                    <p className="text-sm text-text-muted max-w-xl">
-                        This is the dashboard your AI will run from. Your blueprint is wired in.
-                        Your roadmap is loaded. Pick up where the questionnaire left off.
+                    <p className="text-sm text-text-muted max-w-2xl">
+                        {workspace.source === 'disk'
+                            ? 'Everything here is read from the state files in your repo. Edit them with Claude Code and this view updates on save.'
+                            : 'This is a preview based on your questionnaire answers. To make it the real thing, open the Claude Code tab and run the bootstrap prompt from this folder.'}
                     </p>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <StatCard label="Processes" value={blueprint.processes.length} />
-                    <StatCard label="Architecture" value={TIER_NAMES[blueprint.tier]} small />
-                    <StatCard label="Hours Saved/wk" value={`${weeklyHoursSaved}h`} accent />
-                    <StatCard label="Annual Savings" value={`$${annualSavings.toLocaleString()}`} success />
+                    <StatCard label="Processes" value={workspace.processes.length} />
+                    <StatCard label="Architecture" value={TIER_NAMES[workspace.tier]} small />
+                    <StatCard label="Hours Saved/wk" value={`${workspace.roi.weekly_hours_saved.toFixed(1)}h`} accent />
+                    <StatCard label="Annual Savings" value={`$${workspace.roi.annual_savings_usd.toLocaleString()}`} success />
                 </div>
             </section>
 
-            {/* ── Tabs ────────────────────────────────────────── */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 border-b border-border">
-                <nav className="flex gap-1 flex-wrap">
+            {/* Tabs */}
+            <div className="max-w-6xl mx-auto px-4 sm:px-6 border-b border-border overflow-x-auto">
+                <nav className="flex gap-1 flex-nowrap sm:flex-wrap min-w-max sm:min-w-0">
                     {TABS.map((t) => (
                         <button
                             key={t.id}
                             onClick={() => setTab(t.id)}
-                            className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider border-b-2 transition-colors cursor-pointer ${
+                            className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
                                 tab === t.id
                                     ? 'border-primary text-primary'
                                     : 'border-transparent text-text-muted hover:text-text-main'
@@ -118,36 +136,15 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
                 </nav>
             </div>
 
-            {/* ── Tab content ─────────────────────────────────── */}
+            {/* Tab content */}
             <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-                {tab === 'today' && (
-                    <TodayTab
-                        roadmap={roadmap}
-                        completedTasks={persisted.completedTasks}
-                        onToggle={toggleTask}
-                    />
-                )}
-                {tab === 'claude' && (
-                    <ClaudeTab blueprint={blueprint} email={email} />
-                )}
-                {tab === 'blueprint' && (
-                    <BlueprintTab
-                        blueprint={blueprint}
-                        email={email}
-                        processDetails={processDetails}
-                        roadmap={roadmap}
-                    />
-                )}
-                {tab === 'memory' && (
-                    <MemoryTab memory={persisted.memory} onChange={updateMemory} />
-                )}
-                {tab === 'settings' && (
-                    <SettingsTab
-                        email={email}
-                        blueprint={blueprint}
-                        onRetake={onRetakeBlueprint}
-                    />
-                )}
+                {tab === 'overview'   && <OverviewTab   workspace={workspace} />}
+                {tab === 'processes'  && <ProcessesTab  workspace={workspace} />}
+                {tab === 'priorities' && <PrioritiesTab workspace={workspace} />}
+                {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
+                {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
+                {tab === 'claude'     && <ClaudeTab     blueprint={blueprint} email={email} />}
+                {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} />}
             </main>
 
             <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
@@ -161,98 +158,364 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
     );
 }
 
-/* ─────────────────────────────────────────────────────────── */
-/* Today                                                       */
-/* ─────────────────────────────────────────────────────────── */
+/* ── Overview ────────────────────────────────────────────── */
 
-function TodayTab({ roadmap, completedTasks, onToggle }) {
-    const currentPhase = roadmap[0];
-    const totalThisPhase = currentPhase.tasks.length;
-    const doneThisPhase = currentPhase.tasks.reduce((acc, _, i) => (
-        completedTasks[`0:${i}`] ? acc + 1 : acc
-    ), 0);
+function OverviewTab({ workspace }) {
+    const { processes, projects, directives, heartbeat, productBrief, todo, roadmap } = workspace;
+
+    const categoryBreakdown = useMemo(() => {
+        const counts = {};
+        processes.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    }, [processes]);
+
+    const alerts = parseAlerts(heartbeat);
+    const thisWeek = todo.thisWeek.length ? todo.thisWeek : roadmap[0].tasks.map((t) => ({ text: t, done: false }));
 
     return (
-        <div className="space-y-8">
-            <div className="glass rounded-xl p-6">
-                <div className="flex items-baseline justify-between mb-1">
-                    <h2 className="font-display font-bold text-lg text-text-main">This week</h2>
-                    <span className="text-xs font-mono text-text-subtle">
-                        {doneThisPhase}/{totalThisPhase} done
-                    </span>
-                </div>
-                <p className="text-xs text-text-muted mb-5">
-                    {currentPhase.phase} &middot; {currentPhase.title}
-                </p>
-                <ul className="space-y-2">
-                    {currentPhase.tasks.map((task, i) => {
-                        const key = `0:${i}`;
-                        const done = !!completedTasks[key];
-                        return (
-                            <li key={key}>
-                                <button
-                                    onClick={() => onToggle(0, i)}
-                                    className={`w-full flex items-start gap-3 text-left px-3 py-2.5 rounded-lg border transition-colors cursor-pointer ${
-                                        done
-                                            ? 'bg-success/5 border-success/20 text-text-subtle'
-                                            : 'bg-bg-card border-border hover:border-primary/30'
-                                    }`}
-                                >
-                                    <span className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
-                                        done ? 'bg-success border-success' : 'border-text-subtle'
-                                    }`}>
-                                        {done && (
-                                            <svg className="w-2.5 h-2.5 text-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                                            </svg>
-                                        )}
-                                    </span>
-                                    <span className={`text-sm ${done ? 'line-through' : 'text-text-main'}`}>
-                                        {task}
-                                    </span>
-                                </button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+                <Panel title="This week">
+                    <ul className="space-y-2">
+                        {thisWeek.slice(0, 5).map((item, i) => (
+                            <li key={i} className="flex items-start gap-3 text-sm">
+                                <Checkbox done={item.done} />
+                                <span className={item.done ? 'line-through text-text-subtle' : 'text-text-main'}>
+                                    {item.text}
+                                </span>
                             </li>
-                        );
-                    })}
-                </ul>
+                        ))}
+                    </ul>
+                    {todo.thisWeek.length === 0 && (
+                        <p className="text-[11px] text-text-subtle mt-4 font-mono">
+                            Seeded from your roadmap. Edit TODO.md to take ownership.
+                        </p>
+                    )}
+                </Panel>
+
+                <Panel title={`Projects (${projects.length})`}>
+                    {projects.length === 0 ? (
+                        <EmptyNote>
+                            No projects yet. Run the bootstrap prompt in the Claude Code tab and
+                            one project per selected process gets seeded into{' '}
+                            <code className="text-primary text-xs">state/projects.json</code>.
+                        </EmptyNote>
+                    ) : (
+                        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {projects.slice(0, 6).map((p) => (
+                                <li key={p.id} className="border border-border bg-bg-card rounded-lg p-3">
+                                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                                        <span className="font-display font-semibold text-sm text-text-main truncate">{p.name}</span>
+                                        <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">{p.status}</span>
+                                    </div>
+                                    <p className="text-xs text-text-muted line-clamp-2">{p.description || '(no description yet)'}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Panel>
+
+                <Panel title="Process coverage">
+                    <div className="space-y-2">
+                        {categoryBreakdown.length === 0 ? (
+                            <EmptyNote>No processes selected.</EmptyNote>
+                        ) : categoryBreakdown.map(([cat, count]) => (
+                            <div key={cat} className="flex items-center gap-3">
+                                <span className="text-xs text-text-muted w-32 shrink-0">{cat}</span>
+                                <div className="flex-1 h-2 bg-bg-elevated rounded-full overflow-hidden">
+                                    <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min(count / 5, 1) * 100}%` }} />
+                                </div>
+                                <span className="text-xs text-text-main font-mono w-6 text-right">{count}</span>
+                            </div>
+                        ))}
+                    </div>
+                </Panel>
             </div>
 
-            <div className="glass rounded-xl p-6">
-                <h3 className="font-display font-semibold text-sm text-text-main mb-4">What's next</h3>
-                <div className="space-y-4">
-                    {roadmap.slice(1).map((phase, i) => (
-                        <div key={i} className="flex gap-3">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                                {i + 2}
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-baseline gap-2 mb-0.5">
-                                    <span className="text-xs font-mono text-primary">{phase.phase}</span>
-                                    <span className="font-display font-semibold text-sm text-text-main">{phase.title}</span>
-                                </div>
-                                <p className="text-xs text-text-muted">{phase.tasks.length} tasks</p>
-                            </div>
+            <div className="space-y-6">
+                <Panel title="Heartbeat">
+                    {alerts.length === 0 ? (
+                        <div className="flex items-center gap-2 text-xs text-success font-mono">
+                            <span className="w-1.5 h-1.5 rounded-full bg-success" /> All clear
                         </div>
-                    ))}
-                </div>
+                    ) : (
+                        <ul className="space-y-1.5 text-xs text-warning">
+                            {alerts.map((a, i) => <li key={i}>{a}</li>)}
+                        </ul>
+                    )}
+                </Panel>
+
+                <Panel title={`Standing directives (${directives.length})`}>
+                    {directives.length === 0 ? (
+                        <EmptyNote>None yet. Run the bootstrap prompt to seed them.</EmptyNote>
+                    ) : (
+                        <ul className="space-y-3">
+                            {directives.slice(0, 4).map((d) => (
+                                <li key={d.id} className="border-l-2 border-primary/40 pl-3">
+                                    <div className="flex items-baseline justify-between gap-2 mb-0.5">
+                                        <span className="font-display font-semibold text-xs text-text-main">{d.title}</span>
+                                        <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">{d.priority}</span>
+                                    </div>
+                                    <p className="text-[11px] text-text-muted leading-snug">{d.rule}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </Panel>
+
+                <Panel title="Product brief">
+                    {productBrief ? (
+                        <pre className="text-[11px] text-text-muted whitespace-pre-wrap font-sans leading-relaxed max-h-48 overflow-y-auto">
+                            {productBrief}
+                        </pre>
+                    ) : (
+                        <EmptyNote>
+                            <code className="text-primary text-xs">context/product-brief.md</code> is empty.
+                        </EmptyNote>
+                    )}
+                </Panel>
             </div>
         </div>
     );
 }
 
-/* ─────────────────────────────────────────────────────────── */
-/* Claude Code                                                 */
-/* ─────────────────────────────────────────────────────────── */
+/* ── Processes ───────────────────────────────────────────── */
+
+function ProcessesTab({ workspace }) {
+    const { processes, mappings } = workspace;
+    const [filter, setFilter] = useState('all');
+
+    const categories = useMemo(() => {
+        const set = new Set(processes.map((p) => p.category));
+        return ['all', ...Array.from(set)];
+    }, [processes]);
+
+    const visible = processes.filter((p) => filter === 'all' || p.category === filter);
+
+    return (
+        <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+                {categories.map((c) => (
+                    <button
+                        key={c}
+                        onClick={() => setFilter(c)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-mono border transition-colors cursor-pointer ${
+                            filter === c
+                                ? 'border-primary text-primary bg-primary/10'
+                                : 'border-border text-text-muted hover:border-primary/30'
+                        }`}
+                    >
+                        {c === 'all' ? `All (${processes.length})` : c}
+                    </button>
+                ))}
+            </div>
+
+            {visible.length === 0 ? (
+                <EmptyNote>No processes in this view.</EmptyNote>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {visible.map((p) => {
+                        const m = mappings[p.id];
+                        return (
+                            <div key={p.id} className="glass rounded-xl p-4">
+                                <div className="flex items-baseline justify-between gap-2 mb-1">
+                                    <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">{p.category}</span>
+                                    {m?.tool && (
+                                        <span className="text-[10px] font-mono uppercase tracking-wider text-primary">{m.tool}</span>
+                                    )}
+                                </div>
+                                <h4 className="font-display font-semibold text-sm text-text-main mb-1">{p.name}</h4>
+                                {m?.approach ? (
+                                    <p className="text-xs text-text-muted leading-relaxed">{m.approach}</p>
+                                ) : (
+                                    <p className="text-xs text-text-subtle italic">No AI mapping recorded yet.</p>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Priorities ──────────────────────────────────────────── */
+
+function PrioritiesTab({ workspace }) {
+    const { todo, roadmap, source } = workspace;
+
+    const thisWeek = todo.thisWeek.length ? todo.thisWeek : roadmap[0].tasks.map((t) => ({ text: t, done: false }));
+    const backlog = todo.backlog.length ? todo.backlog : roadmap.slice(1).flatMap((p) => p.tasks).map((t) => ({ text: t, done: false }));
+    const completed = todo.completed;
+
+    return (
+        <div className="space-y-6">
+            {source === 'memory' && (
+                <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card">
+                    These priorities are seeded from your blueprint roadmap. Run the bootstrap prompt in the Claude Code tab to turn TODO.md into your real priority list.
+                </div>
+            )}
+
+            <Panel title={`This Week (${thisWeek.length})`}>
+                <TaskList items={thisWeek} empty="No tasks this week." />
+            </Panel>
+
+            <Panel title={`Backlog (${backlog.length})`}>
+                <TaskList items={backlog} empty="Backlog is clear." />
+            </Panel>
+
+            <Panel title={`Completed (${completed.length})`}>
+                <TaskList items={completed} empty="Nothing logged as complete yet." />
+            </Panel>
+        </div>
+    );
+}
+
+function TaskList({ items, empty }) {
+    if (items.length === 0) {
+        return <EmptyNote>{empty}</EmptyNote>;
+    }
+    return (
+        <ul className="space-y-1.5">
+            {items.map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm">
+                    <Checkbox done={item.done} />
+                    <span className={item.done ? 'line-through text-text-subtle' : 'text-text-main'}>
+                        {item.text}
+                    </span>
+                </li>
+            ))}
+        </ul>
+    );
+}
+
+/* ── Memory ──────────────────────────────────────────────── */
+
+function MemoryTab({ workspace, scratchpad, onScratchpadChange }) {
+    const { memoryText } = workspace;
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Panel title="MEMORY.md">
+                {memoryText ? (
+                    <pre className="text-xs text-text-muted whitespace-pre-wrap font-sans leading-relaxed max-h-[520px] overflow-y-auto">
+                        {memoryText}
+                    </pre>
+                ) : (
+                    <EmptyNote>
+                        <code className="text-primary text-xs">memory/MEMORY.md</code> is empty.
+                        Run the bootstrap prompt to seed it.
+                    </EmptyNote>
+                )}
+            </Panel>
+
+            <Panel title="Scratchpad">
+                <p className="text-xs text-text-muted mb-3">
+                    Jot down decisions or wins here. Saves to your browser only. When it's worth
+                    keeping, copy the relevant lines into{' '}
+                    <code className="text-primary text-xs">memory/MEMORY.md</code>.
+                </p>
+                <textarea
+                    value={scratchpad}
+                    onChange={(e) => onScratchpadChange(e.target.value)}
+                    placeholder="What did you learn today? What did you decide?"
+                    className="w-full min-h-[380px] bg-bg-elevated border border-border rounded-lg p-3 text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:border-primary/50 font-sans resize-y"
+                />
+                <p className="text-[10px] text-text-subtle mt-2 font-mono">
+                    {scratchpad.length} characters &middot; local to this browser
+                </p>
+            </Panel>
+        </div>
+    );
+}
+
+/* ── Sessions ────────────────────────────────────────────── */
+
+function SessionsTab({ workspace }) {
+    const { sessions } = workspace;
+    if (sessions.length === 0) {
+        return (
+            <EmptyNote>
+                No sessions logged yet. Each time your AI wraps a work block, it should append an
+                entry to <code className="text-primary text-xs">state/session-log.json</code>.
+            </EmptyNote>
+        );
+    }
+    return (
+        <div className="space-y-4">
+            {sessions.map((s) => (
+                <div key={s.id} className="glass rounded-xl p-5">
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                        <span className="font-mono text-xs text-primary">{s.id}</span>
+                        <span className="font-mono text-xs text-text-subtle">{s.date}</span>
+                    </div>
+                    <p className="text-sm text-text-main leading-relaxed mb-4">{s.summary}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        {s.completed?.length > 0 && (
+                            <div>
+                                <span className="font-mono uppercase tracking-wider text-success text-[10px]">Completed</span>
+                                <ul className="mt-1 space-y-0.5 text-text-muted">
+                                    {s.completed.map((c, i) => <li key={i}>{c}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                        {s.pending?.length > 0 && (
+                            <div>
+                                <span className="font-mono uppercase tracking-wider text-warning text-[10px]">Pending</span>
+                                <ul className="mt-1 space-y-0.5 text-text-muted">
+                                    {s.pending.map((c, i) => <li key={i}>{c}</li>)}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+/* ── Claude Code ─────────────────────────────────────────── */
 
 function ClaudeTab({ blueprint, email }) {
-    const [copied, setCopied] = useState(false);
+    const [copyState, setCopyState] = useState('idle');
     const prompt = useMemo(() => bootstrapPrompt(blueprint, email), [blueprint, email]);
+    const textareaRef = useRef(null);
+    const timerRef = useRef(null);
 
-    const copy = useCallback(() => {
-        navigator.clipboard.writeText(prompt);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const flash = (state) => {
+        setCopyState(state);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setCopyState('idle'), 2500);
+    };
+
+    const copy = useCallback(async () => {
+        try {
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(prompt);
+                flash('copied');
+                return;
+            }
+        } catch {
+            // fall through to execCommand fallback
+        }
+        try {
+            const ta = textareaRef.current;
+            if (ta) {
+                ta.focus();
+                ta.select();
+                const ok = document.execCommand('copy');
+                flash(ok ? 'copied' : 'failed');
+                return;
+            }
+        } catch {
+            // ignore
+        }
+        flash('failed');
     }, [prompt]);
+
+    const selectAll = () => {
+        const ta = textareaRef.current;
+        if (ta) { ta.focus(); ta.select(); }
+    };
 
     return (
         <div className="space-y-6">
@@ -261,9 +524,9 @@ function ClaudeTab({ blueprint, email }) {
                     Plug your blueprint into Claude Code
                 </h2>
                 <p className="text-sm text-text-muted mb-5 leading-relaxed">
-                    Copy the prompt below. Open Claude Code in the folder where you want your
-                    CentraMind to live. Paste it. Claude reads your blueprint, sets up the files
-                    your AI teammate needs, and tells you what to do first.
+                    Run this in the root of your cloned blueprint repo. Claude reads your answers,
+                    writes your state files, and the dashboard above flips from Preview to Live on
+                    the next render.
                 </p>
 
                 <ol className="space-y-3 mb-6">
@@ -274,34 +537,54 @@ function ClaudeTab({ blueprint, email }) {
                         </a>
                     </Step>
                     <Step n={2}>
-                        Make a new folder on your computer. Name it something like <code className="text-primary">my-centramind</code>.
+                        Open your terminal in the folder where you cloned{' '}
+                        <code className="text-primary">armory-centramind-blueprint</code>. Run{' '}
+                        <code className="text-primary">claude</code>.
                     </Step>
-                    <Step n={3}>
-                        Open your terminal, go into that folder, and run <code className="text-primary">claude</code>.
-                    </Step>
-                    <Step n={4}>Paste the prompt below. Hit enter. Watch it go.</Step>
+                    <Step n={3}>Paste the prompt below. Hit enter. Let it run.</Step>
+                    <Step n={4}>Refresh this page. The Overview tab reads the files Claude just wrote.</Step>
                 </ol>
 
                 <div className="relative">
-                    <div className="absolute top-3 right-3 z-10">
+                    <div className="absolute top-3 right-3 z-10 flex gap-2">
+                        <button
+                            onClick={selectAll}
+                            className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider rounded-md bg-bg-elevated border border-border hover:border-primary/30 text-text-main transition-colors cursor-pointer"
+                        >
+                            Select
+                        </button>
                         <button
                             onClick={copy}
-                            className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider rounded-md bg-primary text-bg hover:brightness-110 transition-all cursor-pointer"
+                            className={`px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider rounded-md transition-all cursor-pointer ${
+                                copyState === 'copied'
+                                    ? 'bg-success text-bg'
+                                    : copyState === 'failed'
+                                        ? 'bg-warning text-bg'
+                                        : 'bg-primary text-bg hover:brightness-110'
+                            }`}
                         >
-                            {copied ? 'Copied' : 'Copy Prompt'}
+                            {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Select + copy' : 'Copy Prompt'}
                         </button>
                     </div>
-                    <pre className="bg-bg-elevated border border-border rounded-lg p-4 pr-28 text-xs text-text-main overflow-x-auto max-h-96 whitespace-pre-wrap">
-                        {prompt}
-                    </pre>
+                    <textarea
+                        ref={textareaRef}
+                        readOnly
+                        value={prompt}
+                        className="w-full bg-bg-elevated border border-border rounded-lg p-4 pr-40 text-xs text-text-main font-mono max-h-96 h-96 resize-y focus:outline-none focus:border-primary/50"
+                    />
+                    {copyState === 'failed' && (
+                        <p className="text-[11px] text-warning mt-2 font-mono">
+                            Clipboard access blocked. Use Select, then Ctrl+C / Cmd+C.
+                        </p>
+                    )}
                 </div>
             </div>
 
             <div className="glass rounded-xl p-6">
                 <h3 className="font-display font-semibold text-sm text-text-main mb-2">Prefer a file?</h3>
                 <p className="text-xs text-text-muted mb-4">
-                    Download your blueprint as JSON. You can hand this file to Claude directly,
-                    or save it for later.
+                    Download your blueprint as JSON. You can hand it to Claude directly or keep it
+                    for your records.
                 </p>
                 <button
                     onClick={() => downloadBlueprint(blueprint, email)}
@@ -328,145 +611,32 @@ function Step({ n, children }) {
     );
 }
 
-/* ─────────────────────────────────────────────────────────── */
-/* Blueprint                                                   */
-/* ─────────────────────────────────────────────────────────── */
+/* ── Settings ────────────────────────────────────────────── */
 
-function BlueprintTab({ blueprint, email, processDetails, roadmap }) {
-    const categoryBreakdown = useMemo(() => {
-        const counts = {};
-        processDetails.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
-        return Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    }, [processDetails]);
-
-    return (
-        <div className="space-y-6">
-            <div className="glass rounded-xl p-6">
-                <div className="flex items-baseline justify-between mb-4">
-                    <h2 className="font-display font-bold text-lg text-text-main">Your blueprint</h2>
-                    <button
-                        onClick={() => downloadBlueprint(blueprint, email)}
-                        className="text-[11px] font-mono uppercase tracking-wider text-primary hover:underline cursor-pointer"
-                    >
-                        Download JSON
-                    </button>
-                </div>
-
-                <div className="mb-6">
-                    <h3 className="font-display font-semibold text-sm text-text-main mb-3">Process coverage</h3>
-                    <div className="space-y-2">
-                        {categoryBreakdown.map(([cat, count]) => (
-                            <div key={cat} className="flex items-center gap-3">
-                                <span className="text-xs text-text-muted w-28 shrink-0">{cat}</span>
-                                <div className="flex-1 h-2 bg-bg-elevated rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full" style={{ width: `${(count / 5) * 100}%` }} />
-                                </div>
-                                <span className="text-xs text-text-main font-mono w-6 text-right">{count}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div>
-                    <h3 className="font-display font-semibold text-sm text-text-main mb-3">Your roadmap</h3>
-                    <div className="space-y-5">
-                        {roadmap.map((phase, i) => (
-                            <div key={i} className="flex gap-4">
-                                <div className="flex flex-col items-center">
-                                    <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
-                                        {i + 1}
-                                    </div>
-                                    {i < roadmap.length - 1 && <div className="w-px flex-1 bg-border mt-2" />}
-                                </div>
-                                <div className="flex-1 pb-2">
-                                    <div className="flex items-baseline gap-2 mb-2">
-                                        <span className="text-xs font-mono text-primary">{phase.phase}</span>
-                                        <span className="font-display font-semibold text-sm text-text-main">{phase.title}</span>
-                                    </div>
-                                    <ul className="space-y-1">
-                                        {phase.tasks.map((task) => (
-                                            <li key={task} className="flex items-start gap-2 text-xs text-text-muted">
-                                                <span className="w-1 h-1 rounded-full bg-text-subtle mt-1.5 shrink-0" />
-                                                {task}
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/* Memory                                                      */
-/* ─────────────────────────────────────────────────────────── */
-
-function MemoryTab({ memory, onChange }) {
-    return (
-        <div className="space-y-4">
-            <div className="glass rounded-xl p-6">
-                <h2 className="font-display font-bold text-lg text-text-main mb-2">Memory</h2>
-                <p className="text-sm text-text-muted mb-5">
-                    Write down decisions, wins, things you want your AI to remember. This saves
-                    to your browser automatically. When you plug Claude Code into this folder,
-                    this becomes your <code className="text-primary text-xs">memory/MEMORY.md</code>.
-                </p>
-                <textarea
-                    value={memory}
-                    onChange={(e) => onChange(e.target.value)}
-                    placeholder="Start jotting. What did you learn today? What decision did you make? What do you want your AI to know about your business?"
-                    className="w-full min-h-[320px] bg-bg-elevated border border-border rounded-lg p-4 text-sm text-text-main placeholder:text-text-subtle focus:outline-none focus:border-primary/50 font-sans resize-y"
-                />
-                <p className="text-[10px] text-text-subtle mt-2 font-mono">
-                    {memory.length} characters &middot; saved locally
-                </p>
-            </div>
-        </div>
-    );
-}
-
-/* ─────────────────────────────────────────────────────────── */
-/* Settings                                                    */
-/* ─────────────────────────────────────────────────────────── */
-
-function SettingsTab({ email, blueprint, onRetake }) {
-    const payload = useMemo(() => serializeBlueprint(blueprint, email), [blueprint, email]);
-
+function SettingsTab({ workspace, onRetake }) {
+    const { project, source, email } = workspace;
     return (
         <div className="space-y-6">
             <div className="glass rounded-xl p-6">
                 <h2 className="font-display font-bold text-lg text-text-main mb-4">Your account</h2>
                 <dl className="space-y-2 text-sm">
-                    <div className="flex justify-between py-2 border-b border-border">
-                        <dt className="text-text-muted">Email</dt>
-                        <dd className="text-text-main font-mono text-xs">{email || 'anonymous'}</dd>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-border">
-                        <dt className="text-text-muted">Tier</dt>
-                        <dd className="text-text-main">{TIER_NAMES[blueprint.tier]}</dd>
-                    </div>
-                    <div className="flex justify-between py-2 border-b border-border">
-                        <dt className="text-text-muted">Blueprint version</dt>
-                        <dd className="text-text-main font-mono text-xs">{payload.version}</dd>
-                    </div>
-                    <div className="flex justify-between py-2">
-                        <dt className="text-text-muted">Generated</dt>
-                        <dd className="text-text-main font-mono text-xs">
-                            {new Date(payload.generated_at).toLocaleString()}
-                        </dd>
-                    </div>
+                    <Row label="Email" value={email || 'anonymous'} mono />
+                    <Row label="Tier" value={TIER_NAMES[project?.architecture?.tier] || TIER_NAMES[workspace.tier]} />
+                    <Row label="Blueprint version" value={project?.version || '1.0.0'} mono />
+                    <Row
+                        label="Generated"
+                        value={project?.generated_at ? new Date(project.generated_at).toLocaleString() : '(in-memory)'}
+                        mono
+                    />
+                    <Row label="Source" value={source === 'disk' ? 'state/project.json' : 'in-browser fallback'} mono last />
                 </dl>
             </div>
 
             <div className="glass rounded-xl p-6">
-                <h3 className="font-display font-semibold text-sm text-text-main mb-2">Need to redo your blueprint?</h3>
+                <h3 className="font-display font-semibold text-sm text-text-main mb-2">Retake the questionnaire</h3>
                 <p className="text-sm text-text-muted mb-4">
-                    Businesses change. Retake the questionnaire any time. Your progress on this
-                    dashboard stays put.
+                    Businesses change. Walk the audit again any time. Your disk state stays where
+                    it is -- only the in-browser blueprint resets.
                 </p>
                 <button
                     onClick={onRetake}
@@ -479,7 +649,43 @@ function SettingsTab({ email, blueprint, onRetake }) {
     );
 }
 
-/* ─────────────────────────────────────────────────────────── */
+function Row({ label, value, mono, last }) {
+    return (
+        <div className={`flex justify-between py-2 ${last ? '' : 'border-b border-border'}`}>
+            <dt className="text-text-muted">{label}</dt>
+            <dd className={`text-text-main ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
+        </div>
+    );
+}
+
+/* ── Shared bits ─────────────────────────────────────────── */
+
+function Panel({ title, children }) {
+    return (
+        <div className="glass rounded-xl p-5">
+            <h3 className="font-display font-semibold text-sm text-text-main mb-4">{title}</h3>
+            {children}
+        </div>
+    );
+}
+
+function EmptyNote({ children }) {
+    return <p className="text-xs text-text-subtle leading-relaxed">{children}</p>;
+}
+
+function Checkbox({ done }) {
+    return (
+        <span className={`mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 ${
+            done ? 'bg-success border-success' : 'border-text-subtle'
+        }`}>
+            {done && (
+                <svg className="w-2.5 h-2.5 text-bg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                </svg>
+            )}
+        </span>
+    );
+}
 
 function StatCard({ label, value, accent, success, small }) {
     const color = success ? 'text-success' : accent ? 'text-primary' : 'text-text-main';
@@ -489,4 +695,153 @@ function StatCard({ label, value, accent, success, small }) {
             <div className="text-[10px] text-text-subtle mt-1 uppercase tracking-wider font-mono">{label}</div>
         </div>
     );
+}
+
+/* ── Workspace reader (disk-first, blueprint fallback) ──── */
+
+function readWorkspace(blueprint, email) {
+    const projectFile    = firstEntry(projectGlob);
+    const projectsFile   = firstEntry(projectsGlob);
+    const sessionsFile   = firstEntry(sessionsGlob);
+    const directivesFile = firstEntry(directivesGlob);
+    const todoRaw        = firstEntry(todoGlob)      ?? '';
+    const heartbeatRaw   = firstEntry(heartbeatGlob) ?? '';
+    const memoryRaw      = firstEntry(memoryGlob)    ?? '';
+    const briefRaw       = firstEntry(briefGlob)     ?? '';
+
+    const hasBootstrap = isRealProjectFile(projectFile);
+    const source = hasBootstrap ? 'disk' : 'memory';
+
+    const tier = projectFile?.architecture?.tier || blueprint?.tier || 'solo';
+    const project = projectFile || serializeBlueprint(blueprint, email);
+
+    const processes = hasBootstrap
+        ? (projectFile.processes ?? [])
+        : resolveProcesses(blueprint?.processes ?? []);
+
+    const mappings = hasBootstrap
+        ? (projectFile.mappings ?? {})
+        : (blueprint?.mappings ?? {});
+
+    const roi = hasBootstrap
+        ? (projectFile.roi ?? computeRoi(blueprint))
+        : computeRoi(blueprint);
+
+    const roadmap = roadmapForTier(tier);
+
+    return {
+        source,
+        email,
+        tier,
+        project,
+        processes,
+        mappings,
+        roi,
+        projects: projectsFile?.projects ?? [],
+        sessions: sessionsFile?.sessions ?? [],
+        directives: stripPlaceholderDirectives(directivesFile?.directives ?? []),
+        todo: parseTodoMarkdown(todoRaw),
+        heartbeat: heartbeatRaw,
+        memoryText: stripPlaceholderMemory(memoryRaw),
+        productBrief: stripPlaceholderBrief(briefRaw),
+        roadmap,
+    };
+}
+
+function isRealProjectFile(pj) {
+    if (!pj) return false;
+    const hasOwner = !!pj?.owner?.email;
+    const hasProcesses = Array.isArray(pj?.processes);
+    return hasOwner && hasProcesses;
+}
+
+function resolveProcesses(ids) {
+    const all = CATEGORIES.flatMap((c) => c.processes.map((p) => ({ id: p.id, name: p.label, category: c.name })));
+    return ids.map((id) => all.find((p) => p.id === id)).filter(Boolean);
+}
+
+// Parses TODO.md into three buckets. Lines matching `- [ ]` or `- [x]` under
+// the three known section headings. Anything with template placeholders
+// like `[Your top priority]` is filtered out so the dashboard can fall back
+// to the roadmap rather than show garbage.
+function parseTodoMarkdown(raw) {
+    const buckets = { thisWeek: [], backlog: [], completed: [] };
+    if (!raw) return buckets;
+
+    let current = null;
+    const lines = raw.split(/\r?\n/);
+    for (const line of lines) {
+        const h = line.match(/^##\s+(.+?)\s*$/);
+        if (h) {
+            const title = h[1].toLowerCase();
+            if (title.includes('this week')) current = 'thisWeek';
+            else if (title.includes('backlog')) current = 'backlog';
+            else if (title.includes('complete')) current = 'completed';
+            else current = null;
+            continue;
+        }
+        if (!current) continue;
+
+        const task = line.match(/^\s*[-*]\s*\[([ xX])\]\s*(.+?)\s*$/);
+        if (task) {
+            const text = task[2];
+            if (isPlaceholderText(text)) continue;
+            buckets[current].push({ done: task[1].toLowerCase() === 'x', text });
+            continue;
+        }
+
+        const numbered = line.match(/^\s*\d+\.\s*(.+?)\s*$/);
+        if (numbered) {
+            const text = numbered[1];
+            if (isPlaceholderText(text)) continue;
+            buckets[current].push({ done: false, text });
+        }
+    }
+    return buckets;
+}
+
+function isPlaceholderText(text) {
+    return /^\[.*\]$/.test(text.trim()) || /\[Your [^\]]+\]/i.test(text) || /\[Future task/i.test(text);
+}
+
+function parseAlerts(raw) {
+    if (!raw) return [];
+    let inAlerts = false;
+    const out = [];
+    for (const line of raw.split(/\r?\n/)) {
+        if (/^##\s+Alerts/i.test(line)) { inAlerts = true; continue; }
+        if (/^##\s/.test(line)) { inAlerts = false; continue; }
+        if (!inAlerts) continue;
+        const bullet = line.match(/^\s*[-*]\s+(.+?)\s*$/);
+        if (bullet) {
+            const text = bullet[1];
+            if (/^none\.?$/i.test(text)) continue;
+            out.push(text);
+        }
+    }
+    return out;
+}
+
+function stripPlaceholderDirectives(list) {
+    // Pre-shipped directives are fine to show; they are real defaults. Keep them.
+    return list;
+}
+
+function stripPlaceholderMemory(raw) {
+    if (!raw) return '';
+    // If the file contains the template placeholder lines and nothing else of
+    // substance, return empty so the tab shows the bootstrap nudge instead.
+    const placeholder = /\[Date\]:\s*\[Decision and reasoning\]/.test(raw);
+    const hasRealContent = /^##\s+Owner/m.test(raw) || /^-\s+\d{4}-\d{2}-\d{2}:/m.test(raw);
+    if (placeholder && !hasRealContent) return '';
+    return raw;
+}
+
+function stripPlaceholderBrief(raw) {
+    if (!raw) return '';
+    // The pre-shipped product-brief.md describes the armory product itself,
+    // not the user's CentraMind. Hide it until the bootstrap prompt writes
+    // a real brief for the user.
+    if (/CentraMind Blueprint: Product Brief/.test(raw)) return '';
+    return raw;
 }

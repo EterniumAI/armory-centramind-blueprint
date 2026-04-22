@@ -1,34 +1,52 @@
 // Blueprint export + Claude Code bootstrap helpers.
-// Keeping this in lib/ so the same functions can be lifted into
-// @eternium/core-blueprint when the package is extracted.
+// Single source of truth for the file schemas the dashboard reads
+// and the bootstrap prompt writes. Keep these in lockstep.
 
 import { CATEGORIES } from '../components/blueprint/ProcessAudit';
 
-const TIER_NAMES = { solo: 'Solo Operator', team: 'Team Fleet', enterprise: 'Enterprise Grid' };
+export const TIER_NAMES = {
+    solo: 'Solo Operator',
+    team: 'Team Fleet',
+    enterprise: 'Enterprise Grid',
+};
+
+// Shared ROI calculation. Anywhere in the app that shows "hours saved" or
+// "annual savings" must call computeRoi so numbers never drift between
+// screens. Formula: questionnaire inputs * automation rate (anchored on
+// process breadth) * 52 working weeks for the annual roll-up.
+export function computeRoi(blueprint) {
+    const processes = blueprint?.processes ?? [];
+    const hoursPerWeek = blueprint?.roi?.hoursPerWeek ?? 0;
+    const hourlyRate = blueprint?.roi?.hourlyRate ?? 0;
+    const teamSize = blueprint?.roi?.teamSize ?? 1;
+
+    const automationRate = Math.min(0.3 + processes.length * 0.025, 0.7);
+    const weeklyHoursSaved = +(hoursPerWeek * teamSize * automationRate).toFixed(1);
+    const annualSavings = Math.round(weeklyHoursSaved * hourlyRate * 52);
+
+    return {
+        hours_per_week: hoursPerWeek,
+        hourly_rate: hourlyRate,
+        team_size: teamSize,
+        automation_rate: +automationRate.toFixed(3),
+        weekly_hours_saved: weeklyHoursSaved,
+        annual_savings_usd: annualSavings,
+    };
+}
 
 export function serializeBlueprint(blueprint, email) {
     const processDetails = resolveProcesses(blueprint.processes);
-    const automationRate = Math.min(0.3 + blueprint.processes.length * 0.025, 0.7);
-    const weeklyHoursSaved = +(blueprint.roi.hoursPerWeek * blueprint.roi.teamSize * automationRate).toFixed(1);
-    const annualSavings = Math.round(weeklyHoursSaved * blueprint.roi.hourlyRate * 52);
-
     return {
         version: '1.0.0',
         generated_at: new Date().toISOString(),
         owner: { email },
         processes: processDetails,
-        mappings: blueprint.mappings,
+        mappings: blueprint.mappings ?? {},
         architecture: {
             tier: blueprint.tier,
             tier_name: TIER_NAMES[blueprint.tier],
         },
-        roi: {
-            hours_per_week: blueprint.roi.hoursPerWeek,
-            hourly_rate: blueprint.roi.hourlyRate,
-            team_size: blueprint.roi.teamSize,
-            weekly_hours_saved: weeklyHoursSaved,
-            annual_savings_usd: annualSavings,
-        },
+        roi: computeRoi(blueprint),
     };
 }
 
@@ -45,48 +63,136 @@ export function downloadBlueprint(blueprint, email) {
     URL.revokeObjectURL(url);
 }
 
+// Maps blueprint tier to the roadmap surfaced in the dashboard Priorities
+// tab when the user has not yet written their own TODO.md. Kept in one
+// place so the summary, the dashboard, and the bootstrap prompt all use
+// the same milestones.
+export function roadmapForTier(tier) {
+    return ROADMAP[tier] || ROADMAP.solo;
+}
+
+// Returns the Claude Code prompt the user pastes into their local
+// terminal. Every file named here has a matching reader in
+// CentraMindDashboard.jsx. If you change a filename or JSON shape,
+// change both together or the dashboard will fall back to the in-memory
+// blueprint prop instead of the live files.
 export function bootstrapPrompt(blueprint, email) {
     const payload = serializeBlueprint(blueprint, email);
-    return `Initialize my CentraMind system using this blueprint.
+    const firstPhase = roadmapForTier(blueprint.tier)[0];
+    const thisWeek = (firstPhase?.tasks ?? []).slice(0, 3);
 
-My blueprint answers:
+    return `You are setting up a CentraMind workspace for the owner described below. Use the blueprint JSON as the source of truth. Do not paraphrase it, do not shorten it, and do not invent values.
+
+Blueprint JSON:
 \`\`\`json
 ${JSON.stringify(payload, null, 2)}
 \`\`\`
 
-Do the following:
+You are in the root of a freshly cloned armory-centramind-blueprint repository. The dashboard at src/components/dashboard/CentraMindDashboard.jsx reads specific files at the repo root. Write exactly these files, with these shapes, overwriting any stub content that is already there:
 
-1. Read the CentraMind architecture at https://github.com/EterniumAI/armory-centramind-blueprint/blob/main/docs/architecture.md and at https://github.com/EterniumAI/eternium-core/blob/main/README.md so you understand the skeleton you are building on.
+1. state/project.json -- the top-level CentraMind manifest. Copy the Blueprint JSON above verbatim into this file.
 
-2. In the current folder, scaffold the CentraMind layout:
-   - CLAUDE.md (root identity + boot sequence)
-   - OWNER.md (my profile, pre-filled from the blueprint above)
-   - TODO.md (my three highest-priority items for this week, pulled from the Week 1-2 roadmap)
-   - HEARTBEAT.md (empty session state)
-   - state/project.json (with my tier, processes, and roi)
-   - state/directives.json (empty)
-   - context/product-brief.md (stub describing what I want this CentraMind to do based on my processes)
-   - context/architecture.md (reference to the core architecture)
-   - memory/MEMORY.md (empty index)
-   - .claude/skills/standup.md (the morning-briefing skill)
-   - .claude/skills/handoff.md (the end-of-day skill)
+2. state/projects.json -- a list of projects the owner is running through CentraMind. Seed it with one project per process the owner selected, using this shape:
+\`\`\`json
+{
+  "projects": [
+    {
+      "id": "<process-id>",
+      "name": "<process name>",
+      "category": "<process category>",
+      "status": "active",
+      "completeness": 0,
+      "description": "<one sentence describing what the owner wants this process to do, based on its mapping>",
+      "nextActions": ["<first concrete step for this process>"],
+      "blockers": []
+    }
+  ]
+}
+\`\`\`
 
-3. Every file should reflect my actual blueprint -- my email, my tier, the processes I selected, the ROI I projected. Do not use placeholders.
+3. state/session-log.json -- keep the existing shape. Replace the seed session with a single bootstrap entry:
+\`\`\`json
+{
+  "sessions": [
+    {
+      "id": "S-001",
+      "date": "<today YYYY-MM-DD>",
+      "summary": "CentraMind bootstrap from blueprint. Wrote project.json, projects.json, directives.json, TODO.md, HEARTBEAT.md, memory/MEMORY.md, and context/product-brief.md from the owner's questionnaire answers.",
+      "projectsTouched": ["centramind-bootstrap"],
+      "completed": ["Scaffolded state files", "Seeded projects from blueprint"],
+      "pending": ${JSON.stringify(thisWeek)},
+      "decisions": ["CentraMind tier: ${payload.architecture.tier_name}"],
+      "blockers": []
+    }
+  ]
+}
+\`\`\`
 
-4. When you are done, print a brief summary of what you created and tell me the first thing I should do.
+4. state/directives.json -- standing rules the AI should follow. Keep the shape { version, lastUpdated, directives: [{id, title, priority, rule, status}] }. Seed it with at least these three directives, plus any others that make sense given the owner's processes:
+- "Session Handoff Required" (priority high) -- end every session with a handoff entry in session-log.json.
+- "Commit Before Context Switch" (priority medium) -- commit work before switching projects.
+- "Read Before Writing" (priority medium) -- read the relevant file before editing.
 
-Ready when you are.`;
+5. TODO.md -- use this exact structure:
+\`\`\`markdown
+# Priorities
+
+## This Week
+${thisWeek.map((t) => `- [ ] ${t}`).join('\n')}
+
+## Backlog
+${(firstPhase?.tasks ?? []).slice(3).map((t) => `- [ ] ${t}`).join('\n') || '- [ ] (add backlog items as you go)'}
+
+## Completed
+- [x] Scaffolded CentraMind workspace from blueprint
+\`\`\`
+
+6. HEARTBEAT.md -- overwrite with:
+\`\`\`markdown
+# Heartbeat
+
+Active alerts requiring human attention. Empty = all clear.
+
+## Alerts
+None.
+\`\`\`
+
+7. memory/MEMORY.md -- seed it with the owner's profile so the AI has persistent context. Use this structure:
+\`\`\`markdown
+# Long-Term Memory
+
+## Owner
+- Email: ${payload.owner.email || '(unset)'}
+- Tier: ${payload.architecture.tier_name}
+- Selected processes: ${payload.processes.map((p) => p.name).join(', ') || '(none)'}
+
+## Key Decisions
+- ${new Date().toISOString().slice(0, 10)}: Bootstrapped CentraMind workspace from blueprint.
+
+## Lessons Learned
+- (add as you go)
+
+## Preferences Discovered
+- (add as you go)
+\`\`\`
+
+8. context/product-brief.md -- write a two paragraph brief describing what the owner wants this CentraMind to do. Ground it in the processes they selected. Do not use marketing language. Do not overpromise. Plain prose.
+
+9. OWNER.md -- replace the template placeholders with the owner's actual email as the name anchor. Leave the other fields as editable templates for the owner to fill in later -- do not invent values for timezone, goals, or work style.
+
+After writing every file:
+- Print a short bullet list of what you wrote.
+- Tell the owner: "Refresh your dashboard -- your Overview tab is now live."
+- Tell them the first TODO.md item to tackle.
+
+Do not run the dev server. Do not commit. Do not push. The owner handles those.`;
 }
 
 function resolveProcesses(ids) {
     const allProcs = CATEGORIES.flatMap((c) =>
-        c.processes.map((p) => ({ id: p.id, name: p.name, category: c.name }))
+        c.processes.map((p) => ({ id: p.id, name: p.label, category: c.name }))
     );
-    return ids.map((id) => allProcs.find((p) => p.id === id)).filter(Boolean);
-}
-
-export function roadmapForTier(tier) {
-    return ROADMAP[tier] || ROADMAP.solo;
+    return (ids ?? []).map((id) => allProcs.find((p) => p.id === id)).filter(Boolean);
 }
 
 const ROADMAP = {

@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "npm run check:no-em-dashes",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
+    "check:no-em-dashes": "node scripts/check-no-em-dashes.cjs",
     "docs": "node scripts/build-pdf.cjs",
     "docs:html": "node scripts/build-pdf.cjs --html"
   },
