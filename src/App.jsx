@@ -6,6 +6,7 @@ import AIMapping from './components/blueprint/AIMapping';
 import SystemArchitecture from './components/blueprint/SystemArchitecture';
 import ROICalculator from './components/blueprint/ROICalculator';
 import BlueprintSummary from './components/blueprint/BlueprintSummary';
+import CentraMindDashboard from './components/dashboard/CentraMindDashboard';
 import { saveLead } from './lib/supabase';
 
 const STEPS = [
@@ -18,6 +19,7 @@ const STEPS = [
 
 export default function App() {
   const [started, setStarted] = useState(false);
+  const [launched, setLaunched] = useState(false);
   const [email, setEmail] = useState('');
   const [currentStep, setCurrentStep] = useState(0);
 
@@ -68,6 +70,16 @@ export default function App() {
     return <Landing onStart={handleStart} />;
   }
 
+  if (launched) {
+    return (
+      <CentraMindDashboard
+        blueprint={blueprint}
+        email={email}
+        onRetakeBlueprint={() => { setLaunched(false); setCurrentStep(0); }}
+      />
+    );
+  }
+
   const stepComponents = [
     <ProcessAudit
       key="processes"
@@ -102,9 +114,9 @@ export default function App() {
     <BlueprintSummary
       key="blueprint"
       blueprint={blueprint}
-      email={email}
       onBack={goPrev}
       onRestart={() => { setStarted(false); setCurrentStep(0); }}
+      onLaunch={() => { setLaunched(true); window.scrollTo(0, 0); }}
     />,
   ];
 

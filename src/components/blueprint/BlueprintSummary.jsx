@@ -24,7 +24,7 @@ const ROADMAP = {
   ],
 };
 
-export default function BlueprintSummary({ blueprint, email, onBack, onRestart }) {
+export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunch }) {
   const { processes, tier, roi } = blueprint;
 
   const processDetails = useMemo(() => {
@@ -130,25 +130,33 @@ export default function BlueprintSummary({ blueprint, email, onBack, onRestart }
       {/* CTA */}
       <div className="glass rounded-xl p-8 text-center mb-8 glow-sm">
         <h3 className="font-display font-bold text-lg text-text-main mb-2">
-          Ready to Start Building?
+          Your system is ready.
         </h3>
         <p className="text-text-muted text-sm mb-6 max-w-md mx-auto">
-          Join the community to get implementation support, connect with other builders,
-          and access the full CentraMind starter kit.
+          This was the plan. Now let's step into the actual CentraMind dashboard,
+          where your blueprint is wired in and you can start using it.
         </p>
-        <a
-          href="https://tyrinbarney.com/community"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all"
-        >
-          Join the Community
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-          </svg>
-        </a>
-        <p className="text-text-subtle text-xs mt-3">
-          Free to join. Get the starter repo, video walkthroughs, and direct support.
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={onLaunch}
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all cursor-pointer"
+          >
+            Launch My CentraMind
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            </svg>
+          </button>
+          <a
+            href="https://tyrinbarney.com/community"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-bg-elevated border border-border hover:border-primary/30 text-text-main text-sm transition-colors"
+          >
+            Join the Community
+          </a>
+        </div>
+        <p className="text-text-subtle text-xs mt-4">
+          Your dashboard ships with your roadmap, memory, and a Claude Code bootstrap prompt.
         </p>
       </div>
 
