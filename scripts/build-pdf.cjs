@@ -1,16 +1,10 @@
 #!/usr/bin/env node
 /**
- * build-pdf.cjs -- Generate a styled PDF from docs/setup-guide.md
+ * build-pdf.cjs -- Generate the Tyrin Barney branded CentraMind Blueprint PDF
  *
  * Usage:
- *   node scripts/build-pdf.cjs            # generates dist/docs.html (+ .pdf if puppeteer available)
- *   node scripts/build-pdf.cjs --html     # HTML only, skip PDF
- *
- * Dependencies (optional devDependencies):
- *   npm install --save-dev marked puppeteer
- *
- * If puppeteer is not installed, the script still generates a self-contained
- * HTML file that you can open in any browser and print to PDF (Ctrl+P).
+ *   node scripts/build-pdf.cjs            # HTML + PDF
+ *   node scripts/build-pdf.cjs --html     # HTML only
  */
 
 const fs = require('fs');
@@ -24,7 +18,12 @@ const OUT_PDF = path.join(DIST_DIR, 'CentraMind-Blueprint-Docs.pdf');
 
 const DOC_FILES = ['setup-guide.md'];
 
-// ── Helpers ─────────────────────────────────────────────────
+const ASSETS = {
+    tyrinBarney: 'https://wmahfjguvqvefgjpbcdc.supabase.co/storage/v1/object/public/brand-assets/legacy/tb-logo.png',
+    claude: 'https://wmahfjguvqvefgjpbcdc.supabase.co/storage/v1/object/public/brand-assets/legacy/claude-full-logo.png',
+    supabase: 'https://wmahfjguvqvefgjpbcdc.supabase.co/storage/v1/object/public/brand-assets/legacy/supabase-logo.png',
+    github: 'https://wmahfjguvqvefgjpbcdc.supabase.co/storage/v1/object/public/brand-assets/legacy/github-logo.png',
+};
 
 function readDoc(filename) {
     const filepath = path.join(DOCS_DIR, filename);
@@ -36,228 +35,508 @@ function readDoc(filename) {
 }
 
 function markdownToHtml(md) {
-    try {
-        const { marked } = require('marked');
-        marked.setOptions({ gfm: true, breaks: false });
-        return marked.parse(md);
-    } catch {
-        return fallbackMarkdown(md);
-    }
+    const { marked } = require('marked');
+    marked.setOptions({ gfm: true, breaks: false });
+    return marked.parse(md);
 }
-
-function fallbackMarkdown(md) {
-    let html = md;
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) =>
-        `<pre><code class="language-${lang}">${escapeHtml(code.trim())}</code></pre>`);
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
-    html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
-    html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
-    html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-    html = html.replace(/^---$/gm, '<hr>');
-    html = html.replace(/^(\|.+\|)\n(\|[-| :]+\|)\n((?:\|.+\|\n?)+)/gm, (_, header, sep, body) => {
-        const ths = header.split('|').filter(c => c.trim()).map(c => `<th>${c.trim()}</th>`).join('');
-        const rows = body.trim().split('\n').map(row => {
-            const tds = row.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('');
-            return `<tr>${tds}</tr>`;
-        }).join('\n');
-        return `<table><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table>`;
-    });
-    html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
-    html = html.replace(/^[-*]\s+(.+)$/gm, '<li>$1</li>');
-    html = html.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-    html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
-    html = html.replace(/^(?!<[a-z])((?!<).+)$/gm, '<p>$1</p>');
-    return html;
-}
-
-function escapeHtml(str) {
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
-
-// ── Styles ──────────────────────────────────────────────────
 
 const CSS = `
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=Great+Vibes&display=swap');
 
     :root {
-        --primary: #00D4FF;
-        --primary-glow: #00eeff;
-        --accent: #E4C790;
-        --bg: #0a0a0a;
-        --bg-surface: #111113;
-        --bg-elevated: #1a1a1e;
-        --text: #e8e8ec;
-        --text-muted: #8b8b96;
-        --text-subtle: #5a5a65;
-        --border: rgba(255, 255, 255, 0.08);
-        --border-accent: rgba(0, 212, 255, 0.25);
+        --gold: #E4C790;
+        --gold-light: #F0DDB5;
+        --gold-dark: #AD8949;
+        --gold-deep: #8B6914;
+        --obsidian: #0B0B0F;
+        --forge: #111118;
+        --vault: #18181F;
+        --steel: #22222C;
+        --ivory: #F5F0E8;
+        --parchment: #D4CFC5;
+        --ash: #8A8890;
+        --shadow: #5C5A66;
+        --border: rgba(228, 199, 144, 0.18);
+        --border-soft: rgba(245, 240, 232, 0.08);
     }
 
     @page { size: Letter; margin: 0; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-        font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        font-size: 10.5pt;
-        line-height: 1.7;
-        color: var(--text);
-        background: var(--bg);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: 11pt;
+        line-height: 1.75;
+        color: var(--ivory);
+        background: var(--obsidian);
+        font-weight: 400;
     }
 
+    /* ── Cover ──────────────────────────────────────────────── */
     .cover {
+        position: relative;
         display: flex;
         flex-direction: column;
         justify-content: center;
         align-items: center;
         min-height: 100vh;
-        padding: 60px 40px;
-        background: linear-gradient(160deg, #050508 0%, #0a0e14 40%, #0d1520 70%, #050508 100%);
+        padding: 80px 60px;
+        background:
+            radial-gradient(ellipse at top, rgba(228, 199, 144, 0.08) 0%, transparent 60%),
+            radial-gradient(ellipse at bottom, rgba(228, 199, 144, 0.04) 0%, transparent 50%),
+            linear-gradient(180deg, #07070A 0%, #0B0B0F 50%, #07070A 100%);
         text-align: center;
         page-break-after: always;
-        position: relative;
         overflow: hidden;
     }
 
     .cover::before {
         content: '';
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 500px;
-        height: 500px;
-        background: radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, transparent 70%);
-        border-radius: 50%;
+        inset: 40px;
+        border: 1px solid var(--border);
+        pointer-events: none;
     }
 
-    .cover .brand-tag {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 8pt;
+    .cover::after {
+        content: '';
+        position: absolute;
+        inset: 48px;
+        border: 1px solid rgba(228, 199, 144, 0.08);
+        pointer-events: none;
+    }
+
+    .cover .crest {
+        width: 140px;
+        height: 140px;
+        object-fit: contain;
+        margin-bottom: 48px;
+        filter: drop-shadow(0 0 24px rgba(228, 199, 144, 0.25));
+        position: relative;
+    }
+
+    .cover .eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 10pt;
         font-weight: 500;
-        letter-spacing: 4px;
+        letter-spacing: 6px;
         text-transform: uppercase;
-        color: var(--primary);
-        margin-bottom: 32px;
+        color: var(--gold);
+        margin-bottom: 28px;
         position: relative;
     }
 
     .cover h1 {
-        font-size: 38pt;
-        font-weight: 800;
-        color: #ffffff;
-        letter-spacing: -1px;
-        line-height: 1.1;
-        border: none;
+        font-family: 'Cinzel', serif;
+        font-size: 46pt;
+        font-weight: 600;
+        color: var(--ivory);
+        letter-spacing: 2px;
+        line-height: 1.05;
         margin: 0;
         padding: 0;
+        border: none;
         position: relative;
+        text-transform: uppercase;
+    }
+
+    .cover h1 .accent {
+        display: block;
+        color: var(--gold);
+        font-size: 44pt;
+        margin-top: 4px;
     }
 
     .cover .subtitle {
+        font-family: 'Inter', sans-serif;
         font-size: 13pt;
         font-weight: 300;
-        color: var(--text-muted);
-        margin-top: 16px;
+        color: var(--parchment);
+        margin-top: 32px;
         letter-spacing: 0.5px;
+        max-width: 440px;
+        line-height: 1.6;
         position: relative;
     }
 
-    .cover .divider {
-        width: 60px;
-        height: 2px;
-        background: linear-gradient(90deg, transparent, var(--primary), transparent);
-        margin: 32px auto;
+    .cover .ornament {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        margin: 44px auto;
+        position: relative;
+    }
+
+    .cover .ornament .line {
+        width: 80px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    .cover .ornament .diamond {
+        width: 6px;
+        height: 6px;
+        background: var(--gold);
+        transform: rotate(45deg);
+    }
+
+    .cover .signature {
+        font-family: 'Great Vibes', cursive;
+        font-size: 22pt;
+        color: var(--gold-light);
+        margin-top: 8px;
         position: relative;
     }
 
     .cover .version {
-        font-family: 'JetBrains Mono', monospace;
+        font-family: 'Inter', sans-serif;
         font-size: 9pt;
-        color: var(--text-subtle);
+        color: var(--shadow);
+        margin-top: 12px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
         position: relative;
     }
 
-    .cover .tagline {
-        font-size: 10pt;
-        color: var(--text-subtle);
-        margin-top: 48px;
-        font-style: italic;
+    /* ── Logo row page ───────────────────────────────────────── */
+    .toolkit {
+        padding: 80px 60px;
+        min-height: 100vh;
+        background:
+            radial-gradient(ellipse at center top, rgba(228, 199, 144, 0.04) 0%, transparent 55%),
+            var(--obsidian);
+        page-break-after: always;
         position: relative;
     }
 
-    .content { padding: 48px 56px; max-width: 100%; }
+    .toolkit .eyebrow {
+        font-family: 'Inter', sans-serif;
+        font-size: 9pt;
+        font-weight: 500;
+        letter-spacing: 5px;
+        text-transform: uppercase;
+        color: var(--gold);
+        text-align: center;
+        margin-bottom: 16px;
+    }
+
+    .toolkit h2 {
+        font-family: 'Cinzel', serif;
+        font-size: 26pt;
+        font-weight: 600;
+        color: var(--ivory);
+        text-align: center;
+        letter-spacing: 1px;
+        margin: 0 0 12px;
+        text-transform: uppercase;
+        border: none;
+        padding: 0;
+    }
+
+    .toolkit .tagline {
+        text-align: center;
+        color: var(--ash);
+        font-size: 11pt;
+        max-width: 460px;
+        margin: 0 auto 56px;
+        line-height: 1.6;
+    }
+
+    .toolkit .divider {
+        width: 80px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--gold), transparent);
+        margin: 0 auto 56px;
+    }
+
+    .toolkit .tools {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 28px;
+        margin-top: 40px;
+    }
+
+    .toolkit .tool {
+        background: linear-gradient(180deg, rgba(228, 199, 144, 0.04) 0%, transparent 100%);
+        border: 1px solid var(--border);
+        padding: 36px 24px 30px;
+        text-align: center;
+        position: relative;
+    }
+
+    .toolkit .tool .logo-wrap {
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 28px;
+    }
+
+    .toolkit .tool .logo-wrap img {
+        max-height: 48px;
+        max-width: 140px;
+        object-fit: contain;
+        filter: brightness(1.05);
+    }
+
+    .toolkit .tool h3 {
+        font-family: 'Cinzel', serif;
+        font-size: 13pt;
+        font-weight: 600;
+        color: var(--gold);
+        margin: 0 0 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .toolkit .tool p {
+        font-size: 9.5pt;
+        color: var(--parchment);
+        line-height: 1.6;
+        margin: 0;
+    }
+
+    /* ── Main content ───────────────────────────────────────── */
+    .content {
+        padding: 64px 72px;
+        max-width: 100%;
+    }
 
     h1 {
-        font-size: 20pt; font-weight: 800; color: #ffffff;
-        margin: 40px 0 12px; padding-bottom: 10px;
-        border-bottom: 2px solid var(--border-accent);
-        page-break-after: avoid; letter-spacing: -0.5px;
+        font-family: 'Cinzel', serif;
+        font-size: 22pt;
+        font-weight: 600;
+        color: var(--ivory);
+        margin: 48px 0 18px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--gold);
+        page-break-after: avoid;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        position: relative;
     }
+
+    h1::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: -1px;
+        width: 40px;
+        height: 3px;
+        background: var(--gold);
+    }
+
     h2 {
-        font-size: 14pt; font-weight: 700; color: var(--primary);
-        margin: 32px 0 10px; padding-bottom: 6px;
+        font-family: 'Cinzel', serif;
+        font-size: 15pt;
+        font-weight: 600;
+        color: var(--gold);
+        margin: 38px 0 14px;
+        padding-bottom: 8px;
         border-bottom: 1px solid var(--border);
         page-break-after: avoid;
+        letter-spacing: 0.5px;
     }
+
     h3 {
-        font-size: 11.5pt; font-weight: 700; color: var(--accent);
-        margin: 20px 0 8px; page-break-after: avoid;
+        font-family: 'Cinzel', serif;
+        font-size: 12pt;
+        font-weight: 600;
+        color: var(--gold-light);
+        margin: 26px 0 10px;
+        letter-spacing: 0.5px;
+        page-break-after: avoid;
     }
-    p { margin: 6px 0; color: var(--text); }
-    strong { color: #ffffff; }
-    a { color: var(--primary); text-decoration: none; border-bottom: 1px solid rgba(0, 212, 255, 0.3); }
+
+    p {
+        margin: 10px 0;
+        color: var(--ivory);
+        font-weight: 400;
+    }
+
+    strong {
+        color: var(--gold);
+        font-weight: 600;
+    }
+
+    em {
+        color: var(--parchment);
+        font-style: italic;
+    }
+
+    a {
+        color: var(--gold);
+        text-decoration: none;
+        border-bottom: 1px dotted rgba(228, 199, 144, 0.5);
+    }
+
     code {
-        font-family: 'JetBrains Mono', monospace; font-size: 9pt;
-        background: var(--bg-elevated); color: var(--primary);
-        padding: 2px 6px; border-radius: 4px; border: 1px solid var(--border);
+        font-family: 'SF Mono', 'Menlo', 'Consolas', monospace;
+        font-size: 9.5pt;
+        background: var(--vault);
+        color: var(--gold-light);
+        padding: 2px 7px;
+        border-radius: 3px;
+        border: 1px solid var(--border-soft);
     }
+
     pre {
-        background: var(--bg-surface); border: 1px solid var(--border);
-        color: var(--text); padding: 14px 18px; border-radius: 8px;
-        overflow-x: auto; margin: 10px 0; page-break-inside: avoid;
+        background: var(--forge);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--gold);
+        color: var(--ivory);
+        padding: 16px 20px;
+        margin: 14px 0;
+        page-break-inside: avoid;
     }
-    pre code { background: none; border: none; padding: 0; color: var(--text-muted); font-size: 8.5pt; }
-    table {
-        width: 100%; border-collapse: separate; border-spacing: 0;
-        margin: 14px 0; font-size: 9.5pt; page-break-inside: avoid;
-        border-radius: 8px; overflow: hidden; border: 1px solid var(--border);
+
+    pre code {
+        background: none;
+        border: none;
+        padding: 0;
+        color: var(--parchment);
+        font-size: 9.5pt;
     }
-    th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--border); }
-    th {
-        background: var(--bg-elevated); font-weight: 700; font-size: 8.5pt;
-        text-transform: uppercase; letter-spacing: 1px; color: var(--primary);
-    }
-    td { background: var(--bg-surface); color: var(--text-muted); }
-    tr:last-child td { border-bottom: none; }
+
     blockquote {
-        border-left: 3px solid var(--primary); padding: 10px 18px;
-        margin: 14px 0; color: var(--text-muted); background: var(--bg-surface);
-        border-radius: 0 6px 6px 0; font-size: 10pt;
+        border-left: 3px solid var(--gold);
+        padding: 14px 22px;
+        margin: 18px 0;
+        color: var(--parchment);
+        background: rgba(228, 199, 144, 0.04);
+        font-size: 10.5pt;
+        font-style: italic;
+        page-break-inside: avoid;
     }
-    li { margin: 3px 0; margin-left: 18px; color: var(--text); }
-    li::marker { color: var(--primary); }
+
+    blockquote p { margin: 0; color: var(--parchment); }
+
+    ul, ol { margin: 10px 0 10px 8px; }
+
+    li {
+        margin: 6px 0;
+        margin-left: 20px;
+        color: var(--ivory);
+        padding-left: 4px;
+    }
+
+    li::marker {
+        color: var(--gold);
+        font-weight: 600;
+    }
+
     hr {
-        border: none; height: 1px;
-        background: linear-gradient(90deg, transparent, var(--border-accent), transparent);
-        margin: 28px 0;
+        border: none;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--border), transparent);
+        margin: 36px 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        margin: 18px 0;
+        font-size: 10pt;
+        page-break-inside: avoid;
+        border: 1px solid var(--border);
+    }
+
+    th, td {
+        padding: 10px 14px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-soft);
+    }
+
+    th {
+        background: var(--forge);
+        font-family: 'Cinzel', serif;
+        font-weight: 600;
+        font-size: 9.5pt;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--gold);
+    }
+
+    td {
+        background: var(--obsidian);
+        color: var(--parchment);
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Footer ──────────────────────────────────────────────── */
+    .closing {
+        padding: 80px 72px;
+        text-align: center;
+        page-break-before: always;
+        background:
+            radial-gradient(ellipse at center, rgba(228, 199, 144, 0.06) 0%, transparent 60%),
+            var(--obsidian);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        position: relative;
+    }
+
+    .closing::before {
+        content: '';
+        position: absolute;
+        inset: 40px;
+        border: 1px solid var(--border);
+    }
+
+    .closing .crest-small {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+        opacity: 0.9;
+        margin-bottom: 32px;
+    }
+
+    .closing .mantra {
+        font-family: 'Cinzel', serif;
+        font-size: 16pt;
+        font-weight: 500;
+        color: var(--ivory);
+        letter-spacing: 1px;
+        line-height: 1.5;
+        max-width: 480px;
+        margin: 0 0 28px;
+        text-transform: uppercase;
+    }
+
+    .closing .sig {
+        font-family: 'Great Vibes', cursive;
+        font-size: 24pt;
+        color: var(--gold);
+        margin-top: 20px;
+    }
+
+    .closing .url {
+        font-family: 'Inter', sans-serif;
+        font-size: 10pt;
+        color: var(--ash);
+        margin-top: 24px;
+        letter-spacing: 2px;
+        text-transform: lowercase;
     }
 
     @media print {
         body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .cover { min-height: 0; height: 100vh; }
+        .cover, .toolkit, .closing { min-height: 0; height: 100vh; }
         pre { white-space: pre-wrap; word-wrap: break-word; }
     }
 `;
 
-// ── Build ───────────────────────────────────────────────────
-
 async function main() {
     const htmlOnly = process.argv.includes('--html');
 
-    console.log('CentraMind Blueprint -- Documentation Builder');
-    console.log('==============================================');
+    console.log('CentraMind Blueprint -- Tyrin Barney Edition');
+    console.log('=============================================');
     console.log('');
 
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf-8'));
@@ -288,20 +567,74 @@ async function main() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CentraMind Blueprint</title>
+    <title>The CentraMind Blueprint -- Tyrin Barney</title>
     <style>${CSS}</style>
 </head>
 <body>
+
+    <!-- ── Cover ────────────────────────────────────────── -->
     <div class="cover">
-        <div class="brand-tag">Eternium Armory</div>
-        <h1>CentraMind<br>Blueprint</h1>
-        <div class="subtitle">AI agent memory. Skills. Context protocol. Command Center.</div>
-        <div class="divider"></div>
-        <div class="version">v${version}</div>
-        <div class="tagline">The system that runs the business that sells the system.</div>
+        <img src="${ASSETS.tyrinBarney}" alt="Tyrin Barney" class="crest" />
+        <div class="eyebrow">Presented by Tyrin Barney</div>
+        <h1>The CentraMind<span class="accent">Blueprint</span></h1>
+        <div class="subtitle">
+            The exact setup I use to run my company with an AI that never forgets.
+        </div>
+        <div class="ornament">
+            <div class="line"></div>
+            <div class="diamond"></div>
+            <div class="line"></div>
+        </div>
+        <div class="signature">Ty</div>
+        <div class="version">Edition ${version}</div>
     </div>
 
+    <!-- ── Toolkit page ─────────────────────────────────── -->
+    <div class="toolkit">
+        <div class="eyebrow">The Three Pillars</div>
+        <h2>Your Toolkit</h2>
+        <div class="divider"></div>
+        <p class="tagline">
+            Three free tools. No subscriptions. No upsells. Together, they give your AI a brain, a memory, and a body.
+        </p>
+        <div class="tools">
+            <div class="tool">
+                <div class="logo-wrap">
+                    <img src="${ASSETS.claude}" alt="Claude" />
+                </div>
+                <h3>The Mind</h3>
+                <p>Claude is the AI itself. Smart, patient, a real teammate. Made by Anthropic.</p>
+            </div>
+            <div class="tool">
+                <div class="logo-wrap">
+                    <img src="${ASSETS.supabase}" alt="Supabase" />
+                </div>
+                <h3>The Memory</h3>
+                <p>Supabase is where every thought your AI has gets saved, safely and for free.</p>
+            </div>
+            <div class="tool">
+                <div class="logo-wrap">
+                    <img src="${ASSETS.github}" alt="GitHub" />
+                </div>
+                <h3>The Blueprint</h3>
+                <p>GitHub holds the code. Download it once. Never touch it again unless you want to.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Main content ─────────────────────────────────── -->
     ${body}
+
+    <!-- ── Closing page ─────────────────────────────────── -->
+    <div class="closing">
+        <img src="${ASSETS.tyrinBarney}" alt="Tyrin Barney" class="crest-small" />
+        <div class="mantra">
+            Built by hand.<br>Given freely.<br>Yours to own.
+        </div>
+        <div class="sig">Ty</div>
+        <div class="url">tyrinbarney.com / community</div>
+    </div>
+
 </body>
 </html>`;
 
@@ -323,7 +656,7 @@ async function main() {
             await page.pdf({
                 path: OUT_PDF,
                 format: 'Letter',
-                margin: { top: '0.75in', right: '0.75in', bottom: '0.75in', left: '0.75in' },
+                margin: { top: '0.6in', right: '0.6in', bottom: '0.6in', left: '0.6in' },
                 printBackground: true,
             });
             await browser.close();
@@ -333,7 +666,7 @@ async function main() {
                 console.log('   [SKIP] puppeteer not installed');
                 console.log('');
                 console.log('   To generate PDF automatically:');
-                console.log('     npm install --save-dev puppeteer');
+                console.log('     npm install --save-dev puppeteer marked');
                 console.log('     npm run docs');
                 console.log('');
                 console.log('   Or open dist/docs.html in your browser and print to PDF (Ctrl+P).');

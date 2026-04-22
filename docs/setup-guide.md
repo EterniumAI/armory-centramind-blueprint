@@ -1,168 +1,211 @@
-# CentraMind Blueprint
+# The CentraMind Blueprint
 
-You just got the system that runs Eternium LLC. Not a demo. Not a gutted sample. The actual architecture Tyrin Barney uses every day to run a one-person AI company.
+Welcome in.
 
-This guide takes you from zero to a live Command Center in about 15 minutes.
+What you just downloaded is the exact setup I use every day to run my one-person company with an AI that never forgets me, never forgets the business, and shows up ready every time I open my laptop.
 
----
+You don't need to be technical. You don't need to know what a database is. You don't need to have built software before. If you can follow a recipe, you can set this up in about fifteen minutes, and once you do, you'll have something most people don't even know is possible.
 
-## What CentraMind Is
+This guide is going to walk you through it like I would walk my own mom through it.
 
-A Claude Code operating system. Four layers, stacked:
-
-| Layer | What it does |
-|-------|--------------|
-| Central Intelligence | Claude Code reads your business context the moment it wakes up |
-| Contextual Memory | Persistent memory, session logs, skills that survive restarts |
-| Autonomous Agents | Reusable workflows (/standup, /handoff, your own skills) |
-| Command Center | A React dashboard that shows what Claude is doing, in real time |
-
-You clone the repo. You wire it to Supabase. You open your Command Center. Claude Code is now running your business with you.
+Let's go.
 
 ---
 
-## Before You Start
+## What You're About To Have
 
-You need five things. None of them cost money to start.
+Picture this.
 
-1. A computer (Mac, Windows, or Linux)
-2. **Node.js 18 or newer**: [nodejs.org](https://nodejs.org)
-3. **A free Supabase account**: [supabase.com](https://supabase.com) (this is your memory and database)
-4. **Git**: [git-scm.com](https://git-scm.com) (ships preinstalled on Mac and Linux)
-5. **Claude Code** (recommended, not required): [claude.com/claude-code](https://claude.com/claude-code)
+You open your laptop in the morning. You say good morning to your AI. It already knows who you are, what you're working on, what you decided yesterday, and what's on fire right now. It doesn't ask you to explain yourself. It doesn't start from zero. It picks up exactly where you left off.
 
-If any of those words are new, stop, install them, come back. Everything else in this guide assumes they exist on your machine.
+That's what this is.
+
+I'm giving you the three things that make it work.
+
+1. **A brain that remembers.** Every conversation, every decision, every note gets saved somewhere safe. Your AI can go back and read it any time.
+2. **A dashboard.** A simple, beautiful page on your computer that shows you what your AI is doing and what it knows. You open it in your web browser, same way you open Facebook.
+3. **A set of shortcuts.** Little commands your AI learns. "Give me my morning briefing." "Close out the day." You type one line, and it handles the rest.
+
+Put together, this turns your AI from a chatbot that forgets you every time you close the window into something that feels like a real teammate.
+
+And the whole thing is yours. Free. No subscription. No "pro tier" to unlock the good stuff.
 
 ---
 
-## Quick Start (the 15-minute path)
+## The Three Tools You Need
 
-### Step 1. Clone the repo
+Before we start, you'll need three free accounts. I'll walk you through why each one exists so you're not flying blind.
 
-Open a terminal and run:
+**Claude.** This is the AI itself. Think of it as the person on the other end of the conversation. It's made by a company called Anthropic, and it's the smartest AI I've ever used for actually getting work done. You'll use the free app they make called Claude Code, which runs right on your computer.
 
-```
-git clone https://github.com/EterniumAI/armory-centramind-blueprint.git
-cd armory-centramind-blueprint
-npm install
-```
+**Supabase.** This is where your AI's memory lives. Every note, every log, every bit of context your AI collects gets saved here. It's free, it's safe, and you'll never have to touch it directly. Think of it as a filing cabinet your AI knows how to organize.
 
-That last line pulls the dependencies. Wait for it to finish.
+**GitHub.** This is where the actual code that makes everything work is stored. You'll download it once. Don't worry, you won't be writing any code yourself.
 
-### Step 2. Create your Supabase project
+You'll also need something called **Node.js**, which is a little engine that runs the dashboard on your computer. You install it once and forget it exists. Same energy as installing a printer driver.
 
-1. Log in to [supabase.com](https://supabase.com)
-2. Click **New Project**. Name it anything. Pick the region closest to you.
-3. Wait about a minute for it to provision.
-4. Once it's ready, open the **SQL Editor** (left sidebar, looks like a database icon).
-5. Open the file `supabase/migrations/001_core_schema.sql` in the repo you just cloned. Copy everything. Paste it into the SQL Editor. Click **Run**.
+Five minutes to sign up for all three. Go do that now.
 
-Your database now has the tables CentraMind needs.
+Links are at the back of this guide.
 
-### Step 3. Grab your Supabase keys
+---
 
-In your Supabase dashboard:
+## The Setup, Step By Step
 
-1. Click **Settings** (gear icon, bottom-left)
-2. Click **API**
-3. Copy the **Project URL** and the **anon / public** key
+Follow these in order. Don't skip ahead.
 
-### Step 4. Create your .env file
+### Step One. Download The Files
 
-In the repo folder, create a file named exactly `.env` and paste:
+Open your web browser and go to this address:
 
 ```
-VITE_SUPABASE_URL=https://your-project.supabase.co
+github.com/EterniumAI/armory-centramind-blueprint
+```
+
+You'll see a green button that says **Code**. Click it. A small menu opens. Click **Download ZIP**.
+
+A file lands in your downloads folder. Double-click it to unzip. You now have a folder called `armory-centramind-blueprint`. Drag it somewhere you'll remember. Your desktop works great.
+
+That's it for step one.
+
+### Step Two. Turn On The Memory
+
+Go to **supabase.com** and log in. Click the big green **New Project** button.
+
+Give it a name. I always name mine after whatever I'm building. Something like "my-ai-brain" is fine. Pick a password (save it somewhere safe), pick the region closest to where you live, and click **Create Project**.
+
+Wait about a minute while it gets built. Go refill your coffee.
+
+When it's ready, look on the left side of the screen for an icon that looks like a little database. Click it. A text editor opens in the middle of your screen.
+
+Now open the folder you downloaded from GitHub. Inside it, find a folder called `supabase`, then another called `migrations`, and inside that, a file called `001_core_schema.sql`.
+
+Open that file with any text editor (TextEdit on a Mac, Notepad on Windows). Select everything inside it. Copy it. Paste it into that text editor in Supabase, then click the green **Run** button.
+
+A message appears saying it worked. Your AI now has a place to store its memories.
+
+### Step Three. Give Your Copy The Keys
+
+Still in Supabase, look at the very bottom of the left sidebar. Click the gear icon that says **Settings**. Then click **API**.
+
+You'll see two things on this page that matter.
+
+- A **Project URL** (looks like a web address)
+- An **anon public** key (a long string of letters and numbers)
+
+Go back to the folder you downloaded. Inside it, create a new blank text file. Name it exactly `.env`. Yes, with the dot at the front and nothing before it.
+
+Open that file and paste these two lines in, replacing the placeholder with what you just copied from Supabase.
+
+```
+VITE_SUPABASE_URL=your-project-url-here
 VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-Replace the placeholders with what you copied from Supabase.
+Save. Close. You just handed your copy the keys to its own memory.
 
-### Step 5. Fire it up
+### Step Four. Wake It Up
 
-Back in your terminal:
+Open the terminal. (On a Mac, press Command-Space, type "terminal", hit enter. On Windows, open "Command Prompt". Same thing, different name.)
+
+Type this, replacing the path with wherever you dragged your folder:
+
+```
+cd ~/Desktop/armory-centramind-blueprint
+```
+
+Then type:
+
+```
+npm install
+```
+
+And hit enter. Your computer will pull down all the pieces it needs. Watch the scrolling. Get a snack. When it stops, type:
 
 ```
 npm run dev
 ```
 
-Open `http://localhost:5173` in your browser.
+Your terminal will show you a web address that looks like `http://localhost:5173`. Click it, or copy it into your browser.
 
-You should see your Command Center. If you do, you just cloned the operating system that runs a real AI company.
+Your dashboard appears. That's it. You're live.
 
 ---
 
-## The Claude Code Shortcut
+## The Shortcut Path (If You Have Claude Code)
 
-5 minutes instead of 15.
+If you've already installed Claude Code on your computer, the setup compresses from fifteen minutes to five.
 
-If you installed Claude Code, this whole process compresses.
+Open your terminal, navigate into the folder you downloaded, and type:
 
 ```
-git clone https://github.com/EterniumAI/armory-centramind-blueprint.git
-cd armory-centramind-blueprint
 claude
 ```
 
-Then in Claude Code, tell it:
+Claude will boot up inside your terminal. Then tell it:
 
-> Set up this project. Create a Supabase project if I don't have one, run the migration, configure the .env, and start the dev server. My Supabase credentials are: [paste your URL and anon key here].
+> Set this project up for me. My Supabase URL is [paste it] and my anon key is [paste it]. Run the migration, make the env file, and start the dev server.
 
-Claude Code reads the `CLAUDE.md` file that ships with this repo, understands the architecture, and handles the rest.
+Claude handles the rest. It reads the instructions that ship with the project, knows what to do, and tells you when it's ready.
 
----
-
-## Your First 10 Minutes Inside
-
-Once the Command Center is running, do these four things in order.
-
-1. **Open `OWNER.md`.** Replace the placeholder profile with yours. This is Claude's understanding of who you are. The better the profile, the better Claude operates.
-2. **Open `TODO.md`.** Write three real tasks you want handled this week. Claude reads this on every session start.
-3. **Run `/standup` in Claude Code.** Watch it summarize your day from memory, HEARTBEAT, and TODO.
-4. **Run `/handoff` at the end of the day.** Watch it write the next session's boot briefing for itself.
-
-You now have continuity. Claude Code no longer forgets.
+This is the way.
 
 ---
 
-## What's Inside The Repo
+## Your First Day Inside
 
-| Path | What lives there |
-|------|------------------|
-| `CLAUDE.md` | The identity Claude boots with |
-| `OWNER.md` | Your profile. Claude reads this to understand you |
-| `TODO.md` | Current priorities |
-| `HEARTBEAT.md` | Active alerts and session state |
-| `state/` | JSON source of truth (directives, session log) |
-| `memory/MEMORY.md` | Persistent long-term memory |
-| `.claude/skills/` | Your reusable workflows |
-| `src/` | The Command Center React app |
-| `supabase/migrations/` | Database schema |
-| `theme.config.js` | Brand colors (rebrand the whole thing from one file) |
+You opened the dashboard. The setup is done. Now what?
 
----
+Here are the four moves that unlock everything.
 
-## Rebrand It
+**One. Introduce yourself.** Open the file called `OWNER.md` in the folder you downloaded. Inside, there's a placeholder profile. Replace it with yours. What you're building, what you care about, what you want your AI to know about you. The more honest and specific you are here, the more your AI will feel like it actually knows you.
 
-This is yours. The whole thing is MIT licensed. Rebrand, resell, run it inside your own company.
+**Two. Write down what matters this week.** Open the file called `TODO.md`. Write three real tasks you want handled. Not aspirational goals. Real things with real deadlines. Your AI reads this every time it starts up and treats them like priorities.
 
-One file controls the entire visual system: `theme.config.js`. Change colors there, everything updates. No component-level color hunting.
+**Three. Try your first shortcut.** In Claude Code, type `/standup`. Hit enter. Watch what happens. Your AI pulls your profile, your tasks, your recent history, and tells you what today looks like. This is what a real morning briefing feels like.
+
+**Four. Close out your day.** When you're done working, type `/handoff`. Your AI writes a letter to itself, so tomorrow it remembers where you left off. No more starting from scratch. No more re-explaining yourself.
+
+That's it. You now have continuity. You have memory. You have a dashboard. You have an AI that actually knows you.
+
+Most people never get here. You just did.
 
 ---
 
-## Where To Go Next
+## Make It Yours
 
-- **The full architecture reference:** `docs/architecture.md` in this repo. Hand it to Claude Code when you want it to reason about the system itself.
-- **The source code:** [github.com/EterniumAI/armory-centramind-blueprint](https://github.com/EterniumAI/armory-centramind-blueprint)
-- **The community:** [tyrinbarney.com/community](https://tyrinbarney.com/community). This is the Digital Armory. Questions get answered here. New plug-ins ship here first.
-- **Tyrin's YouTube:** [youtube.com/@tyrinbarney](https://youtube.com/@tyrinbarney). Walkthroughs, full system tours, the stories of what broke and how we fixed it.
+This whole thing is MIT licensed. In plain English, that means you can do whatever you want with it. Use it. Change it. Rebrand it. Sell your own version. Run it inside your company. I'm not gatekeeping.
+
+One file controls the entire look. It's called `theme.config.js` in the main folder. Open it. You'll see the colors. Change them. Everything updates. No hunting through code.
+
+Make it feel like yours.
 
 ---
 
-## You're Standing On The Real Thing
+## When You Get Stuck
 
-Every project at Eternium runs through a CentraMind instance. The website, the mobile apps, the clients, the content engine, the storefronts. All of them plug into this exact architecture.
+You will. Everybody does. Here's where to go.
 
-You now have the same foundation. Build on it.
+**The Digital Armory.** This is the private community I run for people doing what you're doing. Real humans answer real questions. New plug-ins drop here first.
+
+Join us at **tyrinbarney.com/community**
+
+**My YouTube channel.** Full walkthroughs, real-time setups, the stories of what broke and how I fixed it. Subscribe if you want to see how this plays out in production.
+
+**youtube.com/@tyrinbarney**
+
+**The source code.** For when you're ready to look under the hood.
+
+**github.com/EterniumAI/armory-centramind-blueprint**
+
+---
+
+## One Last Thing
+
+Every business I run is built on top of this. The website you're reading from. The mobile apps shipping to clients. The content engine. The storefronts. All of it plugs into this exact foundation.
+
+You now have the same starting point I do.
+
+Go build.
 
 Ty
