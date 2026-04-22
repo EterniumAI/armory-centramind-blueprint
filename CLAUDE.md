@@ -48,6 +48,10 @@ npm run docs:html    # HTML only
 - ManyChat CTAs only on Facebook/Instagram -- direct links everywhere else
 - Community link: `tyrinbarney.com/community` (never raw Skool URL)
 
+## Wrangler Is NOT Your Tool
+
+Do not run any wrangler command. You lack `CLOUDFLARE_API_TOKEN` and cannot authenticate. Wrangler is Sovereign's exclusive domain. Ship code to GitHub, then route deploy requests to Sovereign via reply handoff.
+
 ## Cross-Instance Coordination
 This repo participates in the Sovereign Context Protocol (SCP).
 

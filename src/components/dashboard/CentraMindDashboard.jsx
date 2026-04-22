@@ -1,6 +1,14 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
+    EXECUTIVES,
+    OPERATORS,
+    PIPELINES,
+    SKILLS,
+    resolveById,
+    groupSkills,
+} from '../../lib/centramind-catalog';
+import {
     serializeBlueprint,
     downloadBlueprint,
     bootstrapPrompt,
@@ -16,6 +24,9 @@ const projectGlob    = import.meta.glob('/state/project.json',    { eager: true,
 const projectsGlob   = import.meta.glob('/state/projects.json',   { eager: true, import: 'default' });
 const sessionsGlob   = import.meta.glob('/state/session-log.json', { eager: true, import: 'default' });
 const directivesGlob = import.meta.glob('/state/directives.json', { eager: true, import: 'default' });
+const rosterGlob     = import.meta.glob('/state/roster.json',     { eager: true, import: 'default' });
+const crmGlob        = import.meta.glob('/state/crm.json',        { eager: true, import: 'default' });
+const skillsGlob     = import.meta.glob('/state/skills.json',     { eager: true, import: 'default' });
 const todoGlob       = import.meta.glob('/TODO.md',               { eager: true, query: '?raw', import: 'default' });
 const heartbeatGlob  = import.meta.glob('/HEARTBEAT.md',          { eager: true, query: '?raw', import: 'default' });
 const memoryGlob     = import.meta.glob('/memory/MEMORY.md',      { eager: true, query: '?raw', import: 'default' });
@@ -23,8 +34,14 @@ const briefGlob      = import.meta.glob('/context/product-brief.md', { eager: tr
 
 const firstEntry = (g) => Object.values(g)[0];
 
+const LS_ETERNIUM_KEY = 'centramind:eternium-api-key';
+
 const TABS = [
     { id: 'overview',   label: 'Overview' },
+    { id: 'executives', label: 'Executives' },
+    { id: 'fleet',      label: 'Fleet' },
+    { id: 'crm',        label: 'CRM' },
+    { id: 'skills',     label: 'Skills' },
     { id: 'processes',  label: 'Processes' },
     { id: 'priorities', label: 'Priorities' },
     { id: 'memory',     label: 'Memory' },
@@ -48,7 +65,7 @@ function saveState(email, state) {
     try { localStorage.setItem(storageKey(email), JSON.stringify(state)); } catch { /* ignore */ }
 }
 
-export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprint }) {
+export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprint, onUpdateBlueprint }) {
     const [tab, setTab] = useState('overview');
     const [persisted, setPersisted] = useState(() => loadState(email));
 
@@ -138,13 +155,17 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
 
             {/* Tab content */}
             <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-                {tab === 'overview'   && <OverviewTab   workspace={workspace} />}
+                {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
+                {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
+                {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
+                {tab === 'crm'        && <CRMTab        workspace={workspace} />}
+                {tab === 'skills'     && <SkillsTab     workspace={workspace} />}
                 {tab === 'processes'  && <ProcessesTab  workspace={workspace} />}
                 {tab === 'priorities' && <PrioritiesTab workspace={workspace} />}
                 {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
                 {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
                 {tab === 'claude'     && <ClaudeTab     blueprint={blueprint} email={email} />}
-                {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} />}
+                {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} />}
             </main>
 
             <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
@@ -160,8 +181,8 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
 
 /* ── Overview ────────────────────────────────────────────── */
 
-function OverviewTab({ workspace }) {
-    const { processes, projects, directives, heartbeat, productBrief, todo, roadmap } = workspace;
+function OverviewTab({ workspace, onNavigate }) {
+    const { processes, projects, directives, heartbeat, productBrief, todo, roadmap, executives, operators, pipelines, skills } = workspace;
 
     const categoryBreakdown = useMemo(() => {
         const counts = {};
@@ -191,6 +212,86 @@ function OverviewTab({ workspace }) {
                             Seeded from your roadmap. Edit TODO.md to take ownership.
                         </p>
                     )}
+                </Panel>
+
+                <Panel title="Your CentraMind team">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex items-baseline justify-between mb-2">
+                                <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">Executives</span>
+                                <button onClick={() => onNavigate?.('executives')} className="text-[10px] font-mono text-primary hover:underline cursor-pointer">
+                                    View all
+                                </button>
+                            </div>
+                            <ul className="space-y-1.5">
+                                {executives.slice(0, 4).map((e) => (
+                                    <li key={e.id} className="text-xs text-text-main flex items-baseline justify-between gap-2">
+                                        <span className="truncate">{e.name}</span>
+                                        {e.role && <span className="text-[10px] font-mono text-text-subtle shrink-0">{e.role}</span>}
+                                    </li>
+                                ))}
+                                {executives.length === 0 && (
+                                    <li className="text-xs text-text-subtle italic">No executives selected.</li>
+                                )}
+                            </ul>
+                        </div>
+                        <div>
+                            <div className="flex items-baseline justify-between mb-2">
+                                <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">Operators</span>
+                                <button onClick={() => onNavigate?.('fleet')} className="text-[10px] font-mono text-primary hover:underline cursor-pointer">
+                                    View all
+                                </button>
+                            </div>
+                            <ul className="space-y-1.5">
+                                {operators.slice(0, 4).map((o) => (
+                                    <li key={o.id} className="text-xs text-text-main truncate">{o.name}</li>
+                                ))}
+                                {operators.length === 0 && (
+                                    <li className="text-xs text-text-subtle italic">No operators on shift.</li>
+                                )}
+                            </ul>
+                        </div>
+                    </div>
+                </Panel>
+
+                <Panel title="Pipelines and skills">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <div className="flex items-baseline justify-between mb-2">
+                                <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">Pipelines</span>
+                                <button onClick={() => onNavigate?.('crm')} className="text-[10px] font-mono text-primary hover:underline cursor-pointer">
+                                    Open CRM
+                                </button>
+                            </div>
+                            <ul className="space-y-1.5">
+                                {pipelines.slice(0, 4).map((p) => (
+                                    <li key={p.id} className="text-xs text-text-main flex items-baseline justify-between gap-2">
+                                        <span className="truncate">{p.name}</span>
+                                        <span className="text-[10px] font-mono text-text-subtle shrink-0">{(p.stages ?? []).length} stages</span>
+                                    </li>
+                                ))}
+                                {pipelines.length === 0 && (
+                                    <li className="text-xs text-text-subtle italic">No pipelines configured.</li>
+                                )}
+                            </ul>
+                        </div>
+                        <div>
+                            <div className="flex items-baseline justify-between mb-2">
+                                <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">Skills</span>
+                                <button onClick={() => onNavigate?.('skills')} className="text-[10px] font-mono text-primary hover:underline cursor-pointer">
+                                    View all
+                                </button>
+                            </div>
+                            <ul className="space-y-1.5">
+                                {skills.slice(0, 4).map((s) => (
+                                    <li key={s.id} className="text-xs text-text-main truncate">{s.name}</li>
+                                ))}
+                                {skills.length === 0 && (
+                                    <li className="text-xs text-text-subtle italic">No skills enabled.</li>
+                                )}
+                            </ul>
+                        </div>
+                    </div>
                 </Panel>
 
                 <Panel title={`Projects (${projects.length})`}>
@@ -282,7 +383,7 @@ function OverviewTab({ workspace }) {
 /* ── Processes ───────────────────────────────────────────── */
 
 function ProcessesTab({ workspace }) {
-    const { processes, mappings } = workspace;
+    const { processes } = workspace;
     const [filter, setFilter] = useState('all');
 
     const categories = useMemo(() => {
@@ -314,25 +415,17 @@ function ProcessesTab({ workspace }) {
                 <EmptyNote>No processes in this view.</EmptyNote>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    {visible.map((p) => {
-                        const m = mappings[p.id];
-                        return (
-                            <div key={p.id} className="glass rounded-xl p-4">
-                                <div className="flex items-baseline justify-between gap-2 mb-1">
-                                    <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">{p.category}</span>
-                                    {m?.tool && (
-                                        <span className="text-[10px] font-mono uppercase tracking-wider text-primary">{m.tool}</span>
-                                    )}
-                                </div>
-                                <h4 className="font-display font-semibold text-sm text-text-main mb-1">{p.name}</h4>
-                                {m?.approach ? (
-                                    <p className="text-xs text-text-muted leading-relaxed">{m.approach}</p>
-                                ) : (
-                                    <p className="text-xs text-text-subtle italic">No AI mapping recorded yet.</p>
-                                )}
+                    {visible.map((p) => (
+                        <div key={p.id} className="glass rounded-xl p-4">
+                            <div className="flex items-baseline justify-between gap-2 mb-1">
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">{p.category}</span>
                             </div>
-                        );
-                    })}
+                            <h4 className="font-display font-semibold text-sm text-text-main mb-1">{p.name}</h4>
+                            {p.purpose && (
+                                <p className="text-xs text-text-muted leading-relaxed">{p.purpose}</p>
+                            )}
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
@@ -613,8 +706,34 @@ function Step({ n, children }) {
 
 /* ── Settings ────────────────────────────────────────────── */
 
-function SettingsTab({ workspace, onRetake }) {
-    const { project, source, email } = workspace;
+function SettingsTab({ workspace, onRetake, onUpdateBlueprint }) {
+    const { project, source, email, hasEterniumKey, eterniumApiKey } = workspace;
+    const [keyDraft, setKeyDraft] = useState(eterniumApiKey || '');
+    const [saveLabel, setSaveLabel] = useState('Save');
+    const saveTimerRef = useRef(null);
+
+    const masked = keyDraft
+        ? keyDraft.length > 8
+            ? `${keyDraft.slice(0, 4)}...${keyDraft.slice(-4)}`
+            : '****'
+        : '';
+
+    const saveKey = () => {
+        try { window.localStorage.setItem(LS_ETERNIUM_KEY, keyDraft); } catch { /* ignore */ }
+        onUpdateBlueprint?.('eterniumApiKey', keyDraft);
+        setSaveLabel('Saved');
+        if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = setTimeout(() => setSaveLabel('Save'), 2000);
+    };
+
+    const openSignup = () => {
+        const params = new URLSearchParams({
+            resource: 'centramind-blueprint',
+            return_to: typeof window !== 'undefined' ? window.location.href : '',
+        });
+        window.open(`https://eternium.ai/signup.html?${params.toString()}`, '_blank', 'noopener,noreferrer');
+    };
+
     return (
         <div className="space-y-6">
             <div className="glass rounded-xl p-6">
@@ -630,6 +749,64 @@ function SettingsTab({ workspace, onRetake }) {
                     />
                     <Row label="Source" value={source === 'disk' ? 'state/project.json' : 'in-browser fallback'} mono last />
                 </dl>
+            </div>
+
+            <div className="glass rounded-xl p-6">
+                <div className="flex items-baseline justify-between mb-2">
+                    <h3 className="font-display font-semibold text-sm text-text-main">Eternium API key</h3>
+                    <span className={`text-[10px] font-mono uppercase tracking-wider ${hasEterniumKey ? 'text-success' : 'text-warning'}`}>
+                        {hasEterniumKey ? 'connected' : 'not connected'}
+                    </span>
+                </div>
+                <p className="text-sm text-text-muted mb-4">
+                    Powers Forge skills (image, video, content), credits, and entitlements. Stored only in your browser. The bootstrap prompt writes it to <code className="text-primary text-xs">.env</code> when you run it.
+                </p>
+                {hasEterniumKey && masked && (
+                    <p className="text-xs font-mono text-success mb-3">
+                        Key saved ({masked}).
+                    </p>
+                )}
+                <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                    <input
+                        type="password"
+                        autoComplete="off"
+                        value={keyDraft}
+                        onChange={(e) => setKeyDraft(e.target.value)}
+                        placeholder="eter_live_..."
+                        className="flex-1 px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors"
+                    />
+                    <button
+                        onClick={saveKey}
+                        disabled={!keyDraft || keyDraft === eterniumApiKey}
+                        className={`px-5 py-2.5 rounded-lg font-semibold text-sm transition-all cursor-pointer ${
+                            keyDraft && keyDraft !== eterniumApiKey
+                                ? 'bg-primary text-bg hover:brightness-110'
+                                : 'bg-bg-card text-text-subtle cursor-not-allowed'
+                        }`}
+                    >
+                        {saveLabel}
+                    </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                    <button
+                        onClick={openSignup}
+                        className="px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-bg-elevated border border-border hover:border-primary/30 text-text-main cursor-pointer"
+                    >
+                        Open Eternium signup
+                    </button>
+                    {keyDraft && (
+                        <button
+                            onClick={() => {
+                                setKeyDraft('');
+                                try { window.localStorage.removeItem(LS_ETERNIUM_KEY); } catch { /* ignore */ }
+                                onUpdateBlueprint?.('eterniumApiKey', '');
+                            }}
+                            className="px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-bg-elevated border border-border hover:border-warning/40 text-text-muted hover:text-warning cursor-pointer"
+                        >
+                            Forget key
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className="glass rounded-xl p-6">
@@ -654,6 +831,200 @@ function Row({ label, value, mono, last }) {
         <div className={`flex justify-between py-2 ${last ? '' : 'border-b border-border'}`}>
             <dt className="text-text-muted">{label}</dt>
             <dd className={`text-text-main ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
+        </div>
+    );
+}
+
+/* ── Executives ──────────────────────────────────────────── */
+
+function ExecutivesTab({ workspace }) {
+    const { executives, source } = workspace;
+    if (executives.length === 0) {
+        return <EmptyNote>No executives selected. Retake the blueprint and pick your C-suite.</EmptyNote>;
+    }
+    return (
+        <div>
+            {source === 'memory' && (
+                <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card mb-6">
+                    These executives are seeded from your blueprint. Run the bootstrap prompt to write them to state/roster.json so the dashboard shows live status.
+                </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {executives.map((e) => (
+                    <div key={e.id} className="glass rounded-xl p-5">
+                        <div className="flex items-baseline justify-between gap-2 mb-1">
+                            <h3 className="font-display font-semibold text-sm text-text-main">{e.name}</h3>
+                            {e.role && (
+                                <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                    {e.role}
+                                </span>
+                            )}
+                        </div>
+                        <p className="text-xs text-text-muted leading-relaxed mb-3">{e.purpose || '(no purpose recorded)'}</p>
+                        <div className="flex items-center gap-3 text-[10px] font-mono uppercase tracking-wider">
+                            <span className={e.status === 'active' ? 'text-success' : 'text-text-subtle'}>
+                                {e.status || 'planned'}
+                            </span>
+                            {e.required && <span className="text-text-subtle">| always on</span>}
+                            <span className="text-text-subtle">| {(e.directives ?? []).length} directives</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/* ── Fleet ───────────────────────────────────────────────── */
+
+function FleetTab({ workspace }) {
+    const { operators, source } = workspace;
+    if (operators.length === 0) {
+        return <EmptyNote>No operators selected. Retake the blueprint and assemble your fleet.</EmptyNote>;
+    }
+    return (
+        <div>
+            {source === 'memory' && (
+                <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card mb-6">
+                    These operators are seeded from your blueprint. Run the bootstrap prompt to write them to state/roster.json so the dashboard can track them.
+                </div>
+            )}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {operators.map((o) => (
+                    <div key={o.id} className="glass rounded-xl p-4">
+                        <h4 className="font-display font-semibold text-sm text-text-main mb-1">{o.name}</h4>
+                        <p className="text-xs text-text-muted leading-relaxed mb-3">{o.purpose}</p>
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider">
+                            <span className={`w-1.5 h-1.5 rounded-full ${o.status === 'active' ? 'bg-success' : 'bg-text-subtle'}`} />
+                            <span className={o.status === 'active' ? 'text-success' : 'text-text-subtle'}>
+                                {o.status || 'planned'}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+/* ── CRM ─────────────────────────────────────────────────── */
+
+function CRMTab({ workspace }) {
+    const { pipelines, contacts, accounts, deals, source } = workspace;
+    const [activePipeline, setActivePipeline] = useState(pipelines[0]?.id ?? null);
+    const pipeline = pipelines.find((p) => p.id === activePipeline) ?? pipelines[0];
+
+    if (pipelines.length === 0) {
+        return <EmptyNote>No pipelines configured. Retake the blueprint and pick the pipelines you want to run.</EmptyNote>;
+    }
+
+    return (
+        <div className="space-y-6">
+            {source === 'memory' && (
+                <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card">
+                    These pipelines are seeded from your blueprint. Once the bootstrap prompt writes state/crm.json, your Claude Code operators can add contacts, accounts, and deals and you will see them here.
+                </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-3">
+                <StatCard label="Contacts" value={contacts.length} />
+                <StatCard label="Accounts" value={accounts.length} />
+                <StatCard label="Deals" value={deals.length} accent />
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+                {pipelines.map((p) => (
+                    <button
+                        key={p.id}
+                        onClick={() => setActivePipeline(p.id)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-mono border transition-colors cursor-pointer ${
+                            pipeline?.id === p.id
+                                ? 'border-primary text-primary bg-primary/10'
+                                : 'border-border text-text-muted hover:border-primary/30'
+                        }`}
+                    >
+                        {p.name}
+                    </button>
+                ))}
+            </div>
+
+            {pipeline && (
+                <div>
+                    <div className="mb-3">
+                        <h3 className="font-display font-semibold text-sm text-text-main">{pipeline.name}</h3>
+                        {pipeline.purpose && (
+                            <p className="text-xs text-text-subtle mt-1">{pipeline.purpose}</p>
+                        )}
+                    </div>
+                    <div className="grid grid-flow-col auto-cols-[minmax(180px,1fr)] gap-3 overflow-x-auto pb-2">
+                        {pipeline.stages.map((stage) => (
+                            <div key={stage.name} className="glass rounded-lg p-3 min-h-[160px]">
+                                <div className="flex items-center justify-between mb-3">
+                                    <span className="text-[10px] font-mono uppercase tracking-wider text-text-muted">
+                                        {stage.name}
+                                    </span>
+                                    <span className="text-[10px] font-mono text-text-subtle">
+                                        {(stage.cards ?? []).length}
+                                    </span>
+                                </div>
+                                {(stage.cards ?? []).length === 0 ? (
+                                    <p className="text-[11px] text-text-subtle italic">empty</p>
+                                ) : (
+                                    <ul className="space-y-2">
+                                        {stage.cards.map((card, i) => (
+                                            <li key={i} className="border border-border bg-bg-card rounded-md p-2 text-xs text-text-main">
+                                                {card.name || card.title || JSON.stringify(card)}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+/* ── Skills ──────────────────────────────────────────────── */
+
+function SkillsTab({ workspace }) {
+    const { skills, source } = workspace;
+    const groups = useMemo(() => groupSkills(skills), [skills]);
+
+    if (skills.length === 0) {
+        return <EmptyNote>No skills enabled. Retake the blueprint to pick your modules.</EmptyNote>;
+    }
+    return (
+        <div>
+            {source === 'memory' && (
+                <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card mb-6">
+                    These skills are seeded from your blueprint. Run the bootstrap prompt to write state/skills.json so your operators can pull them.
+                </div>
+            )}
+            {groups.map((g) => (
+                <div key={g.category} className="mb-6">
+                    <h3 className="font-display font-semibold text-xs uppercase tracking-wider text-text-subtle mb-3">
+                        {g.category}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {g.items.map((s) => (
+                            <div key={s.id} className="glass rounded-xl p-4">
+                                <div className="flex items-baseline justify-between gap-2 mb-1">
+                                    <h4 className="font-display font-semibold text-sm text-text-main">{s.name}</h4>
+                                    <span className={`text-[10px] font-mono uppercase tracking-wider ${
+                                        s.status === 'active' ? 'text-success' : 'text-text-subtle'
+                                    }`}>
+                                        {s.status || 'planned'}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-text-muted leading-relaxed">{s.purpose}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }
@@ -704,6 +1075,9 @@ function readWorkspace(blueprint, email) {
     const projectsFile   = firstEntry(projectsGlob);
     const sessionsFile   = firstEntry(sessionsGlob);
     const directivesFile = firstEntry(directivesGlob);
+    const rosterFile     = firstEntry(rosterGlob);
+    const crmFile        = firstEntry(crmGlob);
+    const skillsFile     = firstEntry(skillsGlob);
     const todoRaw        = firstEntry(todoGlob)      ?? '';
     const heartbeatRaw   = firstEntry(heartbeatGlob) ?? '';
     const memoryRaw      = firstEntry(memoryGlob)    ?? '';
@@ -719,15 +1093,43 @@ function readWorkspace(blueprint, email) {
         ? (projectFile.processes ?? [])
         : resolveProcesses(blueprint?.processes ?? []);
 
-    const mappings = hasBootstrap
-        ? (projectFile.mappings ?? {})
-        : (blueprint?.mappings ?? {});
-
     const roi = hasBootstrap
         ? (projectFile.roi ?? computeRoi(blueprint))
         : computeRoi(blueprint);
 
+    // Roster: prefer state/roster.json, else fall back to project.json's
+    // roster block, else resolve the blueprint's selection IDs.
+    const diskExecutives = rosterFile?.executives
+        ?? projectFile?.roster?.executives
+        ?? null;
+    const diskOperators = rosterFile?.operators
+        ?? projectFile?.roster?.operators
+        ?? null;
+
+    const executives = diskExecutives ?? resolveExecutiveSelection(blueprint?.executives);
+    const operators = diskOperators ?? resolveOperatorSelection(blueprint?.operators);
+
+    // CRM: prefer state/crm.json, else project.json's crm block, else
+    // resolve the blueprint pipeline IDs and leave contacts/accounts/deals
+    // empty.
+    const crm = crmFile || projectFile?.crm || {};
+    const pipelines = crm.pipelines
+        ?? resolvePipelineSelection(blueprint?.pipelines);
+    const contacts = crm.contacts ?? [];
+    const accounts = crm.accounts ?? [];
+    const deals = crm.deals ?? [];
+
+    // Skills: prefer state/skills.json, else project.json's skills block,
+    // else resolve the blueprint selection IDs.
+    const diskSkills = skillsFile?.skills
+        ?? projectFile?.skills
+        ?? null;
+    const skills = diskSkills ?? resolveSkillSelection(blueprint?.skills);
+
     const roadmap = roadmapForTier(tier);
+
+    const eterniumApiKey = blueprint?.eterniumApiKey || readStoredEterniumKey();
+    const hasEterniumKey = !!eterniumApiKey || !!project?.owner?.eternium?.has_api_key;
 
     return {
         source,
@@ -735,7 +1137,6 @@ function readWorkspace(blueprint, email) {
         tier,
         project,
         processes,
-        mappings,
         roi,
         projects: projectsFile?.projects ?? [],
         sessions: sessionsFile?.sessions ?? [],
@@ -745,7 +1146,64 @@ function readWorkspace(blueprint, email) {
         memoryText: stripPlaceholderMemory(memoryRaw),
         productBrief: stripPlaceholderBrief(briefRaw),
         roadmap,
+        executives,
+        operators,
+        pipelines,
+        contacts,
+        accounts,
+        deals,
+        skills,
+        eterniumApiKey,
+        hasEterniumKey,
     };
+}
+
+function readStoredEterniumKey() {
+    try { return window.localStorage.getItem(LS_ETERNIUM_KEY) || ''; }
+    catch { return ''; }
+}
+
+function resolveExecutiveSelection(ids) {
+    const required = EXECUTIVES.filter((e) => e.required).map((e) => e.id);
+    const merged = Array.from(new Set([...(ids ?? []), ...required]));
+    return resolveById(EXECUTIVES, merged).map((e) => ({
+        id: e.id,
+        name: e.name,
+        role: e.role,
+        purpose: e.purpose,
+        required: !!e.required,
+        status: 'planned',
+        directives: [],
+    }));
+}
+
+function resolveOperatorSelection(ids) {
+    return resolveById(OPERATORS, ids ?? []).map((o) => ({
+        id: o.id,
+        name: o.name,
+        purpose: o.purpose,
+        status: 'planned',
+        directives: [],
+    }));
+}
+
+function resolvePipelineSelection(ids) {
+    return resolveById(PIPELINES, ids ?? []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        purpose: p.purpose,
+        stages: (p.stages ?? []).map((s) => ({ name: s, cards: [] })),
+    }));
+}
+
+function resolveSkillSelection(ids) {
+    return resolveById(SKILLS, ids ?? []).map((s) => ({
+        id: s.id,
+        name: s.name,
+        category: s.category,
+        purpose: s.purpose,
+        status: 'planned',
+    }));
 }
 
 function isRealProjectFile(pj) {

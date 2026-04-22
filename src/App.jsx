@@ -2,19 +2,22 @@ import { useState, useCallback } from 'react';
 import Landing from './components/blueprint/Landing';
 import StepNav from './components/blueprint/StepNav';
 import ProcessAudit from './components/blueprint/ProcessAudit';
-import AIMapping from './components/blueprint/AIMapping';
+import CentraMindTeam from './components/blueprint/CentraMindTeam';
+import CentraMindSystems from './components/blueprint/CentraMindSystems';
+import EterniumAccount from './components/blueprint/EterniumAccount';
 import SystemArchitecture from './components/blueprint/SystemArchitecture';
-import ROICalculator from './components/blueprint/ROICalculator';
 import BlueprintSummary from './components/blueprint/BlueprintSummary';
 import CentraMindDashboard from './components/dashboard/CentraMindDashboard';
+import { defaultSelections } from './lib/centramind-catalog';
 import { saveLead } from './lib/supabase';
 
 const STEPS = [
-  { id: 'processes', label: 'Process Audit' },
-  { id: 'mapping', label: 'AI Mapping' },
+  { id: 'processes',    label: 'Process Audit' },
+  { id: 'team',         label: 'Team' },
+  { id: 'systems',      label: 'Systems' },
+  { id: 'eternium',     label: 'Eternium Key' },
   { id: 'architecture', label: 'Architecture' },
-  { id: 'roi', label: 'ROI Calculator' },
-  { id: 'blueprint', label: 'Your Blueprint' },
+  { id: 'blueprint',    label: 'Your Blueprint' },
 ];
 
 export default function App() {
@@ -24,15 +27,20 @@ export default function App() {
   const [currentStep, setCurrentStep] = useState(0);
 
   // Blueprint state collected across steps
+  const defaults = defaultSelections();
   const [blueprint, setBlueprint] = useState({
-    processes: [],       // selected business processes
-    mappings: {},        // process -> AI tool mappings
-    tier: 'solo',        // architecture tier
-    roi: {               // ROI inputs
+    processes: [],
+    tier: 'solo',
+    roi: {
       hoursPerWeek: 20,
       hourlyRate: 50,
       teamSize: 1,
     },
+    executives: defaults.executives,
+    operators: defaults.operators,
+    pipelines: defaults.pipelines,
+    skills: defaults.skills,
+    eterniumApiKey: '',
   });
 
   const updateBlueprint = useCallback((key, value) => {
@@ -61,7 +69,6 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
-  // Save final blueprint data when reaching summary
   const handleComplete = useCallback(() => {
     saveLead(email, blueprint);
   }, [email, blueprint]);
@@ -76,6 +83,7 @@ export default function App() {
         blueprint={blueprint}
         email={email}
         onRetakeBlueprint={() => { setLaunched(false); setCurrentStep(0); }}
+        onUpdateBlueprint={updateBlueprint}
       />
     );
   }
@@ -87,11 +95,28 @@ export default function App() {
       onChange={(v) => updateBlueprint('processes', v)}
       onNext={goNext}
     />,
-    <AIMapping
-      key="mapping"
-      processes={blueprint.processes}
-      mappings={blueprint.mappings}
-      onChange={(v) => updateBlueprint('mappings', v)}
+    <CentraMindTeam
+      key="team"
+      executives={blueprint.executives}
+      operators={blueprint.operators}
+      onChangeExecutives={(v) => updateBlueprint('executives', v)}
+      onChangeOperators={(v) => updateBlueprint('operators', v)}
+      onNext={goNext}
+      onBack={goPrev}
+    />,
+    <CentraMindSystems
+      key="systems"
+      pipelines={blueprint.pipelines}
+      skills={blueprint.skills}
+      onChangePipelines={(v) => updateBlueprint('pipelines', v)}
+      onChangeSkills={(v) => updateBlueprint('skills', v)}
+      onNext={goNext}
+      onBack={goPrev}
+    />,
+    <EterniumAccount
+      key="eternium"
+      apiKey={blueprint.eterniumApiKey}
+      onChange={(v) => updateBlueprint('eterniumApiKey', v)}
       onNext={goNext}
       onBack={goPrev}
     />,
@@ -100,20 +125,13 @@ export default function App() {
       tier={blueprint.tier}
       processCount={blueprint.processes.length}
       onChange={(v) => updateBlueprint('tier', v)}
-      onNext={goNext}
-      onBack={goPrev}
-    />,
-    <ROICalculator
-      key="roi"
-      roi={blueprint.roi}
-      processes={blueprint.processes}
-      onChange={(v) => updateBlueprint('roi', v)}
       onNext={() => { handleComplete(); goNext(); }}
       onBack={goPrev}
     />,
     <BlueprintSummary
       key="blueprint"
       blueprint={blueprint}
+      onChangeRoi={(v) => updateBlueprint('roi', v)}
       onBack={goPrev}
       onRestart={() => { setStarted(false); setCurrentStep(0); }}
       onLaunch={() => { setLaunched(true); window.scrollTo(0, 0); }}

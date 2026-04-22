@@ -19,11 +19,11 @@ const TIERS = [
     id: 'team',
     name: 'Team Fleet',
     subtitle: 'Multiple agents, one orchestrator',
-    desc: 'For growing businesses. A central orchestrator (Sovereign) dispatches tasks to specialized operator agents. Each operator owns a domain like sales, support, or dev. Agents coordinate through a shared protocol.',
+    desc: 'For growing businesses. A central Orchestrator dispatches tasks to specialized operator agents. Each operator owns a domain like sales, support, or dev. Agents coordinate through a shared protocol.',
     agents: '3-8 Agents',
     bestFor: '6-15 processes',
     features: [
-      'Central orchestrator (Sovereign)',
+      'Central Orchestrator agent',
       'Specialized operator agents',
       'Shared context protocol',
       'Automated dispatch and routing',
@@ -60,7 +60,7 @@ export default function SystemArchitecture({ tier, processCount, onChange, onNex
     <div>
       <div className="mb-8">
         <h2 className="font-display font-bold text-xl sm:text-2xl text-text-main mb-2">
-          Step 3: Design Your System Architecture
+          Step 5: Design Your System Architecture
         </h2>
         <p className="text-text-muted text-sm leading-relaxed max-w-2xl">
           With {processCount} processes selected, you need the right architecture tier.
@@ -141,7 +141,7 @@ export default function SystemArchitecture({ tier, processCount, onChange, onNex
           onClick={onNext}
           className="px-6 py-3 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all cursor-pointer"
         >
-          Calculate ROI <span className="ml-2">&#8594;</span>
+          View Your Blueprint <span className="ml-2">&#8594;</span>
         </button>
       </div>
     </div>
@@ -170,7 +170,7 @@ function ArchitectureDiagram({ tier }) {
       <div className="flex flex-col items-center gap-4 py-4">
         <Box label="You" sub="High-level directives" color="text-text-main" border="border-text-subtle" />
         <Arrow />
-        <Box label="Sovereign" sub="Orchestrator / CTO Agent" color="text-primary" border="border-primary/40" />
+        <Box label="Orchestrator" sub="Chief of Staff Agent" color="text-primary" border="border-primary/40" />
         <Arrow />
         <div className="flex flex-wrap justify-center gap-3">
           <Box label="Operator 1" sub="Backend Dev" color="text-success" border="border-success/30" small />
@@ -192,8 +192,8 @@ function ArchitectureDiagram({ tier }) {
       <Box label="Leadership" sub="Strategy and oversight" color="text-text-main" border="border-text-subtle" />
       <Arrow />
       <div className="flex flex-wrap justify-center gap-3">
-        <Box label="Sovereign A" sub="Engineering" color="text-primary" border="border-primary/40" small />
-        <Box label="Sovereign B" sub="Revenue" color="text-warning" border="border-warning/40" small />
+        <Box label="Orchestrator A" sub="Engineering" color="text-primary" border="border-primary/40" small />
+        <Box label="Orchestrator B" sub="Revenue" color="text-warning" border="border-warning/40" small />
       </div>
       <Arrow />
       <div className="flex flex-wrap justify-center gap-3">

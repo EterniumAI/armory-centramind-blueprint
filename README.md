@@ -2,7 +2,7 @@
 
 AI agent memory, skills, context protocol, and a Command Center dashboard. Build in 50 minutes.
 
-This is the exact architecture that runs [Eternium](https://eternium.ai). We call it Sovereign internally, but the pattern is CentraMind: a file-based knowledge graph that any AI agent can read and write. The Command Center dashboard visualizes your entire operation in real time.
+This is the exact architecture that runs [Eternium](https://eternium.ai). The pattern is CentraMind: a file-based knowledge graph that any AI agent can read and write, plus an Orchestrator agent that delegates to a fleet of operators. The Command Center dashboard visualizes your entire operation in real time.
 
 ## Two Paths
 

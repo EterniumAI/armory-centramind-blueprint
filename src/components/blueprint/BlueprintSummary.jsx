@@ -1,9 +1,19 @@
 import { useMemo } from 'react';
 import { CATEGORIES } from './ProcessAudit';
 import { computeRoi, roadmapForTier, TIER_NAMES } from '../../lib/blueprint-export';
+import { EXECUTIVES, OPERATORS, PIPELINES, SKILLS, resolveById } from '../../lib/centramind-catalog';
 
-export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunch }) {
-  const { processes, tier } = blueprint;
+export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRestart, onLaunch }) {
+  const { processes, tier, executives, operators, pipelines, skills, eterniumApiKey, roi: roiInputs } = blueprint;
+  const updateRoi = (key, value) => onChangeRoi?.({ ...roiInputs, [key]: value });
+
+  const requiredExecIds = EXECUTIVES.filter((e) => e.required).map((e) => e.id);
+  const mergedExecIds = Array.from(new Set([...(executives ?? []), ...requiredExecIds]));
+  const execList = resolveById(EXECUTIVES, mergedExecIds);
+  const operatorList = resolveById(OPERATORS, operators ?? []);
+  const pipelineList = resolveById(PIPELINES, pipelines ?? []);
+  const skillList = resolveById(SKILLS, skills ?? []);
+  const hasEterniumKey = !!eterniumApiKey;
 
   const processDetails = useMemo(() => {
     const allProcs = CATEGORIES.flatMap((c) =>
@@ -45,11 +55,78 @@ export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunc
       </div>
 
       {/* Overview cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <SummaryCard label="Processes" value={processes.length} />
         <SummaryCard label="Architecture" value={TIER_NAMES[tier]} small />
         <SummaryCard label="Hours Saved/wk" value={weeklyHoursSaved + 'h'} color="text-primary" />
         <SummaryCard label="Annual Savings" value={'$' + annualSavings.toLocaleString()} color="text-success" />
+      </div>
+
+      {/* ROI assumptions */}
+      <div className="glass rounded-xl p-6 mb-6">
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="font-display font-semibold text-sm text-text-main">ROI assumptions</h3>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">tweak to recompute</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <RoiInput
+            label="Hours/week"
+            sub="on these processes"
+            value={roiInputs?.hoursPerWeek ?? 20}
+            min={1}
+            max={80}
+            onChange={(n) => updateRoi('hoursPerWeek', n)}
+          />
+          <RoiInput
+            label="Hourly rate ($)"
+            sub="fully loaded"
+            value={roiInputs?.hourlyRate ?? 50}
+            min={10}
+            max={500}
+            onChange={(n) => updateRoi('hourlyRate', n)}
+          />
+          <RoiInput
+            label="Team size"
+            sub="people doing this"
+            value={roiInputs?.teamSize ?? 1}
+            min={1}
+            max={100}
+            onChange={(n) => updateRoi('teamSize', n)}
+          />
+        </div>
+        <p className="text-[10px] text-text-subtle mt-3 leading-relaxed">
+          Industry benchmarks for the process categories you picked. Actual results vary with data
+          readiness and implementation quality.
+        </p>
+      </div>
+
+      {/* Team + systems picks */}
+      <div className="glass rounded-xl p-6 mb-6">
+        <h3 className="font-display font-semibold text-sm text-text-main mb-4">Your CentraMind, at a glance</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <PickList title="Executives" items={execList.map((e) => ({ id: e.id, name: e.name, meta: e.role }))} />
+          <PickList title="Operators" items={operatorList.map((o) => ({ id: o.id, name: o.name }))} />
+          <PickList title="Pipelines" items={pipelineList.map((p) => ({ id: p.id, name: p.name, meta: `${p.stages.length} stages` }))} />
+          <PickList title="Skills" items={skillList.map((s) => ({ id: s.id, name: s.name, meta: s.category }))} />
+        </div>
+      </div>
+
+      {/* Eternium key status */}
+      <div className="glass rounded-xl p-6 mb-6 flex items-start gap-4">
+        <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${hasEterniumKey ? 'bg-success' : 'bg-warning'}`} />
+        <div className="flex-1">
+          <div className="flex items-baseline justify-between gap-2">
+            <h3 className="font-display font-semibold text-sm text-text-main">Eternium API key</h3>
+            <span className={`text-[10px] font-mono uppercase tracking-wider ${hasEterniumKey ? 'text-success' : 'text-warning'}`}>
+              {hasEterniumKey ? 'connected' : 'not connected'}
+            </span>
+          </div>
+          <p className="text-xs text-text-muted mt-1 leading-relaxed">
+            {hasEterniumKey
+              ? 'Key captured and will be written to your local .env when you run the bootstrap prompt.'
+              : 'You can still launch the preview without one. Add it later from the dashboard Settings tab.'}
+          </p>
+        </div>
       </div>
 
       {/* Process breakdown by category */}
@@ -143,7 +220,7 @@ export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunc
           onClick={onBack}
           className="px-5 py-3 rounded-lg text-sm text-text-muted hover:text-text-main border border-border hover:border-text-subtle transition-colors cursor-pointer"
         >
-          <span className="mr-2">&#8592;</span> Back to ROI
+          <span className="mr-2">&#8592;</span> Back to Architecture
         </button>
         <button
           onClick={onRestart}
@@ -152,6 +229,50 @@ export default function BlueprintSummary({ blueprint, onBack, onRestart, onLaunc
           Start Over
         </button>
       </div>
+    </div>
+  );
+}
+
+function PickList({ title, items }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">{title}</span>
+        <span className="text-[10px] font-mono text-text-subtle">{items.length}</span>
+      </div>
+      {items.length === 0 ? (
+        <p className="text-xs text-text-subtle italic">None selected.</p>
+      ) : (
+        <ul className="space-y-1.5">
+          {items.map((it) => (
+            <li key={it.id} className="text-xs text-text-main flex items-baseline justify-between gap-2">
+              <span className="truncate">{it.name}</span>
+              {it.meta && <span className="text-[10px] font-mono text-text-subtle shrink-0">{it.meta}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function RoiInput({ label, sub, value, min, max, onChange }) {
+  return (
+    <div className="bg-bg-elevated rounded-lg p-3">
+      <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1">{label}</label>
+      <input
+        type="number"
+        min={min}
+        max={max}
+        value={value}
+        onChange={(e) => {
+          const n = +e.target.value;
+          const clamped = Math.max(min, Math.min(max, Number.isFinite(n) ? n : min));
+          onChange(clamped);
+        }}
+        className="w-full bg-bg border border-border rounded px-3 py-2 text-lg font-display font-bold text-text-main focus:outline-none focus:border-primary"
+      />
+      <span className="text-[10px] text-text-subtle mt-1 block">{sub}</span>
     </div>
   );
 }

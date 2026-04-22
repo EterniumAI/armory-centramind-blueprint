@@ -31,5 +31,5 @@ An Eternium Armory product: a deployable CentraMind workspace with a React Comma
 - Skills are markdown files in .claude/skills/, not code
 - No backend server needed; pure client-side with Supabase
 
-## Relationship to Sovereign
-This is the "starter kit" version of what Sovereign runs at scale. Sovereign has 40+ tables, 20+ skills, multi-instance coordination, and production automation. This gives the user the core pattern: 4 layers, file-based context, dashboard visualization.
+## Starter Kit, Not the Full System
+This is the starter-kit version of what the Eternium platform runs at scale. The production system has 40+ tables, 20+ skills, multi-instance coordination, and production automation. This repo gives the user the core pattern: 4 layers, file-based context, dashboard visualization, and a single Orchestrator that delegates to operators.

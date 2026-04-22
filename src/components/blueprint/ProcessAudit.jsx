@@ -92,7 +92,6 @@ export default function ProcessAudit({ selected, onChange, onNext }) {
     );
   };
 
-  const allProcesses = CATEGORIES.flatMap((c) => c.processes);
   const selectedCount = selected.length;
 
   return (
@@ -226,7 +225,7 @@ export default function ProcessAudit({ selected, onChange, onNext }) {
               : 'bg-bg-card text-text-subtle cursor-not-allowed'
           }`}
         >
-          Continue to AI Mapping
+          Continue to Team
           <span className="ml-2">&#8594;</span>
         </button>
       </div>
