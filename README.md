@@ -46,7 +46,7 @@ claude
 ## Setup
 
 ### 1. Supabase
-Create a free project at [supabase.com](https://supabase.com). Go to SQL Editor, paste `supabase/migrations/001_core_schema.sql`, click Run. Copy your Project URL and Anon Key from Settings > API.
+Create a free project at [supabase.com](https://supabase.com). Go to SQL Editor and run the migrations in order: `001_core_schema.sql`, `002_blueprint_leads.sql`, `003_crm_tasks.sql`. Copy your Project URL and Anon Key from Settings > API.
 
 ### 2. Environment
 ```bash
