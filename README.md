@@ -34,7 +34,7 @@ claude
 | Claude Code skills | `/standup` for morning briefings, `/handoff` for end-of-session state sync |
 | File-based state | JSON state files as source of truth, mirrored to Supabase |
 | Theme engine | `theme.config.js` for 5-minute rebranding |
-| Supabase migration | One SQL file creates all dashboard tables |
+| Supabase migrations | Three SQL files: core schema (projects, sessions, directives), lead capture, and CRM/tasks. Most dashboard tabs are file-backed. |
 
 ## The Four Layers
 
@@ -46,7 +46,12 @@ claude
 ## Setup
 
 ### 1. Supabase
-Create a free project at [supabase.com](https://supabase.com). Go to SQL Editor and run the migrations in order: `001_core_schema.sql`, `002_blueprint_leads.sql`, `003_crm_tasks.sql`. Copy your Project URL and Anon Key from Settings > API.
+Create a free project at [supabase.com](https://supabase.com). Go to SQL Editor. Run migrations in order:
+1. Paste `supabase/migrations/001_core_schema.sql`, click Run.
+2. Paste `supabase/migrations/002_blueprint_leads.sql`, click Run.
+3. Paste `supabase/migrations/003_crm_tasks.sql`, click Run.
+
+Copy your Project URL and Anon Key from Settings > API.
 
 ### 2. Environment
 ```bash
