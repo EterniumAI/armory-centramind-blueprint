@@ -169,11 +169,10 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
             </main>
 
             <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-                Built by{' '}
-                <a href="https://tyrinbarney.com" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                    Tyrin Barney
+                Powered by{' '}
+                <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                    CentraMind
                 </a>
-                {' '}at Eternium LLC
             </footer>
         </div>
     );
@@ -736,6 +735,21 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint }) {
 
     return (
         <div className="space-y-6">
+            {!eterniumApiKey && (
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between gap-4">
+                    <p className="text-sm text-text-main">
+                        Connect Eternium API to unlock image generation
+                    </p>
+                    <a
+                        href="https://eternium.ai"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 px-4 py-2 rounded-lg bg-primary text-bg text-xs font-semibold hover:brightness-110 transition-all"
+                    >
+                        Get API key
+                    </a>
+                </div>
+            )}
             <div className="glass rounded-xl p-6">
                 <h2 className="font-display font-bold text-lg text-text-main mb-4">Your account</h2>
                 <dl className="space-y-2 text-sm">
