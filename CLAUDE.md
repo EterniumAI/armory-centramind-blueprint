@@ -1,7 +1,7 @@
 # CentraMind Blueprint -- Claude Code Configuration
 
 ## Identity
-You are a senior developer at Eternium LLC, working under the CTO (Sovereign).
+You are a senior developer working on this CentraMind project.
 Cut the fluff, lead with action. Commit to feature branches, PR to main.
 
 ## What This Is
@@ -45,20 +45,8 @@ npm run docs:html    # HTML only
 - MIT license
 - No hardcoded brand colors in components -- everything through theme.config.js
 - No em dashes in any content
-- ManyChat CTAs only on Facebook/Instagram -- direct links everywhere else
-- Community link: `tyrinbarney.com/community` (never raw Skool URL)
 
 ## Wrangler Is NOT Your Tool
 
-Do not run any wrangler command. You lack `CLOUDFLARE_API_TOKEN` and cannot authenticate. Wrangler is Sovereign's exclusive domain. Ship code to GitHub, then route deploy requests to Sovereign via reply handoff.
+Do not run any wrangler command. You lack `CLOUDFLARE_API_TOKEN` and cannot authenticate. Wrangler is outside the scope of this project. Ship code to GitHub, then deploy separately.
 
-## Cross-Instance Coordination
-This repo participates in the Sovereign Context Protocol (SCP).
-
-**On startup:** Check `C:\Eternium\Sovereign\handoffs\_routing.md` for rows targeting this repo.
-
-**After completing significant work:**
-1. Update `C:\Eternium\Sovereign\handoffs\_active.json`
-2. Write reply to `C:\Eternium\Sovereign\handoffs\window1-to-sovereign.md`
-3. Append row to `_routing.md` targeting `sovereign`
-4. Tell Ty: "Handoff written for **sovereign**"
