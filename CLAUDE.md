@@ -48,5 +48,4 @@ npm run docs:html    # HTML only
 
 ## Wrangler Is NOT Your Tool
 
-Do not run any wrangler command. You lack `CLOUDFLARE_API_TOKEN` and cannot authenticate. Wrangler is outside the scope of this project. Ship code to GitHub, then deploy separately.
-
+Do not run any wrangler command. You lack `CLOUDFLARE_API_TOKEN` and cannot authenticate. Wrangler is outside the scope of this project. Ship code to GitHub only.
