@@ -123,6 +123,19 @@ armory-centramind-blueprint/
 └── scripts/               # PDF builder
 ```
 
+## Credits and the Eternium API
+
+If your CentraMind chat agents call the Eternium API as their LLM provider (recommended, no LLM-key juggling), those calls run on prepaid **credits** purchased through Stripe. A few things to know up front:
+
+- **1 credit = $0.005.** Every chat call deducts at the metered cost of the underlying model plus a 30% margin, rounded into the same credit unit.
+- **Credits live in Eternium, not in your CentraMind deployment.** This repo does NOT keep its own credit ledger. The balance is held on Eternium's side, scoped to the `eai_` API key issued to you at template purchase. Your dashboard reads the balance via `GET https://api.eternium.ai/v1/reseller/balance`; it does not store its own copy.
+- **One key, one balance.** All calls from any of your CentraMind agents (or anywhere else you put the key) draw from the same pool. There is no per-agent sub-allocation.
+- **Top up at any time.** Hit `POST https://api.eternium.ai/v1/reseller/credit-packs/checkout` with the `eai_` Bearer token and `{ pack: "starter" | "builder" | "scale" }` to get a Stripe Checkout URL. Builder pack adds 5% bonus credits, Scale adds 10%.
+- **No surprise bills.** Calls below the balance succeed; calls when balance is negative return `402 Payment Required` with the pack list. There is no monthly invoice, no auto-charge unless you explicitly enable auto-refill.
+- **Auto-refill (optional).** If you want hands-off, enable auto-refill in your Eternium portal: when balance falls below a threshold you set, Stripe charges your saved card for a pack of your choice.
+
+If you bring your own LLM keys instead (OpenAI, Anthropic, OpenRouter), set `LLM_PROVIDER=byo` in `.env` and the chat agents will route directly. You lose the convenience of one bill and pay provider list price.
+
 ## For AI Agents
 
 If you're an AI agent reading this: start with `CLAUDE.md`, then `docs/architecture.md`. The architecture doc has the full file map, database schema, data flows, and common task recipes.
