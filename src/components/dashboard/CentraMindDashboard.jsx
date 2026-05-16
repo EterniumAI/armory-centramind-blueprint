@@ -203,7 +203,22 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
 /* ── Overview ────────────────────────────────────────────── */
 
 function OverviewTab({ workspace, onNavigate }) {
-    const { processes, projects, directives, heartbeat, productBrief, todo, roadmap, executives, operators, pipelines, skills, aiOwner, aiTodoItems } = workspace;
+    const { processes, projects: baseProjects, directives, heartbeat, productBrief, todo, roadmap, executives, operators, pipelines, skills, aiOwner, aiTodoItems, aiProjects } = workspace;
+
+    // Prefer AI-generated projects when /api/build populated them.
+    // Normalize the AI shape (slug, name, description, status, stack, next_actions)
+    // to the base shape (id, name, description, status).
+    const projects = Array.isArray(aiProjects) && aiProjects.length > 0
+        ? aiProjects.map((p) => ({
+            id: p.slug || p.name,
+            name: p.name,
+            status: p.status || 'active',
+            description: p.description,
+            stack: p.stack,
+            next_actions: p.next_actions,
+            ai: true,
+        }))
+        : baseProjects;
 
     const categoryBreakdown = useMemo(() => {
         const counts = {};
@@ -357,12 +372,21 @@ function OverviewTab({ workspace, onNavigate }) {
                     ) : (
                         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             {projects.slice(0, 6).map((p) => (
-                                <li key={p.id} className="border border-border bg-bg-card rounded-lg p-3">
+                                <li key={p.id} className={`border rounded-lg p-3 ${p.ai ? 'border-primary/30 bg-primary/5' : 'border-border bg-bg-card'}`}>
                                     <div className="flex items-baseline justify-between gap-2 mb-1">
                                         <span className="font-display font-semibold text-sm text-text-main truncate">{p.name}</span>
                                         <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">{p.status}</span>
                                     </div>
                                     <p className="text-xs text-text-muted line-clamp-2">{p.description || '(no description yet)'}</p>
+                                    {p.stack && Array.isArray(p.stack) && p.stack.length > 0 && (
+                                        <div className="mt-2 flex flex-wrap gap-1">
+                                            {p.stack.slice(0, 4).map((tool) => (
+                                                <span key={tool} className="text-[9px] font-mono text-text-subtle px-1.5 py-0.5 rounded bg-bg-elevated border border-border">
+                                                    {tool}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
                                 </li>
                             ))}
                         </ul>
@@ -489,25 +513,37 @@ function ProcessesTab({ workspace }) {
 /* ── Priorities ──────────────────────────────────────────── */
 
 function PrioritiesTab({ workspace }) {
-    const { todo, roadmap, source } = workspace;
+    const { todo, roadmap, source, aiTodoItems } = workspace;
 
-    const thisWeek = todo.thisWeek.length ? todo.thisWeek : roadmap[0].tasks.map((t) => ({ text: t, done: false }));
-    const backlog = todo.backlog.length ? todo.backlog : roadmap.slice(1).flatMap((p) => p.tasks).map((t) => ({ text: t, done: false }));
+    // Prefer AI-generated horizon-bucketed todos when present, grouped 30/60/90.
+    const hasAi = Array.isArray(aiTodoItems) && aiTodoItems.length > 0;
+    const toTask = (t) => ({ text: t.title, done: false, priority: t.priority });
+    const ai30 = hasAi ? aiTodoItems.filter((t) => t.horizon === '30d').map(toTask) : [];
+    const ai60 = hasAi ? aiTodoItems.filter((t) => t.horizon === '60d').map(toTask) : [];
+    const ai90 = hasAi ? aiTodoItems.filter((t) => t.horizon === '90d').map(toTask) : [];
+
+    const thisWeek = hasAi ? ai30 : (todo.thisWeek.length ? todo.thisWeek : roadmap[0].tasks.map((t) => ({ text: t, done: false })));
+    const backlog = hasAi ? [...ai60, ...ai90] : (todo.backlog.length ? todo.backlog : roadmap.slice(1).flatMap((p) => p.tasks).map((t) => ({ text: t, done: false })));
     const completed = todo.completed;
 
     return (
         <div className="space-y-6">
-            {source === 'memory' && (
+            {hasAi && (
+                <div className="text-[11px] text-primary font-mono border border-primary/30 rounded-lg p-3 bg-primary/5">
+                    AI-built priorities from your wizard answers and what Eternium knows about your business. Edit TODO.md when you take ownership.
+                </div>
+            )}
+            {!hasAi && source === 'memory' && (
                 <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card">
                     These priorities are seeded from your blueprint roadmap. Run the bootstrap prompt in the Claude Code tab to turn TODO.md into your real priority list.
                 </div>
             )}
 
-            <Panel title={`This Week (${thisWeek.length})`}>
-                <TaskList items={thisWeek} empty="No tasks this week." />
+            <Panel title={hasAi ? `Next 30 days (${thisWeek.length})` : `This Week (${thisWeek.length})`}>
+                <TaskList items={thisWeek} empty="No tasks queued." />
             </Panel>
 
-            <Panel title={`Backlog (${backlog.length})`}>
+            <Panel title={hasAi ? `60-90 day horizon (${backlog.length})` : `Backlog (${backlog.length})`}>
                 <TaskList items={backlog} empty="Backlog is clear." />
             </Panel>
 
@@ -539,9 +575,31 @@ function TaskList({ items, empty }) {
 /* ── Memory ──────────────────────────────────────────────── */
 
 function MemoryTab({ workspace, scratchpad, onScratchpadChange }) {
-    const { memoryText } = workspace;
+    const { memoryText, aiMemoryFacts } = workspace;
+    const hasAiMemory = Array.isArray(aiMemoryFacts) && aiMemoryFacts.length > 0;
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+            {hasAiMemory && (
+                <Panel title={`AI-seeded facts (${aiMemoryFacts.length})`}>
+                    <p className="text-[11px] text-primary font-mono mb-3">
+                        // Built by Claude from your wizard answers + what Eternium knows about your business.
+                    </p>
+                    <ul className="space-y-2">
+                        {aiMemoryFacts.map((fact, i) => (
+                            <li key={i} className="flex items-start gap-3 text-sm text-text-main">
+                                <span className="text-primary text-xs mt-1">▸</span>
+                                <span>{fact}</span>
+                            </li>
+                        ))}
+                    </ul>
+                    <p className="text-[10px] text-text-subtle mt-4 font-mono">
+                        Copy the ones worth keeping into <code className="text-primary">memory/MEMORY.md</code> via the <code className="text-primary">/handoff</code> Claude Code skill.
+                    </p>
+                </Panel>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Panel title="MEMORY.md">
                 {memoryText ? (
                     <pre className="text-xs text-text-muted whitespace-pre-wrap font-sans leading-relaxed max-h-[520px] overflow-y-auto">
@@ -571,6 +629,7 @@ function MemoryTab({ workspace, scratchpad, onScratchpadChange }) {
                     {scratchpad.length} characters &middot; local to this browser
                 </p>
             </Panel>
+            </div>
         </div>
     );
 }
