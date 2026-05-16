@@ -96,6 +96,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
             aiProjects: Array.isArray(aiWorkspace.projects) ? aiWorkspace.projects : [],
             aiTodoItems: Array.isArray(aiWorkspace.todo_items) ? aiWorkspace.todo_items : [],
             aiMemoryFacts: Array.isArray(aiWorkspace.memory_facts) ? aiWorkspace.memory_facts : [],
+            aiClients: Array.isArray(aiWorkspace.clients) ? aiWorkspace.clients : [],
             aiFirstChatMessage: aiWorkspace.first_chat_message || '',
         };
     }, [blueprint, email, aiWorkspace]);
@@ -1071,27 +1072,86 @@ function FleetTab({ workspace }) {
 /* ── CRM ─────────────────────────────────────────────────── */
 
 function CRMTab({ workspace }) {
-    const { pipelines, contacts, accounts, deals, source } = workspace;
+    const { pipelines, contacts, accounts, deals, source, aiClients } = workspace;
     const [activePipeline, setActivePipeline] = useState(pipelines[0]?.id ?? null);
     const pipeline = pipelines.find((p) => p.id === activePipeline) ?? pipelines[0];
 
-    if (pipelines.length === 0) {
+    const hasAiClients = Array.isArray(aiClients) && aiClients.length > 0;
+    const aiClientMrr = hasAiClients
+        ? aiClients.filter((c) => c.stage === 'active').reduce((s, c) => s + (Number(c.monthly_value_usd) || 0), 0)
+        : 0;
+    const aiClientArr = aiClientMrr * 12;
+
+    if (pipelines.length === 0 && !hasAiClients) {
         return <EmptyNote>No pipelines configured. Retake the blueprint and pick the pipelines you want to run.</EmptyNote>;
     }
 
     return (
         <div className="space-y-6">
-            {source === 'memory' && (
+            {source === 'memory' && !hasAiClients && (
                 <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card">
                     These pipelines are seeded from your blueprint. Once the bootstrap prompt writes state/crm.json, your Claude Code operators can add contacts, accounts, and deals and you will see them here.
                 </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
-                <StatCard label="Contacts" value={contacts.length} />
-                <StatCard label="Accounts" value={accounts.length} />
-                <StatCard label="Deals" value={deals.length} accent />
-            </div>
+            {hasAiClients && (
+                <>
+                    <div className="text-[11px] text-primary font-mono border border-primary/30 rounded-lg p-3 bg-primary/5">
+                        AI-seeded clients drawn from your business context. Edit state/crm.json to take ownership.
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <StatCard label="Active clients" value={aiClients.filter((c) => c.stage === 'active').length} />
+                        <StatCard label="Monthly recurring" value={`$${aiClientMrr.toLocaleString()}`} accent />
+                        <StatCard label="Annualized" value={`$${aiClientArr.toLocaleString()}`} success />
+                    </div>
+
+                    <div>
+                        <h3 className="font-display font-semibold text-sm text-text-main mb-3">Client roster</h3>
+                        <div className="overflow-hidden border border-border rounded-lg">
+                            <table className="w-full text-sm">
+                                <thead className="bg-bg-elevated">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-text-subtle font-normal">Client</th>
+                                        <th className="px-4 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-text-subtle font-normal">Stage</th>
+                                        <th className="px-4 py-2 text-right text-[10px] font-mono uppercase tracking-wider text-text-subtle font-normal">Monthly</th>
+                                        <th className="px-4 py-2 text-left text-[10px] font-mono uppercase tracking-wider text-text-subtle font-normal">Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {aiClients.map((c, i) => (
+                                        <tr key={i} className={`border-t border-border ${i % 2 ? 'bg-bg-card/40' : ''}`}>
+                                            <td className="px-4 py-2 font-display font-semibold text-text-main">{c.name || 'Unnamed'}</td>
+                                            <td className="px-4 py-2">
+                                                <span className={`text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${
+                                                    c.stage === 'active' ? 'border-success/30 text-success bg-success/5' :
+                                                    c.stage === 'at_risk' ? 'border-error/30 text-error bg-error/5' :
+                                                    c.stage === 'churned' ? 'border-text-subtle/30 text-text-subtle bg-bg-elevated' :
+                                                    'border-primary/30 text-primary bg-primary/5'
+                                                }`}>
+                                                    {c.stage || 'unknown'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-2 text-right font-mono text-text-main">
+                                                {c.monthly_value_usd ? `$${Number(c.monthly_value_usd).toLocaleString()}` : '--'}
+                                            </td>
+                                            <td className="px-4 py-2 text-xs text-text-muted max-w-md">{c.notes || ''}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {!hasAiClients && (
+                <div className="grid grid-cols-3 gap-3">
+                    <StatCard label="Contacts" value={contacts.length} />
+                    <StatCard label="Accounts" value={accounts.length} />
+                    <StatCard label="Deals" value={deals.length} accent />
+                </div>
+            )}
 
             <div className="flex flex-wrap gap-2">
                 {pipelines.map((p) => (
