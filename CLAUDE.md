@@ -8,14 +8,14 @@ CentraMind OS: AI agent memory, skills, context protocol, a Chat tab powered by 
 
 ## Stack
 - **Frontend:** React 19 + Vite + Tailwind CSS v4
-- **Chat:** Cloudflare Pages Function (`api/chat.js`) proxies to Eternium API
+- **Chat:** Cloudflare Pages Function (`functions/api/chat.js`) proxies to Eternium API
 - **Data:** Supabase (Postgres) optional; disk-based JSON state is the default
 - **Theming:** `theme.config.js` at root, generated into `src/theme.generated.css` at build time
 
 ## Key Paths
 - `src/components/` -- dashboard UI components
 - `src/lib/supabase.js` -- Supabase client (optional)
-- `api/chat.js` -- Cloudflare Pages Function proxying to Eternium API
+- `functions/api/chat.js` -- Cloudflare Pages Function proxying to Eternium API
 - `src/lib/chat-context.js` -- builds Chat tab system prompt from workspace state
 - `src/components/dashboard/ChatTab.jsx` -- Chat tab UI component
 - `state/` -- JSON state files (source of truth for projects, sessions, CRM, etc.)

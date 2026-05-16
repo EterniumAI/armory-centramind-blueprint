@@ -10,7 +10,7 @@ A React + Vite SPA that gives a non-technical or semi-technical owner a structur
 
 The dashboard talks to two backends:
 
-1. **Eternium API** (`api.eternium.ai`) -- powers the Chat tab via the `api/chat.js` Cloudflare Pages Function. The owner's prepaid credit balance funds chat. They never juggle OpenAI / Anthropic keys.
+1. **Eternium API** (`api.eternium.ai`) -- powers the Chat tab via the `functions/api/chat.js` Cloudflare Pages Function. The owner's prepaid credit balance funds chat. They never juggle OpenAI / Anthropic keys.
 2. **Supabase** (optional) -- if the owner provides `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`, the onboarding form persists email leads and the migrations create tables for future CRM / session-log / projects sync. The dashboard works without Supabase; disk-based JSON state is the default.
 
 The third "backend" is **Claude Code itself**. The owner runs `claude` locally in the project directory. The skills under `.claude/skills/` (`standup`, `handoff`) give Claude Code structured access to the same state files the dashboard reads. The dashboard renders state; Claude Code mutates state.
@@ -123,7 +123,7 @@ Daily use:
   User opens Chat tab               -> POSTs to /api/chat with the message
                                        + system prompt built from state +
                                        OWNER.md + TODO.md + project.json
-  Pages Function api/chat.js        -> reads ETERNIUM_API_KEY from env
+  Pages Function functions/api/chat.js        -> reads ETERNIUM_API_KEY from env
                                     -> POSTs to api.eternium.ai/v1/reseller/
                                        chat/completions with Bearer eai_
                                     -> streams response back via SSE
@@ -156,7 +156,7 @@ For v1, the disk-first design means a buyer can clone, install, and run with zer
 
 Eternium API keys (`eai_<32 chars>`) are bearer tokens. If the dashboard called `api.eternium.ai` directly from the browser, the token would be visible in DevTools to anyone who opens the page. That is unsafe for any dashboard hosted publicly (Cloudflare Pages, Vercel, your own subdomain).
 
-`api/chat.js` is a Cloudflare Pages Function that runs server-side. It reads `ETERNIUM_API_KEY` from the deployment's env (never exposed to the client), proxies the chat request to Eternium, and streams the response back to the browser. The browser never sees the key.
+`functions/api/chat.js` is a Cloudflare Pages Function that runs server-side. It reads `ETERNIUM_API_KEY` from the deployment's env (never exposed to the client), proxies the chat request to Eternium, and streams the response back to the browser. The browser never sees the key.
 
 For local development, the Vite dev server proxies `/api/*` to a local Pages Function emulator (or you set `ETERNIUM_API_KEY` in `.env.local` and the proxy uses it). See `docs/setup-guide.md` for details.
 
