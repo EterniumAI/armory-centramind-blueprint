@@ -28,12 +28,16 @@ export async function onRequestPost({ request, env }) {
     content: String(m.content),
   }));
 
+  // NOTE: Eternium Worker currently 500s on `stream:true` (runInternalChat
+  // Completion does not forward SSE). We request non-streaming from upstream
+  // and re-emit a single SSE event so the browser-side parser keeps working.
+  // Upstream streaming is tracked as a follow-up; swap this back to passthrough
+  // once eternium-api supports it.
   const upstreamBody = {
     model: body.model || 'gpt-5.1-codex-mini',
     messages,
     max_tokens: clamp(body.max_tokens, 1, 4096, 1500),
     temperature: typeof body.temperature === 'number' ? clamp(body.temperature, 0, 2, 0.7) : 0.7,
-    stream: true,
   };
 
   let upstream;
@@ -50,7 +54,6 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'upstream_unreachable', detail: err.message }, 502);
   }
 
-  // 402 = insufficient credits. Surface the topup URL.
   if (upstream.status === 402) {
     const errBody = await upstream.json().catch(() => ({}));
     return json({
@@ -68,8 +71,36 @@ export async function onRequestPost({ request, env }) {
     );
   }
 
-  // Stream SSE back to the browser.
-  return new Response(upstream.body, {
+  // Re-emit upstream JSON as a synthetic SSE stream so the ChatTab's
+  // existing TextDecoder parser keeps working.
+  const upstreamJson = await upstream.json().catch(() => null);
+  const content = upstreamJson?.choices?.[0]?.message?.content || '';
+  const id = upstreamJson?.id || `gen-${Date.now()}`;
+  const model = upstreamJson?.model || upstreamBody.model;
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    start(controller) {
+      const delta = {
+        id, object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, delta: { content }, finish_reason: null }],
+      };
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(delta)}\n\n`));
+      const stop = {
+        id, object: 'chat.completion.chunk',
+        created: Math.floor(Date.now() / 1000),
+        model,
+        choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+      };
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(stop)}\n\n`));
+      controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
     status: 200,
     headers: {
       'Content-Type': 'text/event-stream',
