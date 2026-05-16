@@ -17,6 +17,7 @@ import {
     roadmapForTier,
     TIER_NAMES,
 } from '../../lib/blueprint-export';
+import { theme } from '../../../theme.config.js';
 
 // Disk-state loaders. Each glob is eager so the module evaluates the file
 // at build time; Vite HMR re-evaluates on file changes in dev. Paths are
@@ -50,6 +51,16 @@ const TABS = [
     { id: 'sessions',   label: 'Sessions' },
     { id: 'claude',     label: 'Claude Code' },
     { id: 'settings',   label: 'Settings' },
+];
+
+// Sidebar groupings -- shapes the CRM-style nav. Each group renders a
+// small uppercase label, then the tab buttons.
+const NAV_SECTIONS = [
+    { label: 'Workspace',  tabs: ['overview', 'chat'] },
+    { label: 'Operations', tabs: ['priorities', 'processes', 'sessions'] },
+    { label: 'People',     tabs: ['executives', 'fleet', 'crm'] },
+    { label: 'Knowledge',  tabs: ['skills', 'memory'] },
+    { label: 'System',     tabs: ['claude', 'settings'] },
 ];
 
 const storageKey = (email) => `centramind:${email || 'anon'}`;
@@ -93,24 +104,27 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
         setPersisted((prev) => ({ ...prev, scratchpad: value }));
     }, []);
 
+    const brandName = theme.brandName || 'CentraMind';
+    const firstName = workspace.aiOwner?.first_name_guess || '';
+    const tabsById = Object.fromEntries(TABS.map((t) => [t.id, t]));
+
     return (
-        <div className="min-h-screen bg-bg">
-            {/* Top bar */}
+        <div className="min-h-screen bg-bg flex flex-col">
+            {/* Compact top bar */}
             <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full pulse-dot ${workspace.source === 'disk' ? 'bg-success' : 'bg-warning'}`} />
-                        <span className="font-display font-bold text-sm tracking-wide text-text-main">
-                            CentraMind
+                <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <span className="font-display font-extrabold text-base tracking-[0.05em] text-primary truncate">
+                            {brandName}
                         </span>
-                        {workspace.aiOwner?.tagline && (
-                            <span className="hidden md:inline text-xs text-text-subtle ml-2 italic">
-                                {workspace.aiOwner.tagline}
+                        {firstName && (
+                            <span className="hidden md:inline text-xs font-mono text-text-muted">
+                                // hey {firstName.toLowerCase()}
                             </span>
                         )}
-                        {!workspace.aiOwner?.tagline && email && (
-                            <span className="hidden sm:inline text-xs text-text-subtle font-mono ml-2">
-                                / {email}
+                        {workspace.aiOwner?.tagline && (
+                            <span className="hidden lg:inline text-[11px] text-text-subtle italic truncate max-w-md">
+                                {workspace.aiOwner.tagline}
                             </span>
                         )}
                     </div>
@@ -124,78 +138,89 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                                 ? 'Reading live files from your repo root.'
                                 : 'Reading from your in-browser blueprint. Run the Claude Code bootstrap prompt in this folder to go live.'}
                         >
+                            <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle pulse-dot ${workspace.source === 'disk' ? 'bg-success' : 'bg-warning'}`} />
                             {workspace.source === 'disk' ? 'Live' : 'Preview'}
                         </span>
                     </div>
                 </div>
             </header>
 
-            {/* Summary strip */}
-            <section className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-6">
-                <div className="mb-6">
-                    <p className="text-xs font-mono uppercase tracking-wider text-primary mb-2">
-                        {workspace.source === 'disk' ? 'Workspace' : 'Preview'}
-                    </p>
-                    <h1 className="font-display font-bold text-2xl sm:text-3xl text-text-main mb-1">
-                        {workspace.source === 'disk'
-                            ? 'Your workspace at a glance.'
-                            : 'Your blueprint, in place.'}
-                    </h1>
-                    <p className="text-sm text-text-muted max-w-2xl">
-                        {workspace.source === 'disk'
-                            ? 'Everything here is read from the state files in your repo. Edit them with Claude Code and this view updates on save.'
-                            : 'This is a preview based on your questionnaire answers. To make it the real thing, open the Claude Code tab and run the bootstrap prompt from this folder.'}
-                    </p>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <StatCard label="Processes" value={workspace.processes.length} />
-                    <StatCard label="Architecture" value={TIER_NAMES[workspace.tier]} small />
-                    <StatCard label="Hours Saved/wk" value={`${workspace.roi.weekly_hours_saved.toFixed(1)}h`} accent />
-                    <StatCard label="Annual Savings" value={`$${workspace.roi.annual_savings_usd.toLocaleString()}`} success />
-                </div>
-            </section>
+            <div className="flex flex-1 min-h-0">
+                {/* Sidebar nav */}
+                <aside className="hidden md:flex flex-col w-56 border-r border-border bg-bg-surface/40 shrink-0">
+                    <nav className="flex-1 overflow-y-auto py-4">
+                        {NAV_SECTIONS.map((section) => (
+                            <div key={section.label} className="mb-5">
+                                <div className="px-5 mb-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-text-subtle">
+                                    {section.label}
+                                </div>
+                                <ul>
+                                    {section.tabs.map((tabId) => {
+                                        const t = tabsById[tabId];
+                                        if (!t) return null;
+                                        const active = tab === t.id;
+                                        return (
+                                            <li key={t.id}>
+                                                <button
+                                                    onClick={() => setTab(t.id)}
+                                                    className={`w-full text-left px-5 py-1.5 text-sm flex items-center transition-colors cursor-pointer ${
+                                                        active
+                                                            ? 'text-primary bg-primary/10 border-l-2 border-primary -ml-px'
+                                                            : 'text-text-muted hover:text-text-main hover:bg-bg-elevated/40 border-l-2 border-transparent -ml-px'
+                                                    }`}
+                                                >
+                                                    {t.label}
+                                                </button>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            </div>
+                        ))}
+                    </nav>
+                    <div className="px-5 py-3 border-t border-border text-[10px] font-mono text-text-subtle">
+                        Powered by{' '}
+                        <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                            Eternium
+                        </a>
+                    </div>
+                </aside>
 
-            {/* Tabs */}
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 border-b border-border overflow-x-auto">
-                <nav className="flex gap-1 flex-nowrap sm:flex-wrap min-w-max sm:min-w-0">
-                    {TABS.map((t) => (
-                        <button
-                            key={t.id}
-                            onClick={() => setTab(t.id)}
-                            className={`px-4 py-2.5 text-xs font-mono uppercase tracking-wider border-b-2 transition-colors cursor-pointer whitespace-nowrap ${
-                                tab === t.id
-                                    ? 'border-primary text-primary'
-                                    : 'border-transparent text-text-muted hover:text-text-main'
-                            }`}
-                        >
-                            {t.label}
-                        </button>
-                    ))}
-                </nav>
+                {/* Mobile tab picker (visible only below md) */}
+                <div className="md:hidden border-b border-border bg-bg-surface/40 px-4 py-2 overflow-x-auto">
+                    <select
+                        value={tab}
+                        onChange={(e) => setTab(e.target.value)}
+                        className="bg-bg-elevated border border-border rounded px-2 py-1.5 text-xs font-mono text-text-main w-full"
+                    >
+                        {NAV_SECTIONS.map((section) => (
+                            <optgroup key={section.label} label={section.label}>
+                                {section.tabs.map((tabId) => {
+                                    const t = tabsById[tabId];
+                                    if (!t) return null;
+                                    return <option key={t.id} value={t.id}>{t.label}</option>;
+                                })}
+                            </optgroup>
+                        ))}
+                    </select>
+                </div>
+
+                {/* Tab content */}
+                <main className="flex-1 min-w-0 overflow-x-hidden px-4 sm:px-6 py-6">
+                    {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
+                    {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
+                    {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
+                    {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
+                    {tab === 'crm'        && <CRMTab        workspace={workspace} />}
+                    {tab === 'skills'     && <SkillsTab     workspace={workspace} />}
+                    {tab === 'processes'  && <ProcessesTab  workspace={workspace} />}
+                    {tab === 'priorities' && <PrioritiesTab workspace={workspace} />}
+                    {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
+                    {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
+                    {tab === 'claude'     && <ClaudeTab     blueprint={blueprint} email={email} />}
+                    {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} />}
+                </main>
             </div>
-
-            {/* Tab content */}
-            <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-                {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
-                {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
-                {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
-                {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
-                {tab === 'crm'        && <CRMTab        workspace={workspace} />}
-                {tab === 'skills'     && <SkillsTab     workspace={workspace} />}
-                {tab === 'processes'  && <ProcessesTab  workspace={workspace} />}
-                {tab === 'priorities' && <PrioritiesTab workspace={workspace} />}
-                {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
-                {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
-                {tab === 'claude'     && <ClaudeTab     blueprint={blueprint} email={email} />}
-                {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} />}
-            </main>
-
-            <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-                Powered by{' '}
-                <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                    CentraMind
-                </a>
-            </footer>
         </div>
     );
 }
@@ -234,6 +259,14 @@ function OverviewTab({ workspace, onNavigate }) {
 
     return (
         <div className="space-y-6">
+            {/* Top stat strip -- moved from the global header when we adopted the sidebar nav. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <StatCard label="Processes" value={workspace.processes.length} />
+                <StatCard label="Architecture" value={TIER_NAMES[workspace.tier]} small />
+                <StatCard label="Hours saved / wk" value={`${workspace.roi.weekly_hours_saved.toFixed(1)}h`} accent />
+                <StatCard label="Annual savings" value={`$${workspace.roi.annual_savings_usd.toLocaleString()}`} success />
+            </div>
+
             {/* AI-generated welcome card (only if /api/build ran during onboarding) */}
             {aiOwner?.context && (
                 <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-bg-card to-bg-card p-6">
