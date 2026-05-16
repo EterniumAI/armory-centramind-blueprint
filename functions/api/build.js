@@ -32,11 +32,20 @@ const SCHEMA_INSTRUCTIONS = `You MUST respond with a single valid JSON object ma
   "memory_facts": [
     "Short fact about the user that the AI should remember (e.g. 'User runs a one-person agency', 'Primary revenue source is X')"
   ],
+  "clients": [
+    {
+      "name": "Specific client / account name (e.g. 'Intermountain Legal'). Empty array OK if you have no signal.",
+      "monthly_value_usd": 1000,
+      "stage": "active | onboarding | proposal | at_risk | churned",
+      "notes": "Optional one-line context (engagement focus, channels)"
+    }
+  ],
   "first_chat_message": "A welcoming first-message from the CentraMind chat agent. Mention 1-2 specific things you inferred about their business. End with an open question that nudges them toward their highest-leverage action. Max 4 sentences."
 }
 
 Rules:
 - 3-5 projects, 5-8 todo items, 5-8 memory facts.
+- 0-6 clients. Only populate clients if the customer context names specific accounts; do NOT invent fictional client names from generic wizard signal.
 - Project slugs must be unique, kebab-case, max 30 chars.
 - todo_items "horizon" must be one of "30d", "60d", or "90d".
 - All strings must be plain ASCII -- no em dashes, no smart quotes, no emoji.
