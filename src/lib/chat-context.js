@@ -20,14 +20,37 @@ export function estimateTokens(text) {
 }
 
 /**
+ * Read the AI-generated workspace from localStorage if /api/build ran during
+ * onboarding. Returns null if absent or unparseable.
+ */
+export function readAiWorkspace() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem('centramind:ai-workspace');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+
+/**
+ * The AI-seeded "first message" the chat agent sends when the user opens
+ * the Chat tab for the first time. Returns null if no AI workspace.
+ */
+export function aiFirstChatMessage() {
+  const ai = readAiWorkspace();
+  return ai?.first_chat_message || null;
+}
+
+/**
  * Build the system message content for the Chat tab.
- * Pulls from disk state (via Vite globs) and the in-browser blueprint.
+ * Prefers AI-generated workspace (from /api/build during onboarding) if
+ * available, falling back to disk state via Vite globs.
  */
 export function buildSystemPrompt(blueprint) {
   const MAX_TOKENS = 8000;
 
   const brandName = blueprint?.brandName || 'CentraMind';
   const tier = blueprint?.tier || 'solo';
+  const ai = readAiWorkspace();
 
   const ownerRaw = first(ownerGlob) || '';
   const todoRaw = first(todoGlob) || '';
@@ -45,18 +68,38 @@ export function buildSystemPrompt(blueprint) {
   const sessions = sessionFile?.sessions ?? [];
   const recentSessions = sessions.slice(-5);
 
-  // Most recent 3 projects
-  const projects = projectFile?.projects ?? [];
+  // Most recent 3 projects -- prefer AI-generated projects if available.
+  const aiProjects = Array.isArray(ai?.projects) ? ai.projects : null;
+  const projects = aiProjects || projectFile?.projects || [];
   const recentProjects = projects.slice(-3);
 
-  // Extract first name from OWNER.md if possible
+  // AI-generated owner context overrides the disk OWNER.md template-fill.
+  const aiOwnerTagline = ai?.owner?.tagline || '';
+  const aiOwnerContext = ai?.owner?.context || '';
+  const aiFirstName = ai?.owner?.first_name_guess || '';
+  const aiMemoryFacts = Array.isArray(ai?.memory_facts) ? ai.memory_facts : null;
+  const aiTodoItems = Array.isArray(ai?.todo_items) ? ai.todo_items : null;
+
+  // Extract first name: prefer AI guess, else parse OWNER.md
   const nameMatch = ownerRaw.match(/^#\s+(.+)/m);
-  const ownerName = nameMatch ? nameMatch[1].trim().split(/\s+/)[0] : '';
+  const ownerName = aiFirstName || (nameMatch ? nameMatch[1].trim().split(/\s+/)[0] : '');
+
+  const ownerSection = aiOwnerContext
+    ? `\nOwner profile (AI-generated from onboarding):\n${aiOwnerContext}${aiOwnerTagline ? `\nTagline: ${aiOwnerTagline}` : ''}`
+    : ownerRaw ? `\nOwner profile:\n${ownerRaw}` : '';
+
+  const todoSection = aiTodoItems
+    ? `\nActive priorities (AI-generated roadmap):\n${aiTodoItems.map((t) => `- [${t.priority}/${t.horizon}] ${t.title}`).join('\n')}`
+    : todoRaw ? `\nActive priorities:\n${todoRaw}` : '';
+
+  const memorySection = aiMemoryFacts
+    ? `\nPersistent memory (AI-seeded facts):\n${aiMemoryFacts.map((f) => `- ${f}`).join('\n')}`
+    : memoryRaw ? `\nPersistent memory (excerpt):\n${memoryRaw}` : '';
 
   const sections = [
     `You are the CentraMind chat agent for ${brandName} (${tier} tier).${ownerName ? ` Address the user as ${ownerName}.` : ''}`,
-    ownerRaw ? `\nOwner profile:\n${ownerRaw}` : '',
-    todoRaw ? `\nActive priorities:\n${todoRaw}` : '',
+    ownerSection,
+    todoSection,
     hbRaw ? `\nActive alerts:\n${hbRaw}` : '',
     recentProjects.length > 0
       ? `\nActive projects (most recent 3):\n${JSON.stringify(recentProjects, null, 2)}`
@@ -64,9 +107,7 @@ export function buildSystemPrompt(blueprint) {
     recentSessions.length > 0
       ? `\nLast ${recentSessions.length} sessions:\n${JSON.stringify(recentSessions, null, 2)}`
       : '',
-    memoryRaw
-      ? `\nPersistent memory (excerpt):\n${memoryRaw}`
-      : '',
+    memorySection,
     '\nAnswer concisely, prefer specific names + dates from the above context. Use markdown formatting when helpful.',
   ];
 
