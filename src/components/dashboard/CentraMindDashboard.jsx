@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import ChatTab from './ChatTab';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
     EXECUTIVES,
@@ -38,6 +39,7 @@ const LS_ETERNIUM_KEY = 'centramind:eternium-api-key';
 
 const TABS = [
     { id: 'overview',   label: 'Overview' },
+    { id: 'chat',       label: 'Chat' },
     { id: 'executives', label: 'Executives' },
     { id: 'fleet',      label: 'Fleet' },
     { id: 'crm',        label: 'CRM' },
@@ -156,6 +158,7 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
             {/* Tab content */}
             <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
                 {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
+                {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
                 {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
                 {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
                 {tab === 'crm'        && <CRMTab        workspace={workspace} />}
