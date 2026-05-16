@@ -1,9 +1,10 @@
 /**
- * CentraMind Blueprint -- Theme Configuration
+ * VSN|CUT -- Theme Configuration
  *
- * Edit this file to rebrand the entire dashboard. Every color, font,
- * and brand label resolves through CSS variables generated from these
- * values. No component edits needed.
+ * Vision Cut case-study deployment. The brand is a video production house
+ * (full-service: direction, editing, drone, social). Palette is black
+ * background with saturated yellow as the brand accent. Logo is a wordmark
+ * styled as "VSN|CUT" -- pipe character is intentional.
  *
  * After editing, run `npm run theme` (or just `npm run dev`) to regenerate
  * `src/theme.generated.css`. Vite picks up the new tokens automatically.
@@ -11,36 +12,34 @@
 
 export const theme = {
   // ─── Brand label ──────────────────────────────────────────────────────
-  brandName: 'CentraMind Blueprint',
+  brandName: 'VSN|CUT',
 
-  // ─── Footer + community links (per-buyer override) ────────────────────
-  // The Landing onboarding page and the dashboard footer link to your
-  // public site + community. Change these to point at your own brand.
+  // ─── Footer + community links ─────────────────────────────────────────
   links: {
-    home: 'https://eternium.ai/centramind',
-    community: 'https://eternium.ai/community',
-    support: 'mailto:support@eternium.ai',
+    home: 'https://vsncut.com',
+    community: 'https://vsncut.com',
+    support: 'mailto:austin@vsncut.com',
   },
 
-  // ─── Colors (CSS custom properties) ───────────────────────────────────
-  // Defaults match the canonical Eternium look. Override any subset.
+  // ─── Colors ───────────────────────────────────────────────────────────
+  // VSN|CUT brand: saturated yellow on near-black, with off-white text.
   colors: {
-    primary: '#18b5f0',
-    primaryGlow: '#18b5f066',
-    primaryDim: '#18b5f015',
-    accent: '#18b5f0',
-    bg: '#050505',
-    bgSurface: '#0a0a0a',
-    bgCard: '#0f0f0f',
-    bgElevated: '#161616',
-    text: '#f0f0f0',
-    textMuted: '#888888',
-    textSubtle: '#555555',
-    border: 'rgba(255, 255, 255, 0.06)',
-    borderAccent: 'rgba(24, 181, 240, 0.2)',
-    success: '#22c55e',
-    warning: '#eab308',
-    error: '#ef4444',
+    primary:       '#FFDE59',
+    primaryGlow:   '#FFDE5966',
+    primaryDim:    '#FFDE5915',
+    accent:        '#FFDE59',
+    bg:            '#0a0a0a',
+    bgSurface:     '#111111',
+    bgCard:        '#161616',
+    bgElevated:    '#1c1c1c',
+    text:          '#EDECED',
+    textMuted:     '#9a9a9a',
+    textSubtle:    '#5a5a5a',
+    border:        'rgba(255, 222, 89, 0.08)',
+    borderAccent:  'rgba(255, 222, 89, 0.28)',
+    success:       '#22c55e',
+    warning:       '#FFBD59',
+    error:         '#FF5757',
   },
 
   // ─── Typography ───────────────────────────────────────────────────────
@@ -50,17 +49,15 @@ export const theme = {
     fontMono: '"JetBrains Mono", monospace',
   },
 
-  // ─── Logos (used by the PDF builder) ──────────────────────────────────
-  // The PDF docs script (`npm run docs`) embeds these as the title page.
-  // To use your own brand, replace these URLs with public asset URLs
-  // (e.g. your own Supabase storage bucket or a CDN).
+  // ─── Logos ────────────────────────────────────────────────────────────
+  // VSN|CUT logo file is Wix-runtime-loaded and not directly fetchable.
+  // For v1 we render the text wordmark; drop a real PNG/SVG here later.
   logos: {
-    brand: null,        // null -> falls back to text "CentraMind"
-    claude: null,       // null -> falls back to text "Claude Code"
+    brand: null,
+    claude: null,
     supabase: null,
     github: null,
   },
 
-  // Change this ID to swap the onboarding walkthrough video link.
-  walkthroughVideoId: 'YOUR_VIDEO_ID',
+  walkthroughVideoId: '',
 };
