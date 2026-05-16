@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { buildSystemPrompt } from '../../lib/chat-context';
+import { buildSystemPrompt, aiFirstChatMessage } from '../../lib/chat-context';
 
 const HISTORY_KEY = 'centramind:chat-history';
 const MAX_HISTORY = 50;
@@ -14,12 +14,17 @@ const SUGGESTED_PROMPTS = [
 function loadHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.slice(-MAX_HISTORY) : [];
-  } catch {
-    return [];
-  }
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.slice(-MAX_HISTORY);
+      }
+    }
+  } catch { /* fall through to seeded greeting */ }
+  // No saved history: seed with the AI-generated first message if onboarding
+  // produced one. Empty array otherwise, which renders the suggested prompts.
+  const seeded = aiFirstChatMessage();
+  return seeded ? [{ role: 'assistant', content: seeded }] : [];
 }
 
 function saveHistory(messages) {
