@@ -26,11 +26,13 @@ const STEPS = [
 
 export default function App() {
   // ──── First-visit detection ────────────────────────────────────────────
-  // If the user already completed onboarding (blueprint in localStorage) AND
-  // they did not explicitly hit ?onboard=1, drop them straight into the
-  // dashboard. Otherwise show Landing -> 5-step questionnaire -> dashboard.
+  // Routing for first-visit experience:
+  //   ?onboard=1 -- force Landing + questionnaire even if blueprint exists
+  //   ?skip=1    -- jump straight to dashboard with default blueprint (preview / demo mode)
+  //   default    -- show Landing if no stored blueprint; dashboard if there is one
   const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
   const forceOnboard = url ? url.searchParams.get('onboard') === '1' : false;
+  const forceSkip    = url ? (url.searchParams.get('skip') === '1' || url.searchParams.get('demo') === '1') : false;
   const storedBlueprint = (() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -42,7 +44,7 @@ export default function App() {
     if (typeof window === 'undefined') return '';
     try { return window.localStorage.getItem(EMAIL_LS_KEY) || ''; } catch { return ''; }
   })();
-  const skipOnboarding = !forceOnboard && storedBlueprint && storedBlueprint.processes;
+  const skipOnboarding = !forceOnboard && (forceSkip || (storedBlueprint && storedBlueprint.processes));
 
   const [started, setStarted] = useState(skipOnboarding);
   const [launched, setLaunched] = useState(skipOnboarding);
