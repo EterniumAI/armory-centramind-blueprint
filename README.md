@@ -1,92 +1,63 @@
 # CentraMind Blueprint
 
-AI agent memory, skills, context protocol, and a Command Center dashboard. Build in 50 minutes.
+A Claude-Code-native operating dashboard for your AI-assisted business. Four-layer architecture: Central Intelligence, Contextual Memory, Autonomous Agents, Human Override. Ships with a 5-step onboarding questionnaire, a Command Center dashboard, persistent memory, and two ready-to-run Claude Code skills.
 
-This is the exact architecture that runs [Eternium](https://eternium.ai). The pattern is CentraMind: a file-based knowledge graph that any AI agent can read and write, plus an Orchestrator agent that delegates to a fleet of operators. The Command Center dashboard visualizes your entire operation in real time.
+The Chat tab talks to the Eternium API on prepaid credits. You bring zero LLM keys. One bill. ($0.005 / credit.)
 
-## Two Paths
+> **Status:** v1.0 ships the dashboard + onboarding + Claude Code skills + Supabase migrations. The Chat tab arrives in v1.1 (next release). Today the Chat surface is the **Claude Code tab** that gives you a bootstrap prompt to paste into a local `claude` session.
 
-### Managed (Eternium SaaS)
-Sign in at [eternium.ai](https://eternium.ai), get an API key, and your Command Center is already hosted. No clone needed.
-
-### Self-Hosted (this repo)
-
-```bash
-git clone https://github.com/EterniumAI/armory-centramind-blueprint.git
-cd armory-centramind-blueprint
-npm install
-cp .env.example .env   # fill in your Supabase credentials
-npm run dev
-```
-
-Or hand it to Claude Code:
-```bash
-claude
-> Set up this project. My Supabase URL is [url] and anon key is [key].
-```
-
-## What You Get
-
-| Feature | Description |
-|---------|-------------|
-| 4-layer architecture | Central Intelligence, Contextual Memory, Autonomous Agents, Human Override |
-| Command Center dashboard | React + Vite + Tailwind + Supabase with real-time updates |
-| Claude Code skills | `/standup` for morning briefings, `/handoff` for end-of-session state sync |
-| File-based state | JSON state files as source of truth, mirrored to Supabase |
-| Theme engine | `theme.config.js` for 5-minute rebranding |
-| Supabase migrations | Three SQL files: core schema (projects, sessions, directives), lead capture, and CRM/tasks. Most dashboard tabs are file-backed. |
-
-## The Four Layers
-
-1. **Central Intelligence** - CLAUDE.md + OWNER.md + directives give AI full business context
-2. **Contextual Memory** - Session logs + project briefs + MEMORY.md persist knowledge across sessions
-3. **Autonomous Agents** - Skills in `.claude/skills/` let AI execute specialized workflows
-4. **Human Override** - TODO.md + HEARTBEAT.md + the Command Center keep you in control
+---
 
 ## Setup
 
-### 1. Supabase
-Create a free project at [supabase.com](https://supabase.com). Go to SQL Editor. Run migrations in order:
-1. Paste `supabase/migrations/001_core_schema.sql`, click Run.
-2. Paste `supabase/migrations/002_blueprint_leads.sql`, click Run.
-3. Paste `supabase/migrations/003_crm_tasks.sql`, click Run.
+You need [Node.js 18+](https://nodejs.org/) and [Claude Code](https://docs.anthropic.com/en/docs/claude-code) installed. About 15 minutes for the first run.
 
-Copy your Project URL and Anon Key from Settings > API.
-
-### 2. Environment
 ```bash
-cp .env.example .env
-```
-Fill in `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
-
-### 3. Run
-```bash
+git clone <your-private-clone-url> centramind
+cd centramind
+npm install
+cp .env.example .env.local
 npm run dev
 ```
-Open `http://localhost:5173`.
 
-### 4. Configure Your Workspace
-- Edit `OWNER.md` with your info
-- Edit `state/projects.json` with your projects
-- Edit `state/directives.json` with your rules
-- Edit `TODO.md` with your priorities
+Open the URL Vite prints (usually `http://localhost:5173/`). The first time you visit, you get the Landing onboarding -- a 5-step questionnaire that seeds your dashboard. Subsequent visits go straight to the dashboard. Hit `?onboard=1` to retake.
 
-### 5. Use It
+Then in the same directory:
+
 ```bash
-claude              # start Claude Code in this directory
-> /standup          # morning briefing
-> /handoff          # end-of-session state sync
+claude
+> /standup
 ```
 
-## Scripts
+You're up. The skill reads `TODO.md`, `HEARTBEAT.md`, and your session log to produce a morning brief.
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start dev server |
-| `npm run build` | Production build |
-| `npm run preview` | Preview production build |
-| `npm run docs` | Generate PDF from setup guide |
-| `npm run docs:html` | Generate HTML only (no puppeteer needed) |
+See [`docs/setup-guide.md`](docs/setup-guide.md) for the full walkthrough including optional Supabase + Eternium key wiring.
+
+---
+
+## What you get in v1.0
+
+| Feature | Status |
+|---|---|
+| 11-tab dashboard (Overview, Executives, Fleet, CRM, Skills, Processes, Priorities, Memory, Sessions, Claude Code, Settings) | Shipped |
+| 5-step onboarding questionnaire | Shipped |
+| Two Claude Code skills (`/standup`, `/handoff`) | Shipped |
+| File-based JSON state as source of truth | Shipped |
+| Optional Supabase + idempotent migrations | Shipped |
+| Per-buyer theme via `theme.config.js` | Shipped |
+| Chat tab powered by Eternium API (server-side proxy) | **v1.1** |
+| Auto-refill via Stripe + Eternium credits | **v1.1** |
+
+---
+
+## The 4 layers
+
+1. **Central Intelligence** -- `CLAUDE.md` + `OWNER.md` + `state/project.json` give the AI full business context.
+2. **Contextual Memory** -- `memory/MEMORY.md` + `state/session-log.json` persist knowledge across sessions.
+3. **Autonomous Agents** -- `.claude/skills/standup.md` + `handoff.md` execute specialized workflows.
+4. **Human Override** -- `TODO.md` + `HEARTBEAT.md` + the dashboard keep you in control.
+
+---
 
 ## Rebranding
 
@@ -95,6 +66,11 @@ Edit `theme.config.js`:
 ```js
 export const theme = {
   brandName: 'Your Brand',
+  links: {
+    home: 'https://yourbrand.com',
+    community: 'https://yourbrand.com/community',
+    support: 'mailto:support@yourbrand.com',
+  },
   colors: {
     primary: '#your-color',
     // ...
@@ -102,55 +78,79 @@ export const theme = {
 };
 ```
 
-Replace logos in `public/assets/`. Done.
+Then:
 
-## Project Structure
+```bash
+npm run theme   # regenerates src/theme.generated.css
+```
+
+The dashboard restyles on the next refresh. Tailwind v4 + CSS custom properties make this propagate everywhere.
+
+---
+
+## Project structure
 
 ```
-armory-centramind-blueprint/
-├── CLAUDE.md              # AI agent boot config
-├── OWNER.md               # Your profile
-├── TODO.md                # Priorities
+.
+├── CLAUDE.md              # Claude Code boot config for this project
+├── OWNER.md               # Your profile (edit on first run)
+├── TODO.md                # Priorities (markdown)
 ├── HEARTBEAT.md           # Active alerts
-├── theme.config.js        # Brand customization
-├── src/                   # React dashboard app
+├── theme.config.js        # Brand colors + fonts + links
+├── api/
+│   └── chat.js            # (v1.1) Cloudflare Pages Function proxying to Eternium API
+├── src/                   # React + Vite + Tailwind v4 dashboard
 ├── state/                 # JSON state (source of truth)
 ├── context/               # Project briefs
 ├── memory/                # Persistent AI memory
-├── .claude/skills/        # Claude Code skills
-├── supabase/migrations/   # Database schema
-├── docs/                  # Setup guide + architecture ref
-└── scripts/               # PDF builder
+├── .claude/skills/        # standup.md, handoff.md
+├── supabase/migrations/   # Optional Postgres schema
+├── docs/                  # architecture.md, setup-guide.md
+└── scripts/
+    ├── build-theme.cjs    # Regenerates theme CSS from theme.config.js
+    └── check-no-em-dashes.cjs
 ```
 
-## Credits and the Eternium API
+---
 
-If your CentraMind chat agents call the Eternium API as their LLM provider (recommended, no LLM-key juggling), those calls run on prepaid **credits** purchased through Stripe. A few things to know up front:
+## Credits and the Eternium API (v1.1 preview)
 
-- **1 credit = $0.005.** Every chat call deducts at the metered cost of the underlying model plus a 30% margin, rounded into the same credit unit.
-- **Credits live in Eternium, not in your CentraMind deployment.** This repo does NOT keep its own credit ledger. The balance is held on Eternium's side, scoped to the `eai_` API key issued to you at template purchase. Your dashboard reads the balance via `GET https://api.eternium.ai/v1/reseller/balance`; it does not store its own copy.
-- **One key, one balance.** All calls from any of your CentraMind agents (or anywhere else you put the key) draw from the same pool. There is no per-agent sub-allocation.
-- **Top up at any time.** Hit `POST https://api.eternium.ai/v1/reseller/credit-packs/checkout` with the `eai_` Bearer token and `{ pack: "starter" | "builder" | "scale" }` to get a Stripe Checkout URL. Builder pack adds 5% bonus credits, Scale adds 10%.
-- **No surprise bills.** Calls below the balance succeed; calls when balance is negative return `402 Payment Required` with the pack list. There is no monthly invoice, no auto-charge unless you explicitly enable auto-refill.
-- **Auto-refill (optional).** If you want hands-off, enable auto-refill in your Eternium portal: when balance falls below a threshold you set, Stripe charges your saved card for a pack of your choice.
+When the Chat tab ships in v1.1, the dashboard will call Eternium's reseller API on your behalf. You'll never juggle OpenAI / Anthropic keys. The cost model:
 
-If you bring your own LLM keys instead (OpenAI, Anthropic, OpenRouter), set `LLM_PROVIDER=byo` in `.env` and the chat agents will route directly. You lose the convenience of one bill and pay provider list price.
+- **1 credit = $0.005.** Every chat call deducts at the metered cost of the underlying model plus a 30% margin, in credits.
+- **Credits live in Eternium, not in your CentraMind deployment.** The balance is scoped to the `eai_` API key issued to you when you bought this template. The dashboard reads balance via `GET https://api.eternium.ai/v1/reseller/balance`.
+- **One key, one balance.** All calls from any of your CentraMind agents (or anywhere else you put the key) draw from the same pool.
+- **Top up at any time** at [eternium.ai/credits/topup](https://eternium.ai/credits/topup). Starter $25 / Builder $100 (5% bonus) / Scale $500 (10% bonus).
+- **No surprise bills.** Below-zero balance returns 402 with the pack list. No monthly invoices. Auto-refill is opt-in: enable on the topup page and Stripe charges your saved card when your balance dips below your threshold.
 
-## For AI Agents
+If you want to bring your own LLM keys (OpenAI / Anthropic / OpenRouter), set `LLM_PROVIDER=byo` in `.env.local` when v1.1 ships and the chat agents route directly.
 
-If you're an AI agent reading this: start with `CLAUDE.md`, then `docs/architecture.md`. The architecture doc has the full file map, database schema, data flows, and common task recipes.
+---
+
+## Security note
+
+Migration 001 + 003 apply **open Row-Level Security policies** suitable for a single-user, localhost dashboard. If you deploy this with shared access (multiple team members, public-facing URL), tighten the RLS policies in your Supabase project to require auth before reading or writing.
+
+Your `ETERNIUM_API_KEY` is read **server-side** by `api/chat.js` (when v1.1 ships). It never reaches the browser. Do not put it under a `VITE_` prefix.
+
+---
+
+## For AI agents
+
+If you're an AI agent reading this: start with `CLAUDE.md`, then `docs/architecture.md`. The architecture doc has the full file map, schema, data flows, and common task recipes -- and it actually matches the current code.
+
+---
 
 ## Links
 
-- **Product page:** [eternium.ai/products/centramind-blueprint](https://eternium.ai/products/centramind-blueprint)
-- **API keys:** [eternium.ai/api](https://eternium.ai/api)
-- **Community:** [tyrinbarney.com/community](https://tyrinbarney.com/community)
-- **Full tutorial:** The AI Builder's Playbook, Episode 4
+- **Eternium AI:** [eternium.ai](https://eternium.ai)
+- **CentraMind product page:** [eternium.ai/centramind](https://eternium.ai/centramind)
+- **Credits / top-up:** [eternium.ai/credits/topup](https://eternium.ai/credits/topup)
+- **Account:** [eternium.ai/account](https://eternium.ai/account)
+- **Community:** [eternium.ai/community](https://eternium.ai/community)
+
+---
 
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
----
-
-Built by [Eternium LLC](https://eternium.ai). Part of The AI Builder's Playbook by [Tyrin Barney](https://tyrinbarney.com).

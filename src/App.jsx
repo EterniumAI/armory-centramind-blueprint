@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Landing from './components/blueprint/Landing';
 import StepNav from './components/blueprint/StepNav';
 import ProcessAudit from './components/blueprint/ProcessAudit';
@@ -10,6 +10,10 @@ import BlueprintSummary from './components/blueprint/BlueprintSummary';
 import CentraMindDashboard from './components/dashboard/CentraMindDashboard';
 import { defaultSelections } from './lib/centramind-catalog';
 import { saveLead } from './lib/supabase';
+import { theme } from '../theme.config.js';
+
+const BLUEPRINT_LS_KEY = 'centramind:blueprint';
+const EMAIL_LS_KEY     = 'centramind:email';
 
 const STEPS = [
   { id: 'processes',    label: 'Process Audit' },
@@ -21,14 +25,33 @@ const STEPS = [
 ];
 
 export default function App() {
-  const [started, setStarted] = useState(false);
-  const [launched, setLaunched] = useState(false);
-  const [email, setEmail] = useState('');
+  // ──── First-visit detection ────────────────────────────────────────────
+  // If the user already completed onboarding (blueprint in localStorage) AND
+  // they did not explicitly hit ?onboard=1, drop them straight into the
+  // dashboard. Otherwise show Landing -> 5-step questionnaire -> dashboard.
+  const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
+  const forceOnboard = url ? url.searchParams.get('onboard') === '1' : false;
+  const storedBlueprint = (() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(BLUEPRINT_LS_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  const storedEmail = (() => {
+    if (typeof window === 'undefined') return '';
+    try { return window.localStorage.getItem(EMAIL_LS_KEY) || ''; } catch { return ''; }
+  })();
+  const skipOnboarding = !forceOnboard && storedBlueprint && storedBlueprint.processes;
+
+  const [started, setStarted] = useState(skipOnboarding);
+  const [launched, setLaunched] = useState(skipOnboarding);
+  const [email, setEmail] = useState(storedEmail);
   const [currentStep, setCurrentStep] = useState(0);
 
   // Blueprint state collected across steps
   const defaults = defaultSelections();
-  const [blueprint, setBlueprint] = useState({
+  const [blueprint, setBlueprint] = useState(storedBlueprint || {
     processes: [],
     tier: 'solo',
     roi: {
@@ -42,6 +65,20 @@ export default function App() {
     skills: defaults.skills,
     eterniumApiKey: '',
   });
+
+  // Persist blueprint + email on every change so refreshes preserve state.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try { window.localStorage.setItem(BLUEPRINT_LS_KEY, JSON.stringify(blueprint)); } catch {
+      // localStorage may be unavailable in private mode; non-fatal.
+    }
+  }, [blueprint]);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !email) return;
+    try { window.localStorage.setItem(EMAIL_LS_KEY, email); } catch {
+      // Non-fatal.
+    }
+  }, [email]);
 
   const updateBlueprint = useCallback((key, value) => {
     setBlueprint(prev => ({ ...prev, [key]: value }));
@@ -167,11 +204,13 @@ export default function App() {
 
       {/* Footer */}
       <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-        Built by{' '}
-        <a href="https://tyrinbarney.com" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-          Tyrin Barney
+        <a href={theme.links?.home || 'https://eternium.ai/centramind'} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+          {theme.brandName || 'CentraMind'}
         </a>
-        {' '}at Eternium LLC
+        {' '}is powered by{' '}
+        <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+          Eternium AI
+        </a>.
       </footer>
     </div>
   );

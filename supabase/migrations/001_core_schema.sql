@@ -1,7 +1,13 @@
 -- CentraMind Command Center: Core Schema
 -- Run this in your Supabase SQL Editor to set up the dashboard tables.
+-- Idempotent: re-running is safe.
+--
+-- SECURITY: this migration applies OPEN row-level-security policies suitable
+-- for a single-user, localhost dashboard. If you are deploying multi-user or
+-- exposing the dashboard publicly, replace the "Public read"/"Public write"
+-- policies below with auth-gated ones (e.g. (auth.uid() = owner_id)).
 
-CREATE TABLE projects (
+CREATE TABLE IF NOT EXISTS projects (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     slug text NOT NULL UNIQUE,
     name text NOT NULL,
@@ -18,7 +24,7 @@ CREATE TABLE projects (
     updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE session_logs (
+CREATE TABLE IF NOT EXISTS session_logs (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id text NOT NULL UNIQUE,
     session_date date NOT NULL,
@@ -32,7 +38,7 @@ CREATE TABLE session_logs (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE directives (
+CREATE TABLE IF NOT EXISTS directives (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     directive_id text NOT NULL UNIQUE,
     title text NOT NULL,
@@ -42,7 +48,7 @@ CREATE TABLE directives (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE heartbeat_alerts (
+CREATE TABLE IF NOT EXISTS heartbeat_alerts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     title text NOT NULL,
     severity text NOT NULL DEFAULT 'warning' CHECK (severity IN ('info', 'warning', 'critical')),
@@ -58,19 +64,41 @@ RETURNS TRIGGER AS $$
 BEGIN NEW.updated_at = now(); RETURN NEW; END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trg_projects_updated ON projects;
 CREATE TRIGGER trg_projects_updated BEFORE UPDATE ON projects
     FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Enable realtime
-ALTER PUBLICATION supabase_realtime ADD TABLE projects;
-ALTER PUBLICATION supabase_realtime ADD TABLE session_logs;
-ALTER PUBLICATION supabase_realtime ADD TABLE heartbeat_alerts;
+-- Enable realtime (no-op if already added)
+DO $$
+BEGIN
+  PERFORM 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'projects';
+  IF NOT FOUND THEN ALTER PUBLICATION supabase_realtime ADD TABLE projects; END IF;
+END $$;
+DO $$
+BEGIN
+  PERFORM 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'session_logs';
+  IF NOT FOUND THEN ALTER PUBLICATION supabase_realtime ADD TABLE session_logs; END IF;
+END $$;
+DO $$
+BEGIN
+  PERFORM 1 FROM pg_publication_tables WHERE pubname = 'supabase_realtime' AND tablename = 'heartbeat_alerts';
+  IF NOT FOUND THEN ALTER PUBLICATION supabase_realtime ADD TABLE heartbeat_alerts; END IF;
+END $$;
 
 -- RLS (open for single-user dashboard; tighten for multi-user)
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE session_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE directives ENABLE ROW LEVEL SECURITY;
 ALTER TABLE heartbeat_alerts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Public read" ON projects;
+DROP POLICY IF EXISTS "Public write" ON projects;
+DROP POLICY IF EXISTS "Public read" ON session_logs;
+DROP POLICY IF EXISTS "Public write" ON session_logs;
+DROP POLICY IF EXISTS "Public read" ON directives;
+DROP POLICY IF EXISTS "Public write" ON directives;
+DROP POLICY IF EXISTS "Public read" ON heartbeat_alerts;
+DROP POLICY IF EXISTS "Public write" ON heartbeat_alerts;
 
 CREATE POLICY "Public read" ON projects FOR SELECT USING (true);
 CREATE POLICY "Public write" ON projects FOR ALL USING (true);

@@ -1,162 +1,157 @@
-# The CentraMind Blueprint
+# CentraMind Blueprint -- Setup Guide
 
-Welcome in.
+This guide walks you from a fresh clone to a running CentraMind dashboard with a working Chat tab. Plan on 15-20 minutes for the first run.
 
-What you're about to go through isn't a technical setup. It's a conversation.
-
-In about fifteen minutes, I'm going to ask you a handful of questions about your business, your time, and the work that eats your week. When we're done, you'll walk away with a plan that tells you exactly what an AI operating system for your business should look like, what it should do first, and how much time and money it could save you.
-
-That plan is called your Blueprint.
-
-You don't need to know any tech. You don't need to install anything. You just need to answer honestly.
-
-Let's walk through what's coming.
+You can either follow these steps yourself, or paste this whole document into a fresh Claude Code session and ask it to do the setup for you. Both paths land in the same place.
 
 ---
 
-## What CentraMind Actually Is
+## What you need
 
-Before you start, it helps to know the vocabulary. There are three pieces that work together, and people confuse them all the time.
-
-**CentraMind** is the AI operating system I built for my own company. It's what lets me run a one-person business with an AI teammate that never forgets me, never loses context, and picks up every morning exactly where we left off.
-
-**The Blueprint** is the questionnaire you're about to take. It's not the system. It's the plan for your version of the system. Think of it like meeting with an architect before you build a house. You don't get walls yet. You get drawings, a materials list, and a realistic timeline. That's your Blueprint.
-
-**The Build** is what happens next. Once you have your Blueprint, you decide how you want your CentraMind to come to life. You can build it yourself with the free starter kit, or you can have me and my team build it for you. Either way works.
-
-Simple, in order:
-
-> You take the Blueprint. The Blueprint tells you what your CentraMind needs to be. Then you build your CentraMind.
+1. **Node.js 18 or newer** -- `node --version` should show v18+. Get it from [nodejs.org](https://nodejs.org/) if you're missing it.
+2. **A code editor** -- VS Code, Cursor, or anything else. Optional but recommended.
+3. **Claude Code installed** -- `claude --version` should work in your terminal. Install from [docs.anthropic.com/claude-code](https://docs.anthropic.com/en/docs/claude-code).
+4. **An Eternium account + API key** -- this powers the Chat tab. If you bought this template through Eternium, the key arrived in your welcome email. Otherwise sign up at [eternium.ai/centramind](https://eternium.ai/centramind).
+5. **A Supabase project** (optional, only if you want persistent lead capture) -- free tier is fine. Sign up at [supabase.com](https://supabase.com/).
 
 ---
 
-## Before You Start The Questionnaire
+## Step 1 -- Clone and install
 
-Grab a notebook. Or a coffee. Or both.
+```bash
+git clone <your-private-repo-url-here> centramind
+cd centramind
+npm install
+```
 
-The questionnaire lives in your browser. You don't download anything. You don't install anything. You just go to:
-
-> **blueprint.tyrinbarney.com**
-
-When you land there, you'll be asked for your email. That's so I can send your completed Blueprint to you as a keepsake (and so I can let you know when new tools and walkthroughs drop). I don't sell your email. I don't spam you. I send you things worth reading.
-
-Now let me tell you what you're about to be asked.
+The install pulls about 260 packages and finishes in 10-20 seconds. No private registries, no warnings.
 
 ---
 
-## The Five Steps Of The Questionnaire
+## Step 2 -- Configure your environment
 
-### Step One. Your Process Audit
+Copy the example env file:
 
-I'm going to show you a menu of everyday business activities. Writing emails. Scheduling. Client intake. Social media. Invoicing. Customer support. Content creation. Meeting notes.
+```bash
+cp .env.example .env.local
+```
 
-You'll check the boxes for the ones that apply to you. Don't overthink it. If you spend real hours on it every week, check it.
+Open `.env.local` in your editor. The minimum to make the dashboard run is leaving everything blank -- it'll work without Supabase or Eternium. To make the Chat tab work, fill in `ETERNIUM_API_KEY` (the `eai_` token from your welcome email). To make lead capture work, fill in the two `VITE_SUPABASE_*` variables.
 
-This tells me what your business actually does, not what you wish it did.
-
-### Step Two. Your AI Mapping
-
-For every process you checked, I'll suggest which AI tools are best suited to handle that type of work. You'll confirm or adjust each one.
-
-This is the "which muscles does your AI need" step. Every business is different. Some of you need an AI that mostly writes. Others need one that mostly plans. Some need one that handles customer questions.
-
-### Step Three. Your Architecture
-
-I'll ask you to pick a size. There are three:
-
-**Solo Operator.** You're a one-person or two-person shop. You want an AI teammate that feels like a brilliant assistant. Most people are here.
-
-**Team Fleet.** You have a small team. You want multiple AI operators, each specialized, coordinating with each other. This is what I run at Eternium.
-
-**Enterprise Grid.** You're a bigger company. You need multiple departments to each have their own AI fleet, with reporting and access controls across the whole thing.
-
-Pick the one that sounds like you today, not the one you aspire to in three years. We can always scale up.
-
-### Step Four. Your ROI
-
-I'll ask three numbers:
-
-1. How many hours per week does your team spend on repetitive work?
-2. What's your hourly rate (or average team rate)?
-3. How many people are on your team?
-
-From those, I can show you what this is worth to you. In hours saved per week, and in dollars saved per year. Both numbers will surprise you.
-
-### Step Five. Your Blueprint
-
-When you finish, you'll see your personalized plan on screen. It contains:
-
-- A summary of every process your AI will eventually handle
-- Your recommended architecture size
-- Your projected time and money savings
-- A month-by-month roadmap for the first ninety days
-
-That's your Blueprint. You keep it. You reference it every time you make a decision about AI in your business.
+**Important:** `ETERNIUM_API_KEY` is a server-side variable (no `VITE_` prefix). The Pages Function at `api/chat.js` reads it on the server. Never expose it to the browser.
 
 ---
 
-## What Happens After You Have Your Blueprint
+## Step 3 -- Boot the dashboard
 
-You've got your plan in hand. Now you pick a path.
+```bash
+npm run dev
+```
 
-### Path One. Build It Yourself With The Free Starter Kit
+Open the URL Vite prints (usually `http://localhost:5173/`). The first time you visit, you'll see the Landing onboarding -- a 5-step questionnaire that asks about your business, the systems you run, and the team you want CentraMind to model. Take 3-5 minutes to fill it out honestly. The answers seed your dashboard.
 
-I'm releasing a free starter kit called **CentraMind Starter**. It's the bones of the exact system I use, given away under an open-source license. Your Blueprint tells you how to configure it for your specific business. If you're comfortable with a little tinkering (or you have Claude Code installed and can let it drive), this is the path for you.
+When you click "Generate Blueprint," your answers compile into `localStorage` and the dashboard appears.
 
-When the Starter kit is live, you'll get access to it at:
-
-> **centramind.tyrinbarney.com**
-
-Join the community so you get the announcement the day it drops.
-
-### Path Two. Let My Team Build It For You
-
-If you'd rather skip the tinkering, I offer a done-for-you build service called **CentraMind Build**. You hand me your Blueprint. My team and I take it from paper to live system, branded for your company, running on your infrastructure, with your team trained on how to operate it.
-
-If that sounds like the right move, the contact details are at the back of this guide.
-
-### Path Three. Stay Close And Learn
-
-Not ready to build anything yet? That's okay. Join the Digital Armory community and watch me run CentraMind in real time. See what works. See what breaks. See how the system evolves. When you're ready to build yours, you'll know what you're doing.
+To revisit onboarding later: `http://localhost:5173/?onboard=1`.
 
 ---
 
-## A Few Things To Know Before You Start
+## Step 4 -- Connect Claude Code
 
-**Your Blueprint is for you.** I don't share it. I don't sell it. I don't hand it to anyone else. It's your private plan.
+In the same project directory, run:
 
-**The questionnaire is free forever.** You can retake it as your business changes. Most of my community members redo theirs every quarter.
+```bash
+claude
+```
 
-**It takes fifteen minutes.** Not fifty. If you're honest about what you do and how you spend your time, you'll fly through it.
+Claude Code reads `CLAUDE.md` automatically and now has the full context of your CentraMind. Try:
 
-**There are no wrong answers.** This is a mirror, not a test. The more honest you are, the more useful your Blueprint becomes.
+```
+> /standup
+```
 
----
-
-## Where To Go When You Get Stuck
-
-The questionnaire itself is forgiving, and you can always go back a step. But once you have your Blueprint and you're ready to act on it, here's where to go.
-
-**The Digital Armory.** This is the private community I run for everyone building their own CentraMind. Real humans answer real questions. Launch updates drop here first.
-
-Join at **tyrinbarney.com/community**
-
-**My YouTube channel.** Full walkthroughs of my own CentraMind. Real-time rebuilds. The stories of what broke in production and how I fixed it.
-
-Subscribe at **youtube.com/@tyrinbarney**
-
-**Talk to me about the done-for-you build.** If you're serious about having me and my team put this together for you, start at **tyrinbarney.com/community** and say hello. I read every note.
+You should get a morning briefing pulled from `TODO.md`, `HEARTBEAT.md`, and `state/session-log.json`. The first run has thin output because you haven't logged any sessions yet. After a few `/handoff` runs, this becomes a serious daily ritual.
 
 ---
 
-## One Last Thing
+## Step 5 -- Try the Chat tab
 
-The Blueprint is one small piece of a bigger idea. The idea is that every business, at every size, should be able to run with an AI that actually knows them, actually serves them, and never gets lost.
+Click the **Chat** tab in the dashboard. Type a question:
 
-I'm building toward that. Every piece of the puzzle, one open-sourced release at a time.
+> What should I focus on today?
 
-You taking this questionnaire and sharing what comes out of it is how this grows. Tell me what you got. Tell me what surprised you. Tell me what's still unclear. That feedback shapes the next release.
+The Chat tab calls `/api/chat`, which is the Pages Function at `api/chat.js`. It builds a system prompt from your current `OWNER.md`, your top priorities in `TODO.md`, your active projects in `state/project.json`, and any recent session entries -- then asks the Eternium API (which routes to a top-tier model) on your behalf. The cost deducts from your credit balance at $0.005 per credit. A typical answer is a fraction of a cent.
 
-Now go fill out your Blueprint.
+If you see **402 Payment Required**, your balance is empty. Hit [eternium.ai/credits/topup](https://eternium.ai/credits/topup) to add credits, then retry.
 
-Ty
+---
+
+## Step 6 (optional) -- Hook up Supabase
+
+If you want to persist email leads or be ready for future versions that wire CRM / Sessions to Postgres:
+
+1. Create a Supabase project at [supabase.com/dashboard](https://supabase.com/dashboard/).
+2. Settings -> API -> copy the Project URL and anon key into `.env.local`.
+3. SQL Editor -> paste and run, in order:
+   - `supabase/migrations/001_core_schema.sql`
+   - `supabase/migrations/002_blueprint_leads.sql`
+   - `supabase/migrations/003_crm_tasks.sql`
+4. Restart `npm run dev`.
+
+The migrations are idempotent -- re-running them is safe. They ship with **open Row-Level Security policies** suitable for a single-user dashboard. If you ever deploy this with shared access (multiple team members, public-facing) tighten the RLS policies to require auth first.
+
+---
+
+## Step 7 (optional) -- Rebrand
+
+Open `theme.config.js`. Edit the `brandName`, `colors`, `typography`, and `links` blocks. Then:
+
+```bash
+npm run theme
+```
+
+That regenerates `src/theme.generated.css`. Refresh your browser and the dashboard wears your brand.
+
+You can also point the PDF docs generator at your own logos by updating the `logos` block in `theme.config.js`. Then `npm run docs` produces `docs/CentraMind-Blueprint-Docs.pdf` with your branding.
+
+---
+
+## Step 8 -- Deploy (when you're ready)
+
+This template ships with Cloudflare Pages in mind because of the `api/chat.js` Pages Function. To deploy:
+
+1. Push your local repo to a private GitHub repo of your own.
+2. Connect that repo to a new Cloudflare Pages project.
+3. Build command: `npm run build`. Build output: `dist`.
+4. Environment variables (under Pages Settings): set `ETERNIUM_API_KEY` (and any `VITE_SUPABASE_*` you use). Mark `ETERNIUM_API_KEY` as encrypted; do not check "expose to browser."
+5. Deploy. Your dashboard lives at `https://<project>.pages.dev`. Set a custom domain in Cloudflare Pages if you want a clean URL.
+
+Other Node-friendly hosts (Vercel, Netlify) work too, but you'll need to port `api/chat.js` to that host's function format. The logic is small and well-commented.
+
+---
+
+## Daily ritual
+
+The pattern most users settle into:
+
+- **Morning** -- `claude`, `/standup`. Then plan the day with the Chat tab.
+- **Working** -- the dashboard sits open in a tab. You glance at Priorities and CRM during the day. Claude Code is the side-car you ask questions of as you work.
+- **End of day** -- `claude`, `/handoff`. The skill captures what you did, what's pending, what's blocked. It updates `memory/MEMORY.md` and appends to `state/session-log.json`. Tomorrow's `/standup` will reflect today.
+
+That's the whole product. Everything else (Skills, Fleet, Processes, Memory browser) is supporting your daily ritual.
+
+---
+
+## Troubleshooting
+
+**`npm run dev` errors with "theme.config.js not found":** make sure you're in the repo root when you run npm scripts. The `predev` hook expects `theme.config.js` at root.
+
+**Chat tab returns 401:** your `ETERNIUM_API_KEY` is missing or invalid. Check `.env.local`. Restart `npm run dev` after edits.
+
+**Chat tab returns 402:** balance depleted. Top up at [eternium.ai/credits/topup](https://eternium.ai/credits/topup).
+
+**Claude Code says "I don't see any context":** run `claude` from the repo root. Claude Code only reads `CLAUDE.md` from its working directory.
+
+**Dashboard tabs show empty state:** that's normal on a fresh install. Run `/handoff` a few times via Claude Code to populate state. Or click "Run the bootstrap prompt" links inside the dashboard for guidance.
+
+**`npm run build` fails with em-dash error:** somewhere in your edits you typed an em-dash (`---`). The build refuses them by policy. Use hyphens or " - " spaced.

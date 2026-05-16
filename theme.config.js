@@ -2,41 +2,65 @@
  * CentraMind Blueprint -- Theme Configuration
  *
  * Edit this file to rebrand the entire dashboard. Every color, font,
- * and label resolves through CSS variables set from these values.
- * No component edits needed. ~15 values, 5-minute rebrand.
+ * and brand label resolves through CSS variables generated from these
+ * values. No component edits needed.
+ *
+ * After editing, run `npm run theme` (or just `npm run dev`) to regenerate
+ * `src/theme.generated.css`. Vite picks up the new tokens automatically.
  */
 
 export const theme = {
+  // ─── Brand label ──────────────────────────────────────────────────────
   brandName: 'CentraMind Blueprint',
 
+  // ─── Footer + community links (per-buyer override) ────────────────────
+  // The Landing onboarding page and the dashboard footer link to your
+  // public site + community. Change these to point at your own brand.
+  links: {
+    home: 'https://eternium.ai/centramind',
+    community: 'https://eternium.ai/community',
+    support: 'mailto:support@eternium.ai',
+  },
+
+  // ─── Colors (CSS custom properties) ───────────────────────────────────
+  // Defaults match the canonical Eternium look. Override any subset.
   colors: {
-    primary: '#00D4FF',
-    primaryGlow: '#00eeff',
-    accent: '#E4C790',
-    bg: '#0A0A0A',
-    bgSurface: '#111113',
-    bgCard: '#1A1A1E',
-    text: '#e8e8ec',
-    textMuted: '#8b8b96',
-    textSubtle: '#5a5a65',
-    border: 'rgba(255, 255, 255, 0.08)',
-    borderAccent: 'rgba(0, 212, 255, 0.25)',
-    success: '#10b981',
-    warning: '#f59e0b',
+    primary: '#18b5f0',
+    primaryGlow: '#18b5f066',
+    primaryDim: '#18b5f015',
+    accent: '#18b5f0',
+    bg: '#050505',
+    bgSurface: '#0a0a0a',
+    bgCard: '#0f0f0f',
+    bgElevated: '#161616',
+    text: '#f0f0f0',
+    textMuted: '#888888',
+    textSubtle: '#555555',
+    border: 'rgba(255, 255, 255, 0.06)',
+    borderAccent: 'rgba(24, 181, 240, 0.2)',
+    success: '#22c55e',
+    warning: '#eab308',
     error: '#ef4444',
   },
 
+  // ─── Typography ───────────────────────────────────────────────────────
   typography: {
-    fontDisplay: '"Plus Jakarta Sans", sans-serif',
-    fontSans: '"Plus Jakarta Sans", sans-serif',
+    fontDisplay: '"Montserrat", sans-serif',
+    fontSans: '"Inter", sans-serif',
     fontMono: '"JetBrains Mono", monospace',
   },
 
+  // ─── Logos (used by the PDF builder) ──────────────────────────────────
+  // The PDF docs script (`npm run docs`) embeds these as the title page.
+  // To use your own brand, replace these URLs with public asset URLs
+  // (e.g. your own Supabase storage bucket or a CDN).
   logos: {
-    light: '/assets/logo-light.svg',
-    dark: '/assets/logo-dark.svg',
+    brand: null,        // null -> falls back to text "CentraMind"
+    claude: null,       // null -> falls back to text "Claude Code"
+    supabase: null,
+    github: null,
   },
 
-  // Change this ID to update the video thumbnail and link everywhere.
+  // Change this ID to swap the onboarding walkthrough video link.
   walkthroughVideoId: 'YOUR_VIDEO_ID',
 };

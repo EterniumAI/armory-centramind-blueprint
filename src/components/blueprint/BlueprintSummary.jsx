@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { CATEGORIES } from './ProcessAudit';
 import { computeRoi, roadmapForTier, TIER_NAMES } from '../../lib/blueprint-export';
 import { EXECUTIVES, OPERATORS, PIPELINES, SKILLS, resolveById } from '../../lib/centramind-catalog';
+import { theme } from '../../../theme.config.js';
 
 export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRestart, onLaunch }) {
   const { processes, tier, executives, operators, pipelines, skills, eterniumApiKey, roi: roiInputs } = blueprint;
@@ -201,7 +202,7 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
             </svg>
           </button>
           <a
-            href="https://tyrinbarney.com/community"
+            href={theme.links?.community || 'https://eternium.ai/community'}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-bg-elevated border border-border hover:border-primary/30 text-text-main text-sm transition-colors"
