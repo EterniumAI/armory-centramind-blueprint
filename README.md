@@ -129,7 +129,7 @@ If you want to bring your own LLM keys (OpenAI / Anthropic / OpenRouter), set `L
 
 Migration 001 + 003 apply **open Row-Level Security policies** suitable for a single-user, localhost dashboard. If you deploy this with shared access (multiple team members, public-facing URL), tighten the RLS policies in your Supabase project to require auth before reading or writing.
 
-Your `ETERNIUM_API_KEY` is read **server-side** by `api/chat.js`. It never reaches the browser. Do not put it under a `VITE_` prefix.
+Your `ETERNIUM_API_KEY` is read **server-side** by `functions/api/chat.js`. It never reaches the browser. Do not put it under a `VITE_` prefix.
 
 ---
 

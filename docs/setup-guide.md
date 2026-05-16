@@ -38,7 +38,7 @@ cp .env.example .env.local
 
 Open `.env.local` in your editor. The minimum to make the dashboard run is leaving everything blank -- it'll work without Supabase or Eternium. To make the Chat tab work, fill in `ETERNIUM_API_KEY` (the `eai_` token from your welcome email). To make lead capture work, fill in the two `VITE_SUPABASE_*` variables.
 
-**Important:** `ETERNIUM_API_KEY` is a server-side variable (no `VITE_` prefix). The Pages Function at `api/chat.js` reads it on the server. Never expose it to the browser.
+**Important:** `ETERNIUM_API_KEY` is a server-side variable (no `VITE_` prefix). The Pages Function at `functions/api/chat.js` reads it on the server. Never expose it to the browser.
 
 ---
 
@@ -80,7 +80,7 @@ Click the **Chat** tab in the dashboard. Type a question:
 
 > What should I focus on today?
 
-The Chat tab calls `/api/chat`, which is the Pages Function at `api/chat.js`. It builds a system prompt from your current `OWNER.md`, your top priorities in `TODO.md`, your active projects in `state/project.json`, and any recent session entries -- then asks the Eternium API (which routes to a top-tier model) on your behalf. The cost deducts from your credit balance at $0.005 per credit. A typical answer is a fraction of a cent.
+The Chat tab calls `/api/chat`, which is the Pages Function at `functions/api/chat.js`. It builds a system prompt from your current `OWNER.md`, your top priorities in `TODO.md`, your active projects in `state/project.json`, and any recent session entries -- then asks the Eternium API (which routes to a top-tier model) on your behalf. The cost deducts from your credit balance at $0.005 per credit. A typical answer is a fraction of a cent.
 
 If you see **402 Payment Required**, your balance is empty. Hit [eternium.ai/credits/topup](https://eternium.ai/credits/topup) to add credits, then retry.
 
@@ -118,7 +118,7 @@ You can also point the PDF docs generator at your own logos by updating the `log
 
 ## Step 8 -- Deploy (when you're ready)
 
-This template ships with Cloudflare Pages in mind because of the `api/chat.js` Pages Function. To deploy:
+This template ships with Cloudflare Pages in mind because of the `functions/api/chat.js` Pages Function. To deploy:
 
 1. Push your local repo to a private GitHub repo of your own.
 2. Connect that repo to a new Cloudflare Pages project.
@@ -126,7 +126,7 @@ This template ships with Cloudflare Pages in mind because of the `api/chat.js` P
 4. Environment variables (under Pages Settings): set `ETERNIUM_API_KEY` (and any `VITE_SUPABASE_*` you use). Mark `ETERNIUM_API_KEY` as encrypted; do not check "expose to browser."
 5. Deploy. Your dashboard lives at `https://<project>.pages.dev`. Set a custom domain in Cloudflare Pages if you want a clean URL.
 
-Other Node-friendly hosts (Vercel, Netlify) work too, but you'll need to port `api/chat.js` to that host's function format. The logic is small and well-commented.
+Other Node-friendly hosts (Vercel, Netlify) work too, but you'll need to port `functions/api/chat.js` to that host's function format. The logic is small and well-commented.
 
 ---
 

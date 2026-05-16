@@ -1,4 +1,4 @@
-// api/chat.js -- Cloudflare Pages Function
+// functions/api/chat.js -- Cloudflare Pages Function
 // POST /api/chat  -> proxies to Eternium API chat completions (SSE stream)
 // GET  /api/chat  -> returns balance info from Eternium API
 
