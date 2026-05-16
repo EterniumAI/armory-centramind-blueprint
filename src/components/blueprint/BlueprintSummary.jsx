@@ -1,10 +1,46 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { CATEGORIES } from './ProcessAudit';
 import { computeRoi, roadmapForTier, TIER_NAMES } from '../../lib/blueprint-export';
 import { EXECUTIVES, OPERATORS, PIPELINES, SKILLS, resolveById } from '../../lib/centramind-catalog';
 import { theme } from '../../../theme.config.js';
 
 export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRestart, onLaunch }) {
+  const [building, setBuilding] = useState(false);
+  const [buildError, setBuildError] = useState('');
+
+  const handleLaunch = async () => {
+    setBuilding(true);
+    setBuildError('');
+    try {
+      const res = await fetch('/api/build', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ blueprint }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        // Soft fallback: launch with default template if AI build fails.
+        // Better than blocking the user. Surface the error subtly.
+        console.warn('[CentraMind] AI build failed, launching with defaults:', data);
+        setBuildError(data.error || 'AI build failed; launched with defaults.');
+        onLaunch?.(null);
+        return;
+      }
+      // Stash the AI workspace so the dashboard tabs + chat can read it.
+      try {
+        window.localStorage.setItem('centramind:ai-workspace', JSON.stringify(data.workspace));
+      } catch {
+        // Non-fatal -- caller can still proceed via the prop pass.
+      }
+      onLaunch?.(data.workspace);
+    } catch (err) {
+      console.warn('[CentraMind] AI build network error:', err);
+      setBuildError(err.message || 'Network error; launched with defaults.');
+      onLaunch?.(null);
+    } finally {
+      setBuilding(false);
+    }
+  };
   const { processes, tier, executives, operators, pipelines, skills, eterniumApiKey, roi: roiInputs } = blueprint;
   const updateRoi = (key, value) => onChangeRoi?.({ ...roiInputs, [key]: value });
 
@@ -193,13 +229,26 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <button
-            onClick={onLaunch}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all cursor-pointer"
+            onClick={handleLaunch}
+            disabled={building}
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            Launch My CentraMind
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-            </svg>
+            {building ? (
+              <>
+                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                </svg>
+                Building your CentraMind...
+              </>
+            ) : (
+              <>
+                Launch My CentraMind
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                </svg>
+              </>
+            )}
           </button>
           <a
             href={theme.links?.community || 'https://eternium.ai/community'}
@@ -211,8 +260,13 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
           </a>
         </div>
         <p className="text-text-subtle text-xs mt-4">
-          Your dashboard ships with your roadmap, memory, and a Claude Code bootstrap prompt.
+          {building
+            ? 'Claude is generating your owner profile, projects, roadmap, and first-day priorities. 10-20 seconds.'
+            : 'Your dashboard ships with your roadmap, memory, and a Claude Code bootstrap prompt.'}
         </p>
+        {buildError && !building && (
+          <p className="text-text-subtle text-[11px] mt-2">{buildError}</p>
+        )}
       </div>
 
       {/* Navigation */}

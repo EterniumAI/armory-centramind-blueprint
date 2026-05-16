@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import Landing from './components/blueprint/Landing';
 import StepNav from './components/blueprint/StepNav';
 import ProcessAudit from './components/blueprint/ProcessAudit';
 import CentraMindTeam from './components/blueprint/CentraMindTeam';
@@ -9,7 +8,6 @@ import SystemArchitecture from './components/blueprint/SystemArchitecture';
 import BlueprintSummary from './components/blueprint/BlueprintSummary';
 import CentraMindDashboard from './components/dashboard/CentraMindDashboard';
 import { defaultSelections } from './lib/centramind-catalog';
-import { saveLead } from './lib/supabase';
 import { theme } from '../theme.config.js';
 
 const BLUEPRINT_LS_KEY = 'centramind:blueprint';
@@ -27,9 +25,9 @@ const STEPS = [
 export default function App() {
   // ──── First-visit detection ────────────────────────────────────────────
   // Routing for first-visit experience:
-  //   ?onboard=1 -- force Landing + questionnaire even if blueprint exists
+  //   ?onboard=1 -- force the setup wizard even if blueprint exists in localStorage
   //   ?skip=1    -- jump straight to dashboard with default blueprint (preview / demo mode)
-  //   default    -- show Landing if no stored blueprint; dashboard if there is one
+  //   default    -- setup wizard for first visit; dashboard once a blueprint is generated
   const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
   const forceOnboard = url ? url.searchParams.get('onboard') === '1' : false;
   const forceSkip    = url ? (url.searchParams.get('skip') === '1' || url.searchParams.get('demo') === '1') : false;
@@ -44,12 +42,24 @@ export default function App() {
     if (typeof window === 'undefined') return '';
     try { return window.localStorage.getItem(EMAIL_LS_KEY) || ''; } catch { return ''; }
   })();
-  const skipOnboarding = !forceOnboard && (forceSkip || (storedBlueprint && storedBlueprint.processes));
+  // Landing is gone. First-visit users walk straight into the wizard.
+  // launched = blueprint has been generated and the dashboard is showing.
+  const launchedInitially = !forceOnboard && (forceSkip || (storedBlueprint && storedBlueprint.processes));
 
-  const [started, setStarted] = useState(skipOnboarding);
-  const [launched, setLaunched] = useState(skipOnboarding);
+  const [launched, setLaunched] = useState(launchedInitially);
   const [email, setEmail] = useState(storedEmail);
   const [currentStep, setCurrentStep] = useState(0);
+
+  // AI-generated workspace from /api/build. Stashed in localStorage by
+  // BlueprintSummary; rehydrated here so the dashboard can render against it.
+  const storedAiWorkspace = (() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem('centramind:ai-workspace');
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  const [aiWorkspace, setAiWorkspace] = useState(storedAiWorkspace);
 
   // Blueprint state collected across steps
   const defaults = defaultSelections();
@@ -86,13 +96,6 @@ export default function App() {
     setBlueprint(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const handleStart = useCallback(async (userEmail) => {
-    setEmail(userEmail);
-    setStarted(true);
-    saveLead(userEmail);
-    window.scrollTo(0, 0);
-  }, []);
-
   const goNext = useCallback(() => {
     setCurrentStep(prev => Math.min(prev + 1, STEPS.length - 1));
     window.scrollTo(0, 0);
@@ -108,19 +111,12 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleComplete = useCallback(() => {
-    saveLead(email, blueprint);
-  }, [email, blueprint]);
-
-  if (!started) {
-    return <Landing onStart={handleStart} />;
-  }
-
   if (launched) {
     return (
       <CentraMindDashboard
         blueprint={blueprint}
         email={email}
+        aiWorkspace={aiWorkspace}
         onRetakeBlueprint={() => { setLaunched(false); setCurrentStep(0); }}
         onUpdateBlueprint={updateBlueprint}
       />
@@ -164,7 +160,7 @@ export default function App() {
       tier={blueprint.tier}
       processCount={blueprint.processes.length}
       onChange={(v) => updateBlueprint('tier', v)}
-      onNext={() => { handleComplete(); goNext(); }}
+      onNext={goNext}
       onBack={goPrev}
     />,
     <BlueprintSummary
@@ -172,8 +168,12 @@ export default function App() {
       blueprint={blueprint}
       onChangeRoi={(v) => updateBlueprint('roi', v)}
       onBack={goPrev}
-      onRestart={() => { setStarted(false); setCurrentStep(0); }}
-      onLaunch={() => { setLaunched(true); window.scrollTo(0, 0); }}
+      onRestart={() => { setCurrentStep(0); }}
+      onLaunch={(workspace) => {
+        if (workspace) setAiWorkspace(workspace);
+        setLaunched(true);
+        window.scrollTo(0, 0);
+      }}
     />,
   ];
 
