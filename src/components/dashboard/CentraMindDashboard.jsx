@@ -67,13 +67,27 @@ function saveState(email, state) {
     try { localStorage.setItem(storageKey(email), JSON.stringify(state)); } catch { /* ignore */ }
 }
 
-export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprint, onUpdateBlueprint }) {
+export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onRetakeBlueprint, onUpdateBlueprint }) {
     const [tab, setTab] = useState('overview');
     const [persisted, setPersisted] = useState(() => loadState(email));
 
     useEffect(() => { saveState(email, persisted); }, [email, persisted]);
 
-    const workspace = useMemo(() => readWorkspace(blueprint, email), [blueprint, email]);
+    // Merge AI-generated workspace from /api/build into the base workspace.
+    // When present, dashboard surfaces prefer AI output (owner.context, projects,
+    // memory_facts, todo_items, first_chat_message) over template defaults.
+    const workspace = useMemo(() => {
+        const base = readWorkspace(blueprint, email);
+        if (!aiWorkspace) return base;
+        return {
+            ...base,
+            aiOwner: aiWorkspace.owner || null,
+            aiProjects: Array.isArray(aiWorkspace.projects) ? aiWorkspace.projects : [],
+            aiTodoItems: Array.isArray(aiWorkspace.todo_items) ? aiWorkspace.todo_items : [],
+            aiMemoryFacts: Array.isArray(aiWorkspace.memory_facts) ? aiWorkspace.memory_facts : [],
+            aiFirstChatMessage: aiWorkspace.first_chat_message || '',
+        };
+    }, [blueprint, email, aiWorkspace]);
 
     const updateScratchpad = useCallback((value) => {
         setPersisted((prev) => ({ ...prev, scratchpad: value }));
@@ -89,7 +103,12 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
                         <span className="font-display font-bold text-sm tracking-wide text-text-main">
                             CentraMind
                         </span>
-                        {email && (
+                        {workspace.aiOwner?.tagline && (
+                            <span className="hidden md:inline text-xs text-text-subtle ml-2 italic">
+                                {workspace.aiOwner.tagline}
+                            </span>
+                        )}
+                        {!workspace.aiOwner?.tagline && email && (
                             <span className="hidden sm:inline text-xs text-text-subtle font-mono ml-2">
                                 / {email}
                             </span>
@@ -184,7 +203,7 @@ export default function CentraMindDashboard({ blueprint, email, onRetakeBlueprin
 /* ── Overview ────────────────────────────────────────────── */
 
 function OverviewTab({ workspace, onNavigate }) {
-    const { processes, projects, directives, heartbeat, productBrief, todo, roadmap, executives, operators, pipelines, skills } = workspace;
+    const { processes, projects, directives, heartbeat, productBrief, todo, roadmap, executives, operators, pipelines, skills, aiOwner, aiTodoItems } = workspace;
 
     const categoryBreakdown = useMemo(() => {
         const counts = {};
@@ -193,11 +212,43 @@ function OverviewTab({ workspace, onNavigate }) {
     }, [processes]);
 
     const alerts = parseAlerts(heartbeat);
-    const thisWeek = todo.thisWeek.length ? todo.thisWeek : roadmap[0].tasks.map((t) => ({ text: t, done: false }));
+    // Prefer AI-generated todo_items over the catalog roadmap when present.
+    const thisWeek = Array.isArray(aiTodoItems) && aiTodoItems.length > 0
+        ? aiTodoItems.slice(0, 6).map((t) => ({ text: t.title, done: false, badge: `${t.priority}/${t.horizon}` }))
+        : (todo.thisWeek.length ? todo.thisWeek : roadmap[0].tasks.map((t) => ({ text: t, done: false })));
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
+            {/* AI-generated welcome card (only if /api/build ran during onboarding) */}
+            {aiOwner?.context && (
+                <div className="relative overflow-hidden rounded-xl border border-primary/30 bg-gradient-to-br from-primary/10 via-bg-card to-bg-card p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[10px] font-mono uppercase tracking-[0.2em] text-primary">
+                            // Your CentraMind, AI-built
+                        </span>
+                    </div>
+                    {aiOwner.tagline && (
+                        <h2 className="font-display text-xl md:text-2xl font-bold text-text-main mb-3">
+                            {aiOwner.tagline}
+                        </h2>
+                    )}
+                    <p className="text-sm text-text-main leading-relaxed max-w-3xl">
+                        {aiOwner.context}
+                    </p>
+                    <div className="mt-4 flex items-center gap-3 text-[11px] font-mono text-text-subtle">
+                        <span>Built by Claude from your wizard answers.</span>
+                        <button
+                            onClick={() => onNavigate?.('chat')}
+                            className="text-primary hover:underline cursor-pointer"
+                        >
+                            Open the chat tab
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
                 <Panel title="This week">
                     <ul className="space-y-2">
                         {thisWeek.slice(0, 5).map((item, i) => (
@@ -377,6 +428,7 @@ function OverviewTab({ workspace, onNavigate }) {
                         </EmptyNote>
                     )}
                 </Panel>
+            </div>
             </div>
         </div>
     );
