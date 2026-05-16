@@ -5,7 +5,8 @@
 // roadmap (TODO), memory facts, and a first chat message.
 // Returns structured JSON the dashboard merges into its state.
 
-const UPSTREAM_CHAT = 'https://api.eternium.ai/v1/reseller/chat/completions';
+const UPSTREAM_CHAT    = 'https://api.eternium.ai/v1/reseller/chat/completions';
+const UPSTREAM_CONTEXT = 'https://api.eternium.ai/v1/reseller/context';
 
 const SCHEMA_INSTRUCTIONS = `You MUST respond with a single valid JSON object matching this schema, and NOTHING else (no preface, no markdown fences, no commentary).
 
@@ -42,7 +43,14 @@ Rules:
 - Be specific. Use the user's selected processes, executives, and pipelines as concrete signal. Avoid generic SaaS-bingo phrases like "leverage synergies".
 - The first_chat_message must feel like a senior chief of staff who already knows the user's business, not a chatbot.`;
 
-function buildSystemPrompt(catalog) {
+function buildSystemPrompt(catalog, customerContext) {
+  const contextBlock = customerContext
+    ? `
+
+What Eternium already knows about this customer (use this aggressively to personalize -- reference clients, revenue patterns, prior context by name where it fits):
+${JSON.stringify(customerContext, null, 2)}`
+    : '';
+
   return `You are CentraMind's onboarding architect. The user just completed a 5-step wizard about their AI-assisted business. Your job is to generate the initial personalized workspace they walk into.
 
 You will receive their wizard answers as JSON. They picked:
@@ -53,7 +61,7 @@ You will receive their wizard answers as JSON. They picked:
 - Whether they brought an Eternium API key
 
 Reference catalog (so you know what their picks mean):
-${catalog}
+${catalog}${contextBlock}
 
 ${SCHEMA_INSTRUCTIONS}`;
 }
@@ -130,7 +138,35 @@ export async function onRequestPost({ request, env }) {
     return json({ error: 'blueprint required' }, 400);
   }
 
-  const system = buildSystemPrompt(CATALOG_EXCERPT);
+  // Best-effort fetch of customer context from Eternium. If this fails, we
+  // still produce a personalized workspace from the wizard answers alone --
+  // the context is enrichment, not a hard dependency.
+  let customerContext = null;
+  try {
+    const ctxRes = await fetch(UPSTREAM_CONTEXT, {
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+    if (ctxRes.ok) {
+      const ctxJson = await ctxRes.json();
+      customerContext = {
+        reseller_email: ctxJson?.key?.reseller_email,
+        contact_name: ctxJson?.contact?.name,
+        contact_first_name: ctxJson?.contact?.first_name,
+        contact_company: ctxJson?.contact?.company_name,
+        contact_source: ctxJson?.contact?.source,
+        contact_notes: ctxJson?.contact?.notes ? String(ctxJson.contact.notes).slice(0, 2000) : null,
+        purchase_status: ctxJson?.purchase?.status,
+        purchase_amount_cents: ctxJson?.purchase?.amount_cents,
+      };
+      // If everything is null, drop the block entirely so the prompt is cleaner.
+      const hasAnyContext = Object.values(customerContext).some((v) => v !== null && v !== undefined && v !== '');
+      if (!hasAnyContext) customerContext = null;
+    }
+  } catch {
+    // Non-fatal; proceed without context.
+  }
+
+  const system = buildSystemPrompt(CATALOG_EXCERPT, customerContext);
   const user = buildUserPrompt(blueprint);
 
   // Pick a real reasoning model (NOT codex-mini) since we want structured + opinionated output.
