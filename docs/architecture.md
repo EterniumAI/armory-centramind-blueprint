@@ -51,11 +51,13 @@ armory-centramind-blueprint/
 │   │   │   └── BlueprintSummary.jsx
 │   │   │
 │   │   └── dashboard/
-│   │       └── CentraMindDashboard.jsx  # The 11-tab command center
+│   │       ├── CentraMindDashboard.jsx  # The 12-tab command center
+│   │       └── ChatTab.jsx              # Chat tab UI (SSE streaming, history, balance)
 │   │
 │   ├── lib/
 │   │   ├── supabase.js           # Optional Supabase client (lead capture)
 │   │   ├── blueprint-export.js   # Generates the bootstrap prompt
+│   │   ├── chat-context.js       # Builds system prompt for Chat tab
 │   │   └── centramind-catalog.js # Default agent / skill / process catalog
 │   │
 │   ├── hooks/

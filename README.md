@@ -4,8 +4,6 @@ A Claude-Code-native operating dashboard for your AI-assisted business. Four-lay
 
 The Chat tab talks to the Eternium API on prepaid credits. You bring zero LLM keys. One bill. ($0.005 / credit.)
 
-> **Status:** v1.0 ships the dashboard + onboarding + Claude Code skills + Supabase migrations. The Chat tab arrives in v1.1 (next release). Today the Chat surface is the **Claude Code tab** that gives you a bootstrap prompt to paste into a local `claude` session.
-
 ---
 
 ## Setup
@@ -35,18 +33,18 @@ See [`docs/setup-guide.md`](docs/setup-guide.md) for the full walkthrough includ
 
 ---
 
-## What you get in v1.0
+## What you get
 
 | Feature | Status |
 |---|---|
-| 11-tab dashboard (Overview, Executives, Fleet, CRM, Skills, Processes, Priorities, Memory, Sessions, Claude Code, Settings) | Shipped |
+| 12-tab dashboard (Overview, Chat, Executives, Fleet, CRM, Skills, Processes, Priorities, Memory, Sessions, Claude Code, Settings) | Shipped |
+| Chat tab powered by Eternium API (server-side proxy, SSE streaming) | Shipped |
 | 5-step onboarding questionnaire | Shipped |
 | Two Claude Code skills (`/standup`, `/handoff`) | Shipped |
 | File-based JSON state as source of truth | Shipped |
 | Optional Supabase + idempotent migrations | Shipped |
 | Per-buyer theme via `theme.config.js` | Shipped |
-| Chat tab powered by Eternium API (server-side proxy) | **v1.1** |
-| Auto-refill via Stripe + Eternium credits | **v1.1** |
+| Auto-refill via Stripe + Eternium credits | Future |
 
 ---
 
@@ -98,7 +96,7 @@ The dashboard restyles on the next refresh. Tailwind v4 + CSS custom properties 
 ├── HEARTBEAT.md           # Active alerts
 ├── theme.config.js        # Brand colors + fonts + links
 ├── api/
-│   └── chat.js            # (v1.1) Cloudflare Pages Function proxying to Eternium API
+│   └── chat.js            # Cloudflare Pages Function proxying to Eternium API
 ├── src/                   # React + Vite + Tailwind v4 dashboard
 ├── state/                 # JSON state (source of truth)
 ├── context/               # Project briefs
@@ -113,9 +111,9 @@ The dashboard restyles on the next refresh. Tailwind v4 + CSS custom properties 
 
 ---
 
-## Credits and the Eternium API (v1.1 preview)
+## Credits and the Eternium API
 
-When the Chat tab ships in v1.1, the dashboard will call Eternium's reseller API on your behalf. You'll never juggle OpenAI / Anthropic keys. The cost model:
+The Chat tab calls Eternium's reseller API on your behalf. You never juggle OpenAI / Anthropic keys. The cost model:
 
 - **1 credit = $0.005.** Every chat call deducts at the metered cost of the underlying model plus a 30% margin, in credits.
 - **Credits live in Eternium, not in your CentraMind deployment.** The balance is scoped to the `eai_` API key issued to you when you bought this template. The dashboard reads balance via `GET https://api.eternium.ai/v1/reseller/balance`.
@@ -131,7 +129,7 @@ If you want to bring your own LLM keys (OpenAI / Anthropic / OpenRouter), set `L
 
 Migration 001 + 003 apply **open Row-Level Security policies** suitable for a single-user, localhost dashboard. If you deploy this with shared access (multiple team members, public-facing URL), tighten the RLS policies in your Supabase project to require auth before reading or writing.
 
-Your `ETERNIUM_API_KEY` is read **server-side** by `api/chat.js` (when v1.1 ships). It never reaches the browser. Do not put it under a `VITE_` prefix.
+Your `ETERNIUM_API_KEY` is read **server-side** by `api/chat.js`. It never reaches the browser. Do not put it under a `VITE_` prefix.
 
 ---
 
