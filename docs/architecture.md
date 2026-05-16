@@ -1,178 +1,214 @@
-# CentraMind Blueprint: Architecture Reference
+# CentraMind Blueprint -- Architecture Reference
 
-> This document is for AI agents (Claude Code, Cursor, etc.), not humans.
-> If you're a human, read the README instead.
+This is the source-of-truth doc for understanding the CentraMind template. It mirrors what the code actually does (last verified against `main` on 2026-05-15). The diagrams in marketing copy may simplify; this doc is honest.
 
-## File Map
+---
+
+## What it is
+
+A React + Vite SPA that gives a non-technical or semi-technical owner a structured operating dashboard for their AI-assisted business. The user runs a one-time onboarding (Blueprint questionnaire), the answers seed the dashboard's state, and from there the dashboard is the user's daily command center.
+
+The dashboard talks to two backends:
+
+1. **Eternium API** (`api.eternium.ai`) -- powers the Chat tab via the `api/chat.js` Cloudflare Pages Function. The owner's prepaid credit balance funds chat. They never juggle OpenAI / Anthropic keys.
+2. **Supabase** (optional) -- if the owner provides `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`, the onboarding form persists email leads and the migrations create tables for future CRM / session-log / projects sync. The dashboard works without Supabase; disk-based JSON state is the default.
+
+The third "backend" is **Claude Code itself**. The owner runs `claude` locally in the project directory. The skills under `.claude/skills/` (`standup`, `handoff`) give Claude Code structured access to the same state files the dashboard reads. The dashboard renders state; Claude Code mutates state.
+
+---
+
+## File map (current code)
 
 ```
 armory-centramind-blueprint/
-├── CLAUDE.md                          # Agent boot config (read first)
-├── OWNER.md                           # User profile and preferences
-├── TODO.md                            # Current priorities
-├── HEARTBEAT.md                       # Active alerts
-├── theme.config.js                    # Brand colors, fonts, logos
-├── .env.example                       # Environment variable template
+├── CLAUDE.md                  # Boot config for Claude Code in this dir
+├── OWNER.md                   # Owner profile (template, edit on first run)
+├── TODO.md                    # Current priorities (free-form markdown)
+├── HEARTBEAT.md               # Active alerts / current-session state
+├── theme.config.js            # Brand colors + fonts + links (regenerates CSS)
+├── .env.example               # Supabase + Eternium key placeholders
 │
-├── src/                               # React + Vite application
-│   ├── main.jsx                       # App entry point
-│   ├── index.css                      # Tailwind v4 + theme variables
-│   ├── App.jsx                        # Root component, layout
+├── api/
+│   └── chat.js                # Cloudflare Pages Function for the Chat tab
+│                              # (proxies to api.eternium.ai, reads
+│                              # ETERNIUM_API_KEY server-side)
+│
+├── src/
+│   ├── main.jsx               # App entry
+│   ├── App.jsx                # Top-level routing (onboarding vs dashboard)
+│   ├── index.css              # Imports tailwind + theme.generated.css
+│   │
+│   ├── components/
+│   │   ├── blueprint/         # Onboarding questionnaire (8 components)
+│   │   │   ├── Landing.jsx
+│   │   │   ├── StepNav.jsx
+│   │   │   ├── EterniumAccount.jsx
+│   │   │   ├── CentraMindSystems.jsx
+│   │   │   ├── CentraMindTeam.jsx
+│   │   │   ├── ProcessAudit.jsx
+│   │   │   ├── ChecklistGroup.jsx
+│   │   │   ├── SystemArchitecture.jsx
+│   │   │   └── BlueprintSummary.jsx
+│   │   │
+│   │   └── dashboard/
+│   │       └── CentraMindDashboard.jsx  # The 11-tab command center
+│   │
 │   ├── lib/
-│   │   └── supabase.js                # Supabase client init
+│   │   ├── supabase.js           # Optional Supabase client (lead capture)
+│   │   ├── blueprint-export.js   # Generates the bootstrap prompt
+│   │   └── centramind-catalog.js # Default agent / skill / process catalog
+│   │
 │   ├── hooks/
-│   │   └── useSupabase.js             # Data hooks with realtime subscriptions
-│   └── components/
-│       ├── Header.jsx                 # Brand name + date
-│       ├── HeartbeatAlerts.jsx        # Unresolved alerts banner
-│       ├── ProjectCards.jsx           # Project grid with progress bars
-│       ├── SessionTimeline.jsx        # Session log timeline
-│       ├── DirectivesPanel.jsx        # Collapsible directives list
-│       ├── QuickActions.jsx           # Sync/Alert/Session modals
-│       ├── StatusBadge.jsx            # Status/Priority/Severity badges
-│       └── Skeleton.jsx               # Loading shimmer states
+│   │   └── useSupabase.js        # Realtime data hooks (optional, reserved)
+│   │
+│   └── theme.generated.css       # AUTO-GENERATED from theme.config.js
 │
-├── state/                             # JSON state files (source of truth)
-│   ├── projects.json                  # Project registry
-│   ├── directives.json                # Standing orders
-│   └── session-log.json               # Session history
+├── state/                        # JSON state mirrors -- source of truth
+│   ├── project.json              # Onboarding output (the workspace blueprint)
+│   ├── session-log.json          # Appended by /handoff skill
+│   ├── crm.json                  # CRM pipelines (read by CRM tab)
+│   └── skills.json               # Active skills the user selected
 │
-├── context/                           # Project briefs and context docs
-│   └── product-brief.md               # This product's state and decisions
+├── context/                      # Project briefs (free-form markdown)
+│   └── product-brief.md
 │
-├── memory/
-│   └── MEMORY.md                      # Persistent memory across sessions
+├── memory/                       # Persistent AI memory
+│   └── MEMORY.md
 │
-├── .claude/skills/                    # Claude Code skills (invoke with /name)
-│   ├── standup.md                     # Morning briefing
-│   └── handoff.md                     # End-of-session state update
+├── .claude/
+│   └── skills/                   # Claude Code skill files
+│       ├── standup.md            # Morning briefing
+│       └── handoff.md            # End-of-session state sync
 │
-├── supabase/migrations/
-│   └── 001_core_schema.sql            # Dashboard database tables
+├── supabase/
+│   └── migrations/
+│       ├── 001_core_schema.sql   # projects, session_logs, directives, alerts
+│       ├── 002_blueprint_leads.sql
+│       └── 003_crm_tasks.sql     # contacts, deals, tasks
 │
-├── docs/
-│   ├── setup-guide.md                 # PDF source (grandma-level quickstart)
-│   └── architecture.md                # THIS FILE
+├── scripts/
+│   ├── build-theme.cjs           # Regenerates src/theme.generated.css
+│   ├── check-no-em-dashes.cjs    # Enforces no-em-dash rule in commits
+│   └── build-pdf.cjs             # Generates docs/CentraMind-Blueprint-Docs.pdf
 │
-└── scripts/
-    └── build-pdf.cjs                  # Markdown to branded HTML/PDF
+└── docs/
+    ├── architecture.md           # This file
+    └── setup-guide.md            # Buyer-facing setup walkthrough
 ```
 
-## Database Schema
+---
 
-Four tables in Supabase, defined in `supabase/migrations/001_core_schema.sql`:
-
-### projects
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK, auto-generated |
-| slug | text | Unique identifier |
-| name | text | Display name |
-| status | text | active, paused, completed, archived |
-| description | text | One-line summary |
-| completeness | numeric(3,2) | 0.00 to 1.00 |
-| stack | text[] | Technology list |
-| blockers | text[] | Current blockers |
-| next_actions | text[] | Next steps |
-| deployment_url | text | Live URL |
-| deployment_status | text | none, staging, live |
-| repo_url | text | GitHub URL |
-| created_at | timestamptz | Auto |
-| updated_at | timestamptz | Auto via trigger |
-
-### session_logs
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| session_id | text | Unique, e.g. "S-001" |
-| session_date | date | When it happened |
-| duration | text | Optional |
-| summary | text | What was accomplished |
-| projects_touched | text[] | Which projects |
-| completed | text[] | Done items |
-| pending | text[] | Remaining items |
-| decisions | text[] | Key decisions made |
-| blockers | text[] | Active blockers |
-| created_at | timestamptz | Auto |
-
-### directives
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| directive_id | text | Unique, e.g. "d-001" |
-| title | text | Short name |
-| priority | text | low, medium, high, critical |
-| rule | text | The directive text |
-| status | text | active, paused, archived |
-| created_at | timestamptz | Auto |
-
-### heartbeat_alerts
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid | PK |
-| title | text | Alert title |
-| severity | text | info, warning, critical |
-| message | text | Alert details |
-| resolved | boolean | Default false |
-| resolved_at | timestamptz | When resolved |
-| created_at | timestamptz | Auto |
-
-## Data Flow
+## Data flow
 
 ```
-File State (state/*.json)
-  -- user edits or /handoff skill updates -->
-Supabase Tables
-  -- realtime subscription -->
-React Dashboard (src/components/*)
+First run:
+  User loads /                      -> sees Landing onboarding
+  Fills 5-step questionnaire        -> answers stored in localStorage
+  Clicks "Generate Blueprint"       -> Blueprint summary renders
+  Optionally pastes email           -> POST to Supabase blueprint_leads
+  Clicks "Open Dashboard"           -> stores blueprint, redirects to dashboard
+
+Subsequent runs:
+  User loads /                      -> blueprint present in localStorage
+                                       OR state/project.json exists on disk
+                                    -> auto-routes to dashboard
+                                    -> User can revisit onboarding at /?onboard=1
+
+Daily use:
+  User opens dashboard              -> each tab reads from disk state
+                                       (via Vite import.meta.glob) + the
+                                       blueprint in localStorage
+  User opens Chat tab               -> POSTs to /api/chat with the message
+                                       + system prompt built from state +
+                                       OWNER.md + TODO.md + project.json
+  Pages Function api/chat.js        -> reads ETERNIUM_API_KEY from env
+                                    -> POSTs to api.eternium.ai/v1/reseller/
+                                       chat/completions with Bearer eai_
+                                    -> streams response back via SSE
+  User asks Claude Code locally     -> $ claude
+                                    -> Claude Code reads CLAUDE.md +
+                                       state/* + memory/MEMORY.md
+                                    -> User says "/handoff" -> Claude Code
+                                       runs the skill, appends to
+                                       state/session-log.json + updates
+                                       memory/MEMORY.md
+                                    -> Dashboard auto-refreshes on file change
+                                       (Vite HMR)
 ```
 
-The file-based state in `state/` is the source of truth. Supabase mirrors it for the dashboard UI. The `/handoff` skill is the sync mechanism.
+---
 
-## Environment Variables
+## Why Supabase is optional
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| VITE_SUPABASE_URL | Yes | Supabase project URL |
-| VITE_SUPABASE_ANON_KEY | Yes | Supabase anonymous key |
-| VITE_ETERNIUM_API_KEY | No | Eternium API (for AI features) |
+The dashboard is designed to work offline-first on disk JSON. Supabase exists as an upgrade path for owners who want:
 
-## Theming
+- Persistent lead capture (if the buyer is using their CentraMind to capture leads)
+- Cross-device session-log sync (if the buyer works from multiple machines)
+- Realtime updates between the dashboard and external integrations
 
-All visual customization flows through `theme.config.js` at the project root. The CSS variables in `src/index.css` map to theme values. Components use Tailwind classes that reference these variables (e.g., `text-primary`, `bg-bg-card`).
+For v1, the disk-first design means a buyer can clone, install, and run with zero external services. The migrations under `supabase/migrations/` are there for the day they decide to wire it up.
 
-To rebrand:
-1. Edit `theme.config.js` (colors, fonts, brand name)
-2. Replace `public/assets/` logos
-3. The dashboard updates automatically
+---
 
-## Common Agent Tasks
+## Why the Chat tab needs a server-side proxy
 
-### Initial Setup
-1. Read CLAUDE.md for project context
-2. Run `npm install`
-3. Copy `.env.example` to `.env`, fill in Supabase credentials
-4. Run the SQL migration in Supabase
-5. Run `npm run dev`
+Eternium API keys (`eai_<32 chars>`) are bearer tokens. If the dashboard called `api.eternium.ai` directly from the browser, the token would be visible in DevTools to anyone who opens the page. That is unsafe for any dashboard hosted publicly (Cloudflare Pages, Vercel, your own subdomain).
 
-### Add a New Skill
-1. Create `.claude/skills/your-skill.md` with frontmatter `description`
-2. Define the workflow in markdown
-3. Test with `/your-skill` in Claude Code
+`api/chat.js` is a Cloudflare Pages Function that runs server-side. It reads `ETERNIUM_API_KEY` from the deployment's env (never exposed to the client), proxies the chat request to Eternium, and streams the response back to the browser. The browser never sees the key.
 
-### Add a New Project
-1. Add entry to `state/projects.json`
-2. INSERT matching row in Supabase `projects` table
-3. Create `context/your-project-brief.md`
+For local development, the Vite dev server proxies `/api/*` to a local Pages Function emulator (or you set `ETERNIUM_API_KEY` in `.env.local` and the proxy uses it). See `docs/setup-guide.md` for details.
 
-### Rebrand for a Client
-1. Edit `theme.config.js`: brandName, colors, fonts
-2. Replace logos in `public/assets/`
-3. Update `OWNER.md` with client info
-4. Run `npm run build` to verify
+---
 
-### Add a Dashboard Section
-1. Create component in `src/components/`
-2. Add a hook in `src/hooks/useSupabase.js` if new table needed
-3. Add migration SQL in `supabase/migrations/`
-4. Import and render in `src/App.jsx`
+## The 4 layers (the conceptual model)
+
+CentraMind organizes everything into four layers. These map to specific files / tabs in this codebase:
+
+1. **Central Intelligence** -- the documents that give the AI full business context.
+   Files: `CLAUDE.md`, `OWNER.md`, `context/product-brief.md`, `state/project.json`
+   Tab: Settings (read), Overview (read)
+2. **Contextual Memory** -- persistent knowledge across sessions.
+   Files: `memory/MEMORY.md`, `state/session-log.json`
+   Tabs: Memory, Sessions
+3. **Autonomous Agents** -- the skills + roster that let the AI execute work.
+   Files: `.claude/skills/*.md`, `state/skills.json`, `state/roster.json`
+   Tabs: Skills, Executives, Fleet, Processes
+4. **Human Override** -- the alerts + priorities that keep the human in control.
+   Files: `TODO.md`, `HEARTBEAT.md`, `state/crm.json`
+   Tabs: Priorities, CRM
+
+The Dashboard is the visualization of all four. Claude Code is the working partner on all four. The Chat tab is the conversational interface on all four.
+
+---
+
+## Common task recipes
+
+**Add a new project to the dashboard:**
+1. Open the Overview tab, click "Add project" (or)
+2. Edit `state/project.json` and append to `projects[]` (or)
+3. Use Claude Code: `claude` -> `add a project called "Helix" for me`. Claude reads `state/project.json`, appends, writes back.
+
+**Add a new skill:**
+1. Drop a markdown file in `.claude/skills/<name>.md` describing what the skill does.
+2. Restart Claude Code to pick up the new skill.
+3. Optionally add it to `state/skills.json` so the Skills tab lists it.
+
+**Persist a key fact to memory:**
+1. Tell Claude Code: `/handoff and remember that <fact>`. The skill appends to `memory/MEMORY.md`.
+2. Or edit `memory/MEMORY.md` directly.
+
+**Rebrand:**
+1. Edit `theme.config.js`.
+2. Run `npm run theme` (or just `npm run dev` -- predev regenerates).
+3. The dashboard restyles.
+
+**Hook up Supabase:**
+1. Create a Supabase project, copy URL + anon key into `.env.local`.
+2. Open Supabase SQL Editor, run migrations 001 + 003 in order.
+3. Restart `npm run dev`. Lead-capture form starts persisting; CRM tab is still disk-backed (Supabase wiring for that surface ships in a later version).
+
+---
+
+## Versioning
+
+This template uses semver. Major versions may change the on-disk state shape; minor versions add features without breaking existing state; patch versions are bug fixes. Check `CHANGELOG.md` before upgrading. Hold onto your current commit hash if you have heavy local customizations -- you can always cherry-pick changes selectively.

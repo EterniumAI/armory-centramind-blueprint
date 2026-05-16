@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { theme } from '../../../theme.config.js';
 
 const FEATURES = [
   {
@@ -111,11 +112,13 @@ export default function Landing({ onStart }) {
 
       {/* Footer */}
       <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-        Built by{' '}
-        <a href="https://tyrinbarney.com" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-          Tyrin Barney
+        <a href={theme.links?.home || 'https://eternium.ai/centramind'} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+          {theme.brandName || 'CentraMind'}
         </a>
-        {' '}at Eternium LLC
+        {' '}is powered by{' '}
+        <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+          Eternium AI
+        </a>.
       </footer>
     </div>
   );

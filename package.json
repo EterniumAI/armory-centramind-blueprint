@@ -5,22 +5,21 @@
   "description": "CentraMind OS: AI agent memory, skills, context protocol, and Command Center dashboard.",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/build-theme.cjs",
     "dev": "vite",
-    "prebuild": "npm run check:no-em-dashes",
+    "prebuild": "node scripts/build-theme.cjs && npm run check:no-em-dashes",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "check:no-em-dashes": "node scripts/check-no-em-dashes.cjs",
-    "docs": "node scripts/build-pdf.cjs",
-    "docs:html": "node scripts/build-pdf.cjs --html"
+    "theme": "node scripts/build-theme.cjs"
   },
   "author": "Eternium LLC",
   "license": "MIT",
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
     "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.14.0"
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -32,8 +31,6 @@
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
-    "marked": "^18.0.2",
-    "puppeteer": "^24.40.0",
     "tailwindcss": "^4.2.2",
     "vite": "^8.0.4"
   }
