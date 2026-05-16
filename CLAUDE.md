@@ -16,6 +16,8 @@ CentraMind OS: AI agent memory, skills, context protocol, a Chat tab powered by 
 - `src/components/` -- dashboard UI components
 - `src/lib/supabase.js` -- Supabase client (optional)
 - `api/chat.js` -- Cloudflare Pages Function proxying to Eternium API
+- `src/lib/chat-context.js` -- builds Chat tab system prompt from workspace state
+- `src/components/dashboard/ChatTab.jsx` -- Chat tab UI component
 - `state/` -- JSON state files (source of truth for projects, sessions, CRM, etc.)
 - `context/` -- project briefs
 - `memory/MEMORY.md` -- persistent memory

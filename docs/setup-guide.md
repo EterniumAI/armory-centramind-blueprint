@@ -146,9 +146,13 @@ That's the whole product. Everything else (Skills, Fleet, Processes, Memory brow
 
 **`npm run dev` errors with "theme.config.js not found":** make sure you're in the repo root when you run npm scripts. The `predev` hook expects `theme.config.js` at root.
 
-**Chat tab returns 401:** your `ETERNIUM_API_KEY` is missing or invalid. Check `.env.local`. Restart `npm run dev` after edits.
+**Chat tab says "ETERNIUM_API_KEY not set":** the balance pill shows this when `GET /api/chat` reports `configured: false`. Set `ETERNIUM_API_KEY` in `.env.local` (no `VITE_` prefix) and restart `npm run dev`.
 
-**Chat tab returns 402:** balance depleted. Top up at [eternium.ai/credits/topup](https://eternium.ai/credits/topup).
+**Chat tab returns 401:** your `ETERNIUM_API_KEY` is set but invalid or expired. Verify the key starts with `eai_` and matches the one in your Eternium welcome email. Restart `npm run dev` after changing `.env.local`.
+
+**Chat tab returns 402:** balance depleted. The Chat tab shows an inline card with a link to add credits. Top up at [eternium.ai/credits/topup](https://eternium.ai/credits/topup). The balance pill refreshes after each chat exchange.
+
+**Chat tab returns 503:** `ETERNIUM_API_KEY` is not set in the server environment. In local dev, check `.env.local`. In Cloudflare Pages, set it under Settings > Environment variables.
 
 **Claude Code says "I don't see any context":** run `claude` from the repo root. Claude Code only reads `CLAUDE.md` from its working directory.
 
