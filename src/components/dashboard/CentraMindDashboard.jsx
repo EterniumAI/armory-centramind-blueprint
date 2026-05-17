@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ChatTab from './ChatTab';
+import SocialTab from './SocialTab';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
     EXECUTIVES,
@@ -41,6 +42,7 @@ const LS_ETERNIUM_KEY = 'centramind:eternium-api-key';
 const TABS = [
     { id: 'overview',   label: 'Overview' },
     { id: 'chat',       label: 'Chat' },
+    { id: 'social',     label: 'Social' },
     { id: 'executives', label: 'Executives' },
     { id: 'fleet',      label: 'Fleet' },
     { id: 'crm',        label: 'CRM' },
@@ -57,6 +59,7 @@ const TABS = [
 // small uppercase label, then the tab buttons.
 const NAV_SECTIONS = [
     { label: 'Workspace',  tabs: ['overview', 'chat'] },
+    { label: 'Channels',   tabs: ['social'] },
     { label: 'Operations', tabs: ['priorities', 'processes', 'sessions'] },
     { label: 'People',     tabs: ['executives', 'fleet', 'crm'] },
     { label: 'Knowledge',  tabs: ['skills', 'memory'] },
@@ -210,6 +213,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                 <main className="flex-1 min-w-0 overflow-x-hidden px-4 sm:px-6 py-6">
                     {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
                     {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
+                    {tab === 'social'     && <SocialTab />}
                     {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
                     {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
                     {tab === 'crm'        && <CRMTab        workspace={workspace} />}
