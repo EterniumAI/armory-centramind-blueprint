@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ChatTab from './ChatTab';
-import SocialTab from './SocialTab';
+import MetaSuiteTab from './MetaSuiteTab';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
     EXECUTIVES,
@@ -38,11 +38,12 @@ const briefGlob      = import.meta.glob('/context/product-brief.md', { eager: tr
 const firstEntry = (g) => Object.values(g)[0];
 
 const LS_ETERNIUM_KEY = 'centramind:eternium-api-key';
+const LS_FEATURE_META_SUITE = 'centramind:feature:meta_suite';
 
 const TABS = [
     { id: 'overview',   label: 'Overview' },
     { id: 'chat',       label: 'Chat' },
-    { id: 'social',     label: 'Social' },
+    { id: 'meta_suite', label: 'Meta Suite' },
     { id: 'executives', label: 'Executives' },
     { id: 'fleet',      label: 'Fleet' },
     { id: 'crm',        label: 'CRM' },
@@ -59,7 +60,7 @@ const TABS = [
 // small uppercase label, then the tab buttons.
 const NAV_SECTIONS = [
     { label: 'Workspace',  tabs: ['overview', 'chat'] },
-    { label: 'Channels',   tabs: ['social'] },
+    { label: 'Channels',   tabs: ['meta_suite'] },
     { label: 'Operations', tabs: ['priorities', 'processes', 'sessions'] },
     { label: 'People',     tabs: ['executives', 'fleet', 'crm'] },
     { label: 'Knowledge',  tabs: ['skills', 'memory'] },
@@ -84,6 +85,13 @@ function saveState(email, state) {
 export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onRetakeBlueprint, onUpdateBlueprint }) {
     const [tab, setTab] = useState('overview');
     const [persisted, setPersisted] = useState(() => loadState(email));
+    const [metaSuiteEnabled, setMetaSuiteEnabled] = useState(() => {
+        try {
+            const stored = localStorage.getItem(LS_FEATURE_META_SUITE);
+            if (stored === null) return true;
+            return stored !== 'false';
+        } catch { return true; }
+    });
 
     useEffect(() => { saveState(email, persisted); }, [email, persisted]);
 
@@ -110,7 +118,13 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
 
     const brandName = theme.brandName || 'CentraMind';
     const firstName = workspace.aiOwner?.first_name_guess || '';
-    const tabsById = Object.fromEntries(TABS.map((t) => [t.id, t]));
+    const visibleTabs = useMemo(() => {
+        return TABS.filter((t) => {
+            if (t.id === 'meta_suite' && !metaSuiteEnabled) return false;
+            return true;
+        });
+    }, [metaSuiteEnabled]);
+    const tabsById = Object.fromEntries(visibleTabs.map((t) => [t.id, t]));
 
     return (
         <div className="min-h-screen bg-bg flex flex-col">
@@ -213,7 +227,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                 <main className="flex-1 min-w-0 overflow-x-hidden px-4 sm:px-6 py-6">
                     {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
                     {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
-                    {tab === 'social'     && <SocialTab />}
+                    {tab === 'meta_suite' && <MetaSuiteTab />}
                     {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
                     {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
                     {tab === 'crm'        && <CRMTab        workspace={workspace} />}
@@ -223,7 +237,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                     {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
                     {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
                     {tab === 'claude'     && <ClaudeTab     blueprint={blueprint} email={email} />}
-                    {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} />}
+                    {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} metaSuiteEnabled={metaSuiteEnabled} onToggleMetaSuite={setMetaSuiteEnabled} />}
                 </main>
             </div>
         </div>
@@ -857,7 +871,7 @@ function Step({ n, children }) {
 
 /* ── Settings ────────────────────────────────────────────── */
 
-function SettingsTab({ workspace, onRetake, onUpdateBlueprint }) {
+function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled, onToggleMetaSuite }) {
     const { project, source, email, hasEterniumKey, eterniumApiKey } = workspace;
     const [keyDraft, setKeyDraft] = useState(eterniumApiKey || '');
     const [saveLabel, setSaveLabel] = useState('Save');
@@ -976,6 +990,31 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint }) {
             </div>
 
             <IntegrationsPanel />
+
+            <div className="glass rounded-xl p-6">
+                <h3 className="font-display font-semibold text-sm text-text-main mb-4">Features</h3>
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <p className="text-sm text-text-main">Meta Suite</p>
+                        <p className="text-xs text-text-muted mt-0.5">Manage Facebook + Instagram content and ad campaigns.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const next = !metaSuiteEnabled;
+                            onToggleMetaSuite(next);
+                            try { localStorage.setItem(LS_FEATURE_META_SUITE, String(next)); } catch { /* ignore */ }
+                        }}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                            metaSuiteEnabled ? 'bg-primary' : 'bg-bg-elevated border border-border'
+                        }`}
+                    >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                            metaSuiteEnabled ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                    </button>
+                </div>
+            </div>
 
             <div className="glass rounded-xl p-6">
                 <h3 className="font-display font-semibold text-sm text-text-main mb-2">Retake the questionnaire</h3>
