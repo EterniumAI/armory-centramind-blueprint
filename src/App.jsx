@@ -75,6 +75,7 @@ export default function App() {
     operators: defaults.operators,
     pipelines: defaults.pipelines,
     skills: defaults.skills,
+    features: { meta_suite: true },
     eterniumApiKey: '',
   });
 
@@ -143,8 +144,10 @@ export default function App() {
       key="systems"
       pipelines={blueprint.pipelines}
       skills={blueprint.skills}
+      features={blueprint.features}
       onChangePipelines={(v) => updateBlueprint('pipelines', v)}
       onChangeSkills={(v) => updateBlueprint('skills', v)}
+      onChangeFeatures={(v) => updateBlueprint('features', v)}
       onNext={goNext}
       onBack={goPrev}
     />,
@@ -171,6 +174,10 @@ export default function App() {
       onRestart={() => { setCurrentStep(0); }}
       onLaunch={(workspace) => {
         if (workspace) setAiWorkspace(workspace);
+        try {
+          const metaFlag = blueprint.features?.meta_suite !== false;
+          localStorage.setItem('centramind:feature:meta_suite', String(metaFlag));
+        } catch { /* non-fatal */ }
         setLaunched(true);
         window.scrollTo(0, 0);
       }}
