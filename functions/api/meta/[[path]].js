@@ -78,6 +78,21 @@ export async function onRequest({ request, env, params }) {
     return proxyPost(request, upstreamUrl, apiKey);
   }
 
+  // Route: POST /api/meta/reel
+  if (subPath === 'reel' && method === 'POST') {
+    return proxyPost(request, upstreamUrl, apiKey);
+  }
+
+  // Route: POST /api/meta/story
+  if (subPath === 'story' && method === 'POST') {
+    return proxyPost(request, upstreamUrl, apiKey);
+  }
+
+  // Route: POST /api/meta/carousel
+  if (subPath === 'carousel' && method === 'POST') {
+    return proxyPost(request, upstreamUrl, apiKey);
+  }
+
   // Route: GET /api/meta/posts
   if (subPath === 'posts' && method === 'GET') {
     return proxyGet(upstreamUrl, apiKey);
