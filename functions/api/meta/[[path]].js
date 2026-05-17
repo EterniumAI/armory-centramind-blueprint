@@ -93,9 +93,29 @@ export async function onRequest({ request, env, params }) {
     return proxyGet(upstreamUrl, apiKey);
   }
 
-  // Route: GET /api/meta/ads/insights
-  if (subPath === 'ads/insights' && method === 'GET') {
+  // Route: GET /api/meta/ads/campaigns
+  if (subPath === 'ads/campaigns' && method === 'GET') {
     return proxyGet(upstreamUrl, apiKey);
+  }
+
+  // Route: GET /api/meta/ads/adsets
+  if (subPath === 'ads/adsets' && method === 'GET') {
+    return proxyGet(upstreamUrl, apiKey);
+  }
+
+  // Route: GET /api/meta/ads/ads
+  if (subPath === 'ads/ads' && method === 'GET') {
+    return proxyGet(upstreamUrl, apiKey);
+  }
+
+  // Route: GET /api/meta/ads/insights/{level}/{id}
+  if (subPath.startsWith('ads/insights/') && method === 'GET') {
+    return proxyGet(upstreamUrl, apiKey);
+  }
+
+  // Route: POST /api/meta/ads/ad/{id}/pause | /resume | /archive
+  if (subPath.match(/^ads\/ad\/[^/]+\/(pause|resume|archive)$/) && method === 'POST') {
+    return proxyPost(request, upstreamUrl, apiKey);
   }
 
   return json({ error: 'not_found', detail: `No handler for ${method} /api/meta/${subPath}` }, 404);
