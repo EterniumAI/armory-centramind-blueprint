@@ -1,7 +1,50 @@
 import { useState, useEffect, useCallback } from 'react';
+import PostForm from './compose/PostForm';
+import ReelForm from './compose/ReelForm';
+import StoryForm from './compose/StoryForm';
+import CarouselForm from './compose/CarouselForm';
 
-const FB_CHAR_LIMIT = 63206;
-const IG_CHAR_LIMIT = 2200;
+const CONTENT_TYPES = [
+  { key: 'post', label: 'Post', platforms: 'FB + IG' },
+  { key: 'reel', label: 'Reel', platforms: 'FB + IG' },
+  { key: 'story', label: 'Story', platforms: 'IG only' },
+  { key: 'carousel', label: 'Carousel', platforms: 'IG only' },
+];
+
+function ContentTypeIcon({ type, size = 14 }) {
+  if (type === 'reel') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="5 3 19 12 5 21 5 3" />
+      </svg>
+    );
+  }
+  if (type === 'story') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <circle cx="12" cy="12" r="6" />
+      </svg>
+    );
+  }
+  if (type === 'carousel') {
+    return (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="2" y="4" width="16" height="16" rx="2" />
+        <rect x="6" y="2" width="16" height="16" rx="2" />
+      </svg>
+    );
+  }
+  // post (default)
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+    </svg>
+  );
+}
 
 function PlatformIcon({ platform, size = 16 }) {
   if (platform === 'instagram') {
@@ -20,21 +63,27 @@ function PlatformIcon({ platform, size = 16 }) {
   );
 }
 
-function PageChip({ page, selected, igMode, onToggle, onToggleIg }) {
+function PageChip({ page, selected, igMode, onToggle, onToggleIg, igOnly, fbDisabled }) {
   const hasIg = !!page.instagram_business_account;
+  const isDisabled = fbDisabled && !hasIg;
+
   return (
     <button
       type="button"
-      onClick={() => onToggle(page.id)}
+      onClick={() => !isDisabled && onToggle(page.id)}
+      disabled={isDisabled}
       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-mono transition-colors border ${
-        selected
-          ? 'border-primary/60 bg-primary/15 text-primary'
-          : 'border-border text-text-muted hover:border-primary/30 hover:text-text-main'
+        isDisabled
+          ? 'border-border/50 text-text-subtle/50 cursor-not-allowed opacity-50'
+          : selected
+            ? 'border-primary/60 bg-primary/15 text-primary'
+            : 'border-border text-text-muted hover:border-primary/30 hover:text-text-main'
       }`}
+      title={isDisabled ? 'This content type requires an Instagram business account' : undefined}
     >
-      <PlatformIcon platform={igMode ? 'instagram' : 'facebook'} size={12} />
+      <PlatformIcon platform={(igOnly || igMode) ? 'instagram' : 'facebook'} size={12} />
       <span className="truncate max-w-[140px]">{page.name}</span>
-      {hasIg && selected && (
+      {hasIg && selected && !igOnly && (
         <span
           role="button"
           tabIndex={0}
@@ -68,30 +117,9 @@ function StatusBadge({ status }) {
   );
 }
 
-function SuggestionCard({ suggestion, onInsert }) {
-  return (
-    <div className="border border-border rounded-lg p-3 bg-bg-surface/60 space-y-2">
-      <p className="text-xs text-text-main leading-relaxed">{suggestion.caption}</p>
-      {suggestion.hashtags?.length > 0 && (
-        <p className="text-[10px] text-primary/70 font-mono">
-          {suggestion.hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ')}
-        </p>
-      )}
-      {suggestion.call_to_action && (
-        <p className="text-[10px] text-text-subtle italic">CTA: {suggestion.call_to_action}</p>
-      )}
-      <button
-        type="button"
-        onClick={() => onInsert(suggestion)}
-        className="text-[10px] font-mono uppercase tracking-wider text-primary hover:text-primary/80 transition-colors cursor-pointer"
-      >
-        Use this
-      </button>
-    </div>
-  );
-}
-
 export default function ComposeSubTab() {
+  const [contentType, setContentType] = useState('post');
+
   // Pages state
   const [pages, setPages] = useState([]);
   const [pagesLoading, setPagesLoading] = useState(true);
@@ -100,18 +128,7 @@ export default function ComposeSubTab() {
   // Selection: map of pageId -> { selected: bool, igMode: bool }
   const [selections, setSelections] = useState({});
 
-  // Composer state
-  const [message, setMessage] = useState('');
-  const [imageUrl, setImageUrl] = useState('');
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [scheduling, setScheduling] = useState(false);
-
-  // AI suggest
-  const [suggestions, setSuggestions] = useState([]);
-  const [suggestLoading, setSuggestLoading] = useState(false);
-
-  // Publishing
-  const [publishing, setPublishing] = useState(false);
+  // Publishing feedback
   const [publishResult, setPublishResult] = useState(null);
 
   // Posts list
@@ -154,13 +171,19 @@ export default function ComposeSubTab() {
 
   useEffect(() => { loadPosts(); }, [loadPosts]);
 
+  const igOnly = contentType === 'story' || contentType === 'carousel';
+
   const togglePage = (pageId) => {
-    setSelections((prev) => ({
-      ...prev,
-      [pageId]: prev[pageId]?.selected
-        ? { ...prev[pageId], selected: false }
-        : { selected: true, igMode: prev[pageId]?.igMode || false },
-    }));
+    setSelections((prev) => {
+      const page = pages.find((p) => p.id === pageId);
+      const hasIg = !!page?.instagram_business_account;
+      if (prev[pageId]?.selected) {
+        return { ...prev, [pageId]: { ...prev[pageId], selected: false } };
+      }
+      // For IG-only content types, auto-enable igMode
+      const igMode = igOnly ? true : (prev[pageId]?.igMode || false);
+      return { ...prev, [pageId]: { selected: true, igMode: igOnly && hasIg ? true : igMode } };
+    });
   };
 
   const toggleIg = (pageId) => {
@@ -170,87 +193,7 @@ export default function ComposeSubTab() {
     }));
   };
 
-  const selectedPages = pages.filter((p) => selections[p.id]?.selected);
-  const hasSelection = selectedPages.length > 0;
-  const hasMessage = message.trim().length > 0;
-  const canAct = hasSelection && hasMessage && !publishing;
-
-  // Determine char limit: if any selected page targets IG, use IG limit
-  const anyIg = selectedPages.some((p) => selections[p.id]?.igMode);
-  const charLimit = anyIg ? IG_CHAR_LIMIT : FB_CHAR_LIMIT;
-  const charWarning = anyIg && message.length > IG_CHAR_LIMIT * 0.9;
-  const charOver = message.length > charLimit;
-
-  const handlePublish = async () => {
-    setPublishing(true);
-    setPublishResult(null);
-    try {
-      const pageIds = selectedPages.map((p) => p.id);
-      const igPageIds = selectedPages.filter((p) => selections[p.id]?.igMode).map((p) => p.id);
-      const body = {
-        page_ids: pageIds,
-        ig_page_ids: igPageIds,
-        message: message.trim(),
-        image_url: imageUrl.trim() || undefined,
-      };
-      const res = await fetch('/api/meta/post', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setPublishResult({ type: 'success', text: 'Published successfully.' });
-        setMessage('');
-        setImageUrl('');
-        setSelections({});
-        loadPosts();
-      } else {
-        setPublishResult({ type: 'error', text: data?.error || 'Publish failed.' });
-      }
-    } catch (err) {
-      setPublishResult({ type: 'error', text: err.message });
-    } finally {
-      setPublishing(false);
-    }
-  };
-
-  const handleSchedule = async () => {
-    if (!scheduleDate) return;
-    setScheduling(true);
-    setPublishResult(null);
-    try {
-      const pageIds = selectedPages.map((p) => p.id);
-      const igPageIds = selectedPages.filter((p) => selections[p.id]?.igMode).map((p) => p.id);
-      const body = {
-        page_ids: pageIds,
-        ig_page_ids: igPageIds,
-        message: message.trim(),
-        image_url: imageUrl.trim() || undefined,
-        scheduled_at: new Date(scheduleDate).toISOString(),
-      };
-      const res = await fetch('/api/meta/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setPublishResult({ type: 'success', text: 'Scheduled successfully.' });
-        setMessage('');
-        setImageUrl('');
-        setScheduleDate('');
-        setSelections({});
-        loadPosts();
-      } else {
-        setPublishResult({ type: 'error', text: data?.error || 'Scheduling failed.' });
-      }
-    } catch (err) {
-      setPublishResult({ type: 'error', text: err.message });
-    } finally {
-      setScheduling(false);
-    }
-  };
+  const resetSelections = () => setSelections({});
 
   const handleCancelPost = async (postId) => {
     try {
@@ -263,41 +206,12 @@ export default function ComposeSubTab() {
     }
   };
 
-  const handleSuggest = async () => {
-    if (!hasMessage || !hasSelection) return;
-    setSuggestLoading(true);
-    setSuggestions([]);
-    try {
-      const firstPage = selectedPages[0];
-      const platform = selections[firstPage.id]?.igMode ? 'instagram' : 'facebook';
-      const res = await fetch('/api/workspace/ai/suggest', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          platform,
-          topic: message.trim(),
-          page_name: firstPage.name,
-        }),
-      });
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setSuggestions(data.slice(0, 3));
-      } else if (Array.isArray(data?.suggestions)) {
-        setSuggestions(data.suggestions.slice(0, 3));
-      }
-    } catch {
-      // silent
-    } finally {
-      setSuggestLoading(false);
-    }
-  };
-
-  const insertSuggestion = (suggestion) => {
-    const hashtags = suggestion.hashtags?.length
-      ? '\n\n' + suggestion.hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ')
-      : '';
-    setMessage(suggestion.caption + hashtags);
-    setSuggestions([]);
+  const formProps = {
+    pages,
+    selections,
+    onPublishResult: setPublishResult,
+    loadPosts,
+    resetSelections,
   };
 
   return (
@@ -305,6 +219,26 @@ export default function ComposeSubTab() {
       {/* Composer */}
       <div className="border border-border rounded-xl bg-bg-card p-5 space-y-4">
         <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-subtle mb-2">Composer</div>
+
+        {/* Content type switcher */}
+        <div className="flex flex-wrap gap-2">
+          {CONTENT_TYPES.map((ct) => (
+            <button
+              key={ct.key}
+              type="button"
+              onClick={() => setContentType(ct.key)}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors border ${
+                contentType === ct.key
+                  ? 'border-primary/60 bg-primary/15 text-primary'
+                  : 'border-border text-text-muted hover:border-primary/30 hover:text-text-main'
+              }`}
+            >
+              <ContentTypeIcon type={ct.key} size={12} />
+              {ct.label}
+              <span className="text-[9px] opacity-60">{ct.platforms}</span>
+            </button>
+          ))}
+        </div>
 
         {/* Page selector */}
         <div>
@@ -325,98 +259,22 @@ export default function ComposeSubTab() {
                   key={page.id}
                   page={page}
                   selected={!!selections[page.id]?.selected}
-                  igMode={!!selections[page.id]?.igMode}
+                  igMode={igOnly || !!selections[page.id]?.igMode}
                   onToggle={togglePage}
                   onToggleIg={toggleIg}
+                  igOnly={igOnly}
+                  fbDisabled={igOnly}
                 />
               ))}
             </div>
           )}
         </div>
 
-        {/* Message textarea */}
-        <div>
-          <label className="block text-xs text-text-muted mb-2">Message</label>
-          <textarea
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Write your post..."
-            rows={4}
-            className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-main placeholder-text-subtle resize-y focus:outline-none focus:border-primary/40 transition-colors"
-          />
-          <div className="flex items-center justify-between mt-1">
-            <span className={`text-[10px] font-mono ${charOver ? 'text-error' : charWarning ? 'text-warning' : 'text-text-subtle'}`}>
-              {message.length.toLocaleString()} / {charLimit.toLocaleString()}
-              {anyIg && ' (IG limit)'}
-            </span>
-            <button
-              type="button"
-              onClick={handleSuggest}
-              disabled={!hasMessage || !hasSelection || suggestLoading}
-              className="text-[10px] font-mono uppercase tracking-wider text-primary hover:text-primary/80 disabled:text-text-subtle disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              {suggestLoading ? 'Suggesting...' : 'Suggest with AI'}
-            </button>
-          </div>
-        </div>
-
-        {/* AI suggestions */}
-        {suggestions.length > 0 && (
-          <div className="space-y-2">
-            <div className="text-[10px] font-mono uppercase tracking-[0.15em] text-text-subtle">Suggested by AI</div>
-            <div className="grid gap-2 sm:grid-cols-3">
-              {suggestions.map((s, i) => (
-                <SuggestionCard key={i} suggestion={s} onInsert={insertSuggestion} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Image URL */}
-        <div>
-          <label className="block text-xs text-text-muted mb-2">Image URL (optional)</label>
-          <input
-            type="url"
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://..."
-            className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
-          />
-        </div>
-
-        {/* Schedule controls */}
-        <div className="flex flex-wrap items-end gap-3">
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-xs text-text-muted mb-2">Schedule for later (optional)</label>
-            <input
-              type="datetime-local"
-              value={scheduleDate}
-              onChange={(e) => setScheduleDate(e.target.value)}
-              className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-main focus:outline-none focus:border-primary/40 transition-colors"
-            />
-            <p className="text-[10px] text-text-subtle mt-1">Times are in your local timezone.</p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={!canAct || charOver}
-              className="px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-primary text-bg hover:bg-primary/90 disabled:bg-bg-elevated disabled:text-text-subtle disabled:cursor-not-allowed transition-colors cursor-pointer"
-            >
-              {publishing ? 'Publishing...' : 'Publish now'}
-            </button>
-            {scheduleDate && (
-              <button
-                type="button"
-                onClick={handleSchedule}
-                disabled={!canAct || charOver || scheduling}
-                className="px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider border border-primary/40 text-primary hover:bg-primary/10 disabled:border-border disabled:text-text-subtle disabled:cursor-not-allowed transition-colors cursor-pointer"
-              >
-                {scheduling ? 'Scheduling...' : 'Schedule'}
-              </button>
-            )}
-          </div>
-        </div>
+        {/* Per-type form */}
+        {contentType === 'post' && <PostForm {...formProps} />}
+        {contentType === 'reel' && <ReelForm {...formProps} />}
+        {contentType === 'story' && <StoryForm {...formProps} />}
+        {contentType === 'carousel' && <CarouselForm {...formProps} />}
 
         {/* Result feedback */}
         {publishResult && (
@@ -445,13 +303,19 @@ export default function ComposeSubTab() {
           <div className="space-y-2">
             {posts.map((post) => (
               <div key={post.id} className="border border-border rounded-lg bg-bg-card p-4 flex items-start gap-3">
-                <div className="mt-0.5 text-text-subtle">
+                <div className="mt-0.5 text-text-subtle flex items-center gap-1.5">
+                  <ContentTypeIcon type={post.content_type || 'post'} size={12} />
                   <PlatformIcon platform={post.platform} size={14} />
                 </div>
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-mono text-text-main truncate">{post.page_name || 'Unknown page'}</span>
                     <StatusBadge status={post.status} />
+                    {post.content_type && post.content_type !== 'post' && (
+                      <span className="text-[9px] font-mono uppercase tracking-wider text-text-subtle bg-bg-elevated px-1.5 py-0.5 rounded">
+                        {post.content_type}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-text-muted line-clamp-2">{post.message || post.caption || ''}</p>
                   <div className="flex items-center gap-3 text-[10px] text-text-subtle font-mono">
