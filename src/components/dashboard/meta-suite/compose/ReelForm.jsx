@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MediaUpload from './MediaUpload';
 
 const IG_CHAR_LIMIT = 2200;
 
@@ -107,20 +108,15 @@ export default function ReelForm({ pages, selections, onPublishResult, loadPosts
         Reels post to the Feed by default for IG. Caption supports up to 2,200 characters.
       </p>
 
-      {/* Video URL */}
-      <div>
-        <label className="block text-xs text-text-muted mb-2">Video URL (required)</label>
-        <input
-          type="url"
-          value={videoUrl}
-          onChange={(e) => setVideoUrl(e.target.value)}
-          placeholder="https://..."
-          className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
-        />
-        {!hasVideo && videoUrl.length > 0 && (
-          <p className="text-[10px] text-error mt-1">Video URL is required.</p>
-        )}
-      </div>
+      {/* Video */}
+      <MediaUpload
+        accept="video/*"
+        value={videoUrl}
+        onChange={setVideoUrl}
+        label="Video (required)"
+        placeholder="https://..."
+        maxSizeMB={100}
+      />
 
       {/* Caption */}
       <div>

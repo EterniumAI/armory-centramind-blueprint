@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MediaUpload from './MediaUpload';
 
 const FB_CHAR_LIMIT = 63206;
 const IG_CHAR_LIMIT = 2200;
@@ -190,17 +191,14 @@ export default function PostForm({ pages, selections, onPublishResult, loadPosts
         </div>
       )}
 
-      {/* Image URL */}
-      <div>
-        <label className="block text-xs text-text-muted mb-2">Image URL (optional)</label>
-        <input
-          type="url"
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          placeholder="https://..."
-          className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
-        />
-      </div>
+      {/* Image */}
+      <MediaUpload
+        accept="image/*"
+        value={imageUrl}
+        onChange={setImageUrl}
+        label="Image (optional)"
+        placeholder="https://..."
+      />
 
       {/* Schedule controls */}
       <div className="flex flex-wrap items-end gap-3">

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MediaUpload from './MediaUpload';
 
 const IG_CHAR_LIMIT = 2200;
 const MIN_CHILDREN = 2;
@@ -199,10 +200,10 @@ export default function CarouselForm({ pages, selections, onPublishResult, loadP
             <span className="text-[10px] text-error font-mono">Minimum {MIN_CHILDREN} images required</span>
           )}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-3">
           {children.map((child, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <div className="flex flex-col gap-0.5">
+            <div key={i} className="flex items-start gap-2">
+              <div className="flex flex-col gap-0.5 pt-2">
                 <button
                   type="button"
                   onClick={() => moveChild(i, -1)}
@@ -222,26 +223,28 @@ export default function CarouselForm({ pages, selections, onPublishResult, loadP
                   ▼
                 </button>
               </div>
-              <span className="text-[10px] font-mono text-text-subtle w-4">{i + 1}.</span>
-              <input
-                type="url"
-                value={child.url}
-                onChange={(e) => updateChild(i, 'url', e.target.value)}
-                placeholder="Image URL"
-                className="flex-1 bg-bg-elevated border border-border rounded-lg px-3 py-1.5 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
-              />
-              <input
-                type="text"
-                value={child.alt}
-                onChange={(e) => updateChild(i, 'alt', e.target.value)}
-                placeholder="Alt text (optional)"
-                className="w-[160px] bg-bg-elevated border border-border rounded-lg px-3 py-1.5 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
-              />
+              <span className="text-[10px] font-mono text-text-subtle w-4 pt-2">{i + 1}.</span>
+              <div className="flex-1 space-y-1">
+                <MediaUpload
+                  accept="image/*"
+                  value={child.url}
+                  onChange={(url) => updateChild(i, 'url', url)}
+                  label={`Image ${i + 1}`}
+                  placeholder="Image URL"
+                />
+                <input
+                  type="text"
+                  value={child.alt}
+                  onChange={(e) => updateChild(i, 'alt', e.target.value)}
+                  placeholder="Alt text (optional)"
+                  className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-1.5 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
+                />
+              </div>
               <button
                 type="button"
                 onClick={() => removeChild(i)}
                 disabled={children.length <= MIN_CHILDREN}
-                className="text-[10px] font-mono text-error hover:text-error/80 disabled:text-text-subtle disabled:cursor-not-allowed cursor-pointer"
+                className="text-[10px] font-mono text-error hover:text-error/80 disabled:text-text-subtle disabled:cursor-not-allowed cursor-pointer pt-2"
               >
                 Remove
               </button>
