@@ -91,7 +91,7 @@ function SuggestionCard({ suggestion, onInsert }) {
   );
 }
 
-export default function SocialTab() {
+export default function ComposeSubTab() {
   // Pages state
   const [pages, setPages] = useState([]);
   const [pagesLoading, setPagesLoading] = useState(true);
@@ -302,11 +302,6 @@ export default function SocialTab() {
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <div>
-        <h2 className="text-lg font-display font-bold text-text-main mb-1">Social</h2>
-        <p className="text-xs text-text-subtle font-mono">Compose, schedule, and track posts across your connected accounts.</p>
-      </div>
-
       {/* Composer */}
       <div className="border border-border rounded-xl bg-bg-card p-5 space-y-4">
         <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-text-subtle mb-2">Composer</div>
