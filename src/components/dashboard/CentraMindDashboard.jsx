@@ -971,6 +971,8 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint }) {
                 </div>
             </div>
 
+            <IntegrationsPanel />
+
             <div className="glass rounded-xl p-6">
                 <h3 className="font-display font-semibold text-sm text-text-main mb-2">Retake the questionnaire</h3>
                 <p className="text-sm text-text-muted mb-4">
@@ -983,6 +985,213 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint }) {
                 >
                     Retake Blueprint
                 </button>
+            </div>
+        </div>
+    );
+}
+
+/* -- Integrations (Meta connect + test post) ------------- */
+
+function IntegrationsPanel() {
+    const [pages, setPages] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [toast, setToast] = useState('');
+
+    // Test post state
+    const [postMessage, setPostMessage] = useState('');
+    const [selectedPage, setSelectedPage] = useState('');
+    const [posting, setPosting] = useState(false);
+    const [postResult, setPostResult] = useState('');
+
+    // On mount, check for ?meta=connected callback and fetch pages.
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('meta') === 'connected') {
+            const count = params.get('pages') || '';
+            setToast(`Meta connected${count ? ` with ${count} page${count === '1' ? '' : 's'}` : ''}.`);
+            // Strip the callback params from the URL.
+            const clean = new URL(window.location.href);
+            clean.searchParams.delete('meta');
+            clean.searchParams.delete('pages');
+            window.history.replaceState({}, '', clean.toString());
+        }
+        fetchPages();
+    }, []);
+
+    // Auto-dismiss toast after 5 seconds
+    useEffect(() => {
+        if (!toast) return;
+        const t = setTimeout(() => setToast(''), 5000);
+        return () => clearTimeout(t);
+    }, [toast]);
+
+    async function fetchPages() {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await fetch('/api/meta/pages');
+            if (!res.ok) {
+                const body = await res.json().catch(() => ({}));
+                // 502 with upstream_401 or upstream_404 likely means not connected
+                if (res.status === 502 || res.status === 503) {
+                    setPages(null);
+                    return;
+                }
+                setError(body.detail || body.error || 'Failed to load pages');
+                return;
+            }
+            const data = await res.json();
+            const list = data?.pages ?? data?.data ?? (Array.isArray(data) ? data : null);
+            setPages(list);
+            if (list && list.length > 0 && !selectedPage) {
+                setSelectedPage(list[0].id || list[0].name || '');
+            }
+        } catch {
+            setPages(null);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function handleTestPost() {
+        if (!postMessage.trim() || !selectedPage) return;
+        setPosting(true);
+        setPostResult('');
+        try {
+            const res = await fetch('/api/meta/post', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ page_id: selectedPage, message: postMessage.trim() }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (res.ok) {
+                setPostResult('Post published successfully.');
+                setPostMessage('');
+            } else {
+                setPostResult(`Error: ${data.detail || data.error || 'Post failed'}`);
+            }
+        } catch (err) {
+            setPostResult(`Error: ${err.message}`);
+        } finally {
+            setPosting(false);
+        }
+    }
+
+    const connected = Array.isArray(pages) && pages.length > 0;
+
+    return (
+        <div className="glass rounded-xl p-6">
+            <div className="flex items-baseline justify-between mb-2">
+                <h3 className="font-display font-semibold text-sm text-text-main">Integrations</h3>
+            </div>
+
+            {toast && (
+                <div className="mb-4 px-3 py-2 rounded-lg border border-success/30 bg-success/5 text-success text-xs font-mono">
+                    {toast}
+                </div>
+            )}
+
+            {/* Meta card */}
+            <div className="border border-border rounded-lg p-4 bg-bg-card">
+                <div className="flex items-baseline justify-between mb-2">
+                    <h4 className="font-display font-semibold text-sm text-text-main">Meta</h4>
+                    <span className={`text-[10px] font-mono uppercase tracking-wider ${connected ? 'text-success' : 'text-text-subtle'}`}>
+                        {loading ? 'checking...' : connected ? 'connected' : 'not connected'}
+                    </span>
+                </div>
+
+                {!loading && !connected && (
+                    <>
+                        <p className="text-sm text-text-muted mb-4">
+                            Connect your Facebook and Instagram accounts to post directly from your workspace.
+                        </p>
+                        <button
+                            onClick={() => {
+                                const returnTo = encodeURIComponent(window.location.href);
+                                window.location.href = `/api/meta/oauth/start?return_to=${returnTo}`;
+                            }}
+                            className="px-5 py-2.5 rounded-lg bg-primary text-bg text-sm font-semibold hover:brightness-110 transition-all cursor-pointer"
+                        >
+                            Connect Meta
+                        </button>
+                    </>
+                )}
+
+                {!loading && connected && (
+                    <>
+                        <p className="text-sm text-text-muted mb-3">
+                            Connected to {pages.length} Facebook page{pages.length === 1 ? '' : 's'}.
+                            Your workspace AI can now help you draft posts.
+                        </p>
+                        <div className="space-y-1 mb-4">
+                            {pages.map((p, i) => (
+                                <div key={p.id || i} className="flex items-center gap-2 text-xs">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-success shrink-0" />
+                                    <span className="text-text-main">{p.name || p.id}</span>
+                                    {p.instagram_handle && (
+                                        <span className="text-text-subtle">@{p.instagram_handle}</span>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Test post */}
+                        <div className="border-t border-border pt-4 mt-4">
+                            <h5 className="text-xs font-mono uppercase tracking-wider text-text-subtle mb-3">Test post</h5>
+                            {pages.length > 1 && (
+                                <select
+                                    value={selectedPage}
+                                    onChange={(e) => setSelectedPage(e.target.value)}
+                                    className="mb-2 w-full px-3 py-2 rounded-lg bg-bg-elevated border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors"
+                                >
+                                    {pages.map((p, i) => (
+                                        <option key={p.id || i} value={p.id || p.name}>{p.name || p.id}</option>
+                                    ))}
+                                </select>
+                            )}
+                            <textarea
+                                value={postMessage}
+                                onChange={(e) => setPostMessage(e.target.value)}
+                                placeholder="Write a short test post..."
+                                rows={2}
+                                className="w-full px-3 py-2 rounded-lg bg-bg-elevated border border-border text-text-main text-sm focus:outline-none focus:border-primary/40 transition-colors resize-none mb-2"
+                            />
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleTestPost}
+                                    disabled={posting || !postMessage.trim()}
+                                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
+                                        posting || !postMessage.trim()
+                                            ? 'bg-bg-elevated text-text-subtle cursor-not-allowed'
+                                            : 'bg-primary text-bg hover:brightness-110'
+                                    }`}
+                                >
+                                    {posting ? 'Posting...' : 'Post'}
+                                </button>
+                                {postResult && (
+                                    <span className={`text-xs font-mono ${postResult.startsWith('Error') ? 'text-error' : 'text-success'}`}>
+                                        {postResult}
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="border-t border-border pt-4 mt-4">
+                            <button
+                                disabled
+                                className="px-4 py-2 rounded-lg text-xs font-mono uppercase tracking-wider bg-bg-elevated border border-border text-text-subtle cursor-not-allowed"
+                                title="Disconnect will be available in a future update"
+                            >
+                                Disconnect
+                            </button>
+                        </div>
+                    </>
+                )}
+
+                {error && (
+                    <p className="mt-3 text-xs text-error font-mono">{error}</p>
+                )}
             </div>
         </div>
     );
