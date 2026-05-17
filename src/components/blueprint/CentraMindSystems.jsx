@@ -4,11 +4,14 @@ import { PIPELINES, SKILLS, groupSkills } from '../../lib/centramind-catalog';
 export default function CentraMindSystems({
     pipelines,
     skills,
+    features,
     onChangePipelines,
     onChangeSkills,
+    onChangeFeatures,
     onNext,
     onBack,
 }) {
+    const metaSuiteOn = features?.meta_suite !== false;
     const skillGroups = groupSkills(SKILLS);
 
     return (
@@ -61,6 +64,27 @@ export default function CentraMindSystems({
                     onChange={onChangeSkills}
                 />
             ))}
+
+            <div className="glass rounded-xl p-6 mt-8 mb-2">
+                <h3 className="font-display font-semibold text-sm text-text-main mb-4">Feature Channels</h3>
+                <div className="flex items-center justify-between gap-4">
+                    <div>
+                        <p className="text-sm text-text-main">Meta Suite</p>
+                        <p className="text-xs text-text-muted mt-0.5">Manage Facebook + Instagram content and ad campaigns.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={() => onChangeFeatures?.({ ...features, meta_suite: !metaSuiteOn })}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                            metaSuiteOn ? 'bg-primary' : 'bg-bg-elevated border border-border'
+                        }`}
+                    >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                            metaSuiteOn ? 'translate-x-6' : 'translate-x-1'
+                        }`} />
+                    </button>
+                </div>
+            </div>
 
             <div className="flex justify-between mt-8">
                 <button
