@@ -73,6 +73,21 @@ export async function onRequest({ request, env, params }) {
     return proxyPost(request, upstreamUrl, apiKey);
   }
 
+  // Route: POST /api/meta/schedule
+  if (subPath === 'schedule' && method === 'POST') {
+    return proxyPost(request, upstreamUrl, apiKey);
+  }
+
+  // Route: GET /api/meta/posts
+  if (subPath === 'posts' && method === 'GET') {
+    return proxyGet(upstreamUrl, apiKey);
+  }
+
+  // Route: DELETE /api/meta/posts/{id}
+  if (subPath.startsWith('posts/') && method === 'DELETE') {
+    return proxyDelete(upstreamUrl, apiKey);
+  }
+
   // Route: GET /api/meta/ads/accounts
   if (subPath === 'ads/accounts' && method === 'GET') {
     return proxyGet(upstreamUrl, apiKey);
@@ -136,6 +151,26 @@ async function proxyPost(request, upstreamUrl, apiKey) {
 
   const data = await upstream.json().catch(() => null);
   return json(data, 200);
+}
+
+async function proxyDelete(upstreamUrl, apiKey) {
+  let upstream;
+  try {
+    upstream = await fetch(upstreamUrl, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    });
+  } catch (err) {
+    return json({ error: 'upstream_unreachable', detail: err.message }, 502);
+  }
+
+  if (!upstream.ok) {
+    const errText = await upstream.text().catch(() => '');
+    return json({ error: `upstream_${upstream.status}`, detail: errText.slice(0, 500) }, 502);
+  }
+
+  const data = await upstream.json().catch(() => null);
+  return json(data ?? { ok: true }, 200);
 }
 
 function json(data, status) {
