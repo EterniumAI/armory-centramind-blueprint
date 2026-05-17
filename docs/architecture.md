@@ -211,6 +211,41 @@ The Dashboard is the visualization of all four. Claude Code is the working partn
 
 ---
 
+## Meta integration (W5.B)
+
+### OAuth flow
+
+1. Customer clicks "Connect Meta" on the Settings > Integrations panel.
+2. The browser navigates to `/api/meta/oauth/start?return_to=<current_url>`.
+3. The Pages Function `functions/api/meta/[[path]].js` reads `ETERNIUM_API_KEY` from env and POSTs to `api.eternium.ai/v1/workspace/meta/oauth/start` with `{return_to}`.
+4. Upstream returns a 302 redirect to Facebook's OAuth dialog. The Pages Function forwards this redirect to the browser.
+5. The customer authorizes the Centramind Meta app on Facebook.
+6. Meta redirects the customer to `api.eternium.ai/v1/workspace/meta/oauth/callback`.
+7. The Eternium API stores the Meta access/refresh tokens in its `oauth_credentials` table (centrally managed).
+8. The Eternium API redirects the customer back to the `return_to` URL with `?meta=connected&pages=N` query params.
+9. The Integrations panel detects the callback params on mount, shows a success toast, and strips the params from the URL.
+
+### Pages Function proxy pattern (`/api/meta/*`)
+
+`functions/api/meta/[[path]].js` is a Cloudflare Pages catch-all function. It reads `ETERNIUM_API_KEY` from the deployment env (same pattern as `functions/api/chat.js`) and proxies all requests to `api.eternium.ai/v1/workspace/meta/*` with `Authorization: Bearer <key>` attached server-side. The browser never sees the API key or Meta tokens.
+
+Supported routes:
+- `GET /api/meta/oauth/start?return_to=...` - initiates OAuth
+- `GET /api/meta/pages` - lists connected Facebook pages
+- `POST /api/meta/post` - publishes a post to a selected page
+- `GET /api/meta/ads/accounts` - lists ad accounts
+- `GET /api/meta/ads/insights` - returns ad insights (query string forwarded)
+
+### Integrations tab location
+
+The Meta integration UI lives inside the Settings tab as an "Integrations" section (the `IntegrationsPanel` component in `CentraMindDashboard.jsx`). It renders a Meta card with two states: not-connected (shows a "Connect Meta" button) and connected (lists pages and provides a test-post form).
+
+### Meta credentials management
+
+Meta credentials (access tokens, refresh tokens) are managed centrally by the Eternium API. Customers never see the underlying Meta app credentials. The customer's deployment only stores `ETERNIUM_API_KEY`, which authenticates the proxy requests. All Meta tokens live in Eternium's central Supabase via the API proxy.
+
+---
+
 ## Versioning
 
 This template uses semver. Major versions may change the on-disk state shape; minor versions add features without breaking existing state; patch versions are bug fixes. Check `CHANGELOG.md` before upgrading. Hold onto your current commit hash if you have heavy local customizations -- you can always cherry-pick changes selectively.
