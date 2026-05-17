@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import MediaUpload from './MediaUpload';
 
 export default function StoryForm({ pages, selections, onPublishResult, loadPosts, resetSelections }) {
   const [mediaUrl, setMediaUrl] = useState('');
@@ -59,20 +60,14 @@ export default function StoryForm({ pages, selections, onPublishResult, loadPost
         </div>
       )}
 
-      {/* Media URL */}
-      <div>
-        <label className="block text-xs text-text-muted mb-2">Media URL (required)</label>
-        <input
-          type="url"
-          value={mediaUrl}
-          onChange={(e) => setMediaUrl(e.target.value)}
-          placeholder="https://..."
-          className="w-full bg-bg-elevated border border-border rounded-lg px-3 py-2 text-sm text-text-main placeholder-text-subtle focus:outline-none focus:border-primary/40 transition-colors"
-        />
-        {!hasMedia && mediaUrl.length > 0 && (
-          <p className="text-[10px] text-error mt-1">Media URL is required.</p>
-        )}
-      </div>
+      {/* Media */}
+      <MediaUpload
+        accept={mediaType === 'video' ? 'video/*' : 'image/*'}
+        value={mediaUrl}
+        onChange={setMediaUrl}
+        label="Media (required)"
+        placeholder="https://..."
+      />
 
       {/* Media type radio */}
       <div>
