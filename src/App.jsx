@@ -7,8 +7,11 @@ import EterniumAccount from './components/blueprint/EterniumAccount';
 import SystemArchitecture from './components/blueprint/SystemArchitecture';
 import BlueprintSummary from './components/blueprint/BlueprintSummary';
 import CentraMindDashboard from './components/dashboard/CentraMindDashboard';
+import MarketingLanding from './components/marketing/MarketingLanding';
 import { defaultSelections } from './lib/centramind-catalog';
 import { theme } from '../theme.config.js';
+
+const AUDIT_MODE = import.meta.env.VITE_AUDIT_MODE === '1';
 
 const BLUEPRINT_LS_KEY = 'centramind:blueprint';
 const EMAIL_LS_KEY     = 'centramind:email';
@@ -23,6 +26,11 @@ const STEPS = [
 ];
 
 export default function App() {
+  // ──── Audit mode: marketing landing ──────────────────────────────────────
+  if (AUDIT_MODE) {
+    return <MarketingLanding />;
+  }
+
   // ──── First-visit detection ────────────────────────────────────────────
   // Routing for first-visit experience:
   //   ?onboard=1 -- force the setup wizard even if blueprint exists in localStorage
