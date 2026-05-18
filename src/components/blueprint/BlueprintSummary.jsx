@@ -262,7 +262,7 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
         <p className="text-text-subtle text-xs mt-4">
           {building
             ? 'Claude is generating your owner profile, projects, roadmap, and first-day priorities. 10-20 seconds.'
-            : 'Your dashboard ships with your roadmap, memory, and a Claude Code bootstrap prompt.'}
+            : 'Your dashboard ships with your roadmap, memory, and a bootstrap prompt for your agent.'}
         </p>
         {buildError && !building && (
           <p className="text-text-subtle text-[11px] mt-2">{buildError}</p>

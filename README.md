@@ -37,10 +37,10 @@ See [`docs/setup-guide.md`](docs/setup-guide.md) for the full walkthrough includ
 
 | Feature | Status |
 |---|---|
-| 12-tab dashboard (Overview, Chat, Executives, Fleet, CRM, Skills, Processes, Priorities, Memory, Sessions, Claude Code, Settings) | Shipped |
+| 12-tab dashboard (Overview, Chat, Executives, Fleet, CRM, Skills, Processes, Priorities, Memory, Sessions, Connected Agents, Settings) | Shipped |
 | Chat tab powered by Eternium API (server-side proxy, SSE streaming) | Shipped |
 | 5-step onboarding questionnaire | Shipped |
-| Two Claude Code skills (`/standup`, `/handoff`) | Shipped |
+| Two Claude Code skills (`/standup`, `/handoff`) -- one of many BYO agent options under Connected Agents | Shipped |
 | File-based JSON state as source of truth | Shipped |
 | Optional Supabase + idempotent migrations | Shipped |
 | Per-buyer theme via `theme.config.js` | Shipped |
@@ -52,7 +52,7 @@ See [`docs/setup-guide.md`](docs/setup-guide.md) for the full walkthrough includ
 
 1. **Central Intelligence** -- `CLAUDE.md` + `OWNER.md` + `state/project.json` give the AI full business context.
 2. **Contextual Memory** -- `memory/MEMORY.md` + `state/session-log.json` persist knowledge across sessions.
-3. **Autonomous Agents** -- `.claude/skills/standup.md` + `handoff.md` execute specialized workflows.
+3. **Autonomous Agents** -- the default Centramind agent (powered by Eternium API) + optional BYO connectors like Claude Code, OpenClaw, Codex, etc.
 4. **Human Override** -- `TODO.md` + `HEARTBEAT.md` + the dashboard keep you in control.
 
 ---
