@@ -31,7 +31,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'Can I cancel after deployment?',
-    a: 'The $2,000 deployment fee is one-time and non-recurring. After deployment, you only pay for AI credits consumed. There is no subscription to cancel.',
+    a: 'The $2,500 Master Architecture Document deposit is one-time and applies toward your buildout. The $297/mo platform retainer can be cancelled any time, month-to-month. Usage credits are pay-as-you-go and never expire.',
   },
   {
     q: 'What AI models are supported?',
@@ -115,17 +115,49 @@ export default function MarketingLanding() {
 
       {/* Pricing */}
       <section className="border-y border-border bg-bg-surface/40 py-24">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="font-display text-2xl sm:text-3xl font-bold text-text-main mb-6">
+        <div className="max-w-4xl mx-auto px-6">
+          <h2 className="font-display text-2xl sm:text-3xl font-bold text-text-main mb-3 text-center">
             Pricing
           </h2>
-          <div className="bg-bg-card border border-border-accent rounded-xl p-10">
-            <p className="text-4xl font-bold text-primary mb-4">$2,000</p>
-            <p className="text-text-muted mb-2">One-time deployment fee</p>
-            <p className="text-sm text-text-subtle max-w-lg mx-auto leading-relaxed">
-              Includes 30 days of AI credits, full Meta integration, white-glove setup.
-              After: pay only for what you use. 1 credit = $0.005.
-            </p>
+          <p className="text-sm text-text-muted text-center mb-12 max-w-2xl mx-auto">
+            Transparent, three-line pricing. No surprise fees, no annual lock-in.
+          </p>
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="bg-bg-card border border-border rounded-xl p-8">
+              <p className="text-xs font-mono text-primary tracking-widest uppercase mb-3">
+                Step 1
+              </p>
+              <p className="text-3xl font-bold text-text-main mb-1">$2,500</p>
+              <p className="text-sm text-text-muted mb-4">Master Architecture Document</p>
+              <p className="text-xs text-text-subtle leading-relaxed">
+                One-time deposit. Includes your full technical blueprint, custom agent
+                configuration, integration spec, and a deployment roadmap built by Ty.
+              </p>
+            </div>
+            <div className="bg-bg-card border border-border-accent rounded-xl p-8">
+              <p className="text-xs font-mono text-primary tracking-widest uppercase mb-3">
+                Step 2
+              </p>
+              <p className="text-3xl font-bold text-text-main mb-1">
+                $297<span className="text-base font-normal text-text-muted">/mo</span>
+              </p>
+              <p className="text-sm text-text-muted mb-4">Platform retainer</p>
+              <p className="text-xs text-text-subtle leading-relaxed">
+                Your deployed workspace, infrastructure, agent orchestration, Meta API
+                maintenance, platform updates, and support. Cancel any time.
+              </p>
+            </div>
+            <div className="bg-bg-card border border-border rounded-xl p-8">
+              <p className="text-xs font-mono text-primary tracking-widest uppercase mb-3">
+                Step 3
+              </p>
+              <p className="text-3xl font-bold text-text-main mb-1">$0.005</p>
+              <p className="text-sm text-text-muted mb-4">Per AI credit (usage)</p>
+              <p className="text-xs text-text-subtle leading-relaxed">
+                Pay only for what you use. 5,000 credits ($25) included with your MAD
+                deposit. Credits never expire and apply across every agent action.
+              </p>
+            </div>
           </div>
         </div>
       </section>
