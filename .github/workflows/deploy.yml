@@ -47,10 +47,12 @@ jobs:
         run: |
           mkdir -p dist
           cat > dist/_redirects <<'EOF'
-          /audit                https://eternium.ai/centramind/audit  301
-          /audit/*              https://eternium.ai/centramind/audit  301
-          /                     https://eternium.ai/centramind        301
-          /*                    https://eternium.ai/centramind        301
+          /blueprint            https://eternium.ai/centramind/blueprint  301
+          /blueprint/*          https://eternium.ai/centramind/blueprint  301
+          /audit                https://eternium.ai/centramind/blueprint  301
+          /audit/*              https://eternium.ai/centramind/blueprint  301
+          /                     https://eternium.ai/centramind            301
+          /*                    https://eternium.ai/centramind            301
           EOF
           cat > dist/index.html <<'EOF'
           <!DOCTYPE html>
