@@ -5,8 +5,12 @@ const HISTORY_KEY = 'centramind:chat-history';
 const MAX_HISTORY = 50;
 const LS_AGENT_MODEL = 'centramind:agent:default_model';
 const LS_AGENT_MAX_TOKENS = 'centramind:agent:max_tokens';
+const LS_AGENT_NAME = 'centramind:agent:name';
+const LS_AGENT_SYSTEM_PROMPT = 'centramind:agent:system_prompt';
+const LS_AGENT_PROVIDER = 'centramind:agent:provider';
 const DEFAULT_MODEL = 'gpt-5.1-codex-mini';
 const DEFAULT_MAX_TOKENS = 1500;
+const DEFAULT_AGENT_NAME = 'Centramind';
 
 const SUGGESTED_PROMPTS = [
   'What should I focus on today?',
@@ -47,6 +51,11 @@ export default function ChatTab({ blueprint }) {
   const textareaRef = useRef(null);
   const abortRef = useRef(null);
 
+  // Read agent settings
+  const agentName = (() => { try { return localStorage.getItem(LS_AGENT_NAME) || DEFAULT_AGENT_NAME; } catch { return DEFAULT_AGENT_NAME; } })();
+  const agentProvider = (() => { try { return localStorage.getItem(LS_AGENT_PROVIDER) || 'centramind'; } catch { return 'centramind'; } })();
+  const isBYO = agentProvider !== 'centramind';
+
   // Persist messages on change
   useEffect(() => { saveHistory(messages); }, [messages]);
 
@@ -81,7 +90,9 @@ export default function ChatTab({ blueprint }) {
     setStreaming(true);
 
     // Build the system prompt from workspace context
-    const systemPrompt = buildSystemPrompt(blueprint);
+    const userSystemPrompt = (() => { try { return localStorage.getItem(LS_AGENT_SYSTEM_PROMPT) || ''; } catch { return ''; } })();
+    const baseSystemPrompt = buildSystemPrompt(blueprint);
+    const systemPrompt = userSystemPrompt ? (userSystemPrompt + '\n\n' + baseSystemPrompt) : baseSystemPrompt;
 
     // Build messages for the API: system + conversation history
     const apiMessages = [
@@ -191,10 +202,20 @@ export default function ChatTab({ blueprint }) {
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 260px)', minHeight: '400px' }}>
+      {/* BYO provider banner */}
+      {isBYO && (
+        <div className="mb-4 p-3 rounded-lg border border-primary/20 bg-primary/5">
+          <p className="text-xs text-text-muted">
+            Your agent is set to <span className="font-medium text-text-main">{agentProvider.replace('_', ' ')}</span>.
+            Use that tool to chat with it.
+          </p>
+        </div>
+      )}
+
       {/* Balance bar */}
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="flex items-center gap-3">
-          <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">Chat</span>
+          <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">{agentName}</span>
           {balance?.configured && typeof balance.balance_credits === 'number' && (
             <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
               isLowBalance

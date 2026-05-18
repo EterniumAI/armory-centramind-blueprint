@@ -1,0 +1,9 @@
+{
+  "agent": {
+    "name": "Centramind",
+    "system_prompt": "",
+    "provider": "centramind",
+    "default_model": "gpt-5.1-codex-mini",
+    "max_tokens": 1500
+  }
+}
