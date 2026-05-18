@@ -48,7 +48,7 @@ export default function CentraMindTeam({
 
             <ChecklistGroup
                 title="Operator Fleet"
-                subtitle="The field workers. Each operator is a scoped Claude Code session that owns one type of work."
+                subtitle="The field workers. Each operator is a scoped agent session that owns one type of work."
                 items={OPERATORS}
                 selected={operators}
                 onChange={onChangeOperators}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ChatTab from './ChatTab';
 import MetaSuiteTab from './MetaSuiteTab';
+import ConnectedAgentsTab from './ConnectedAgentsTab';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
     EXECUTIVES,
@@ -12,8 +13,6 @@ import {
 } from '../../lib/centramind-catalog';
 import {
     serializeBlueprint,
-    downloadBlueprint,
-    bootstrapPrompt,
     computeRoi,
     roadmapForTier,
     TIER_NAMES,
@@ -56,7 +55,7 @@ const TABS = [
     { id: 'priorities', label: 'Priorities' },
     { id: 'memory',     label: 'Memory' },
     { id: 'sessions',   label: 'Sessions' },
-    { id: 'claude',     label: 'Claude Code' },
+    { id: 'connected_agents', label: 'Connected Agents' },
     { id: 'settings',   label: 'Settings' },
 ];
 
@@ -68,7 +67,7 @@ const NAV_SECTIONS = [
     { label: 'Operations', tabs: ['priorities', 'processes', 'sessions'] },
     { label: 'People',     tabs: ['executives', 'fleet', 'crm'] },
     { label: 'Knowledge',  tabs: ['skills', 'memory'] },
-    { label: 'System',     tabs: ['claude', 'settings'] },
+    { label: 'System',     tabs: ['connected_agents', 'settings'] },
 ];
 
 const storageKey = (email) => `centramind:${email || 'anon'}`;
@@ -158,7 +157,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                             className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-border text-text-subtle"
                             title={workspace.source === 'disk'
                                 ? 'Reading live files from your repo root.'
-                                : 'Reading from your in-browser blueprint. Run the Claude Code bootstrap prompt in this folder to go live.'}
+                                : 'Reading from your in-browser blueprint. Run the bootstrap prompt in this folder to go live.'}
                         >
                             <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle pulse-dot ${workspace.source === 'disk' ? 'bg-success' : 'bg-warning'}`} />
                             {workspace.source === 'disk' ? 'Live' : 'Preview'}
@@ -240,7 +239,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                     {tab === 'priorities' && <PrioritiesTab workspace={workspace} />}
                     {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
                     {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
-                    {tab === 'claude'     && <ClaudeTab     blueprint={blueprint} email={email} />}
+                    {tab === 'connected_agents' && <ConnectedAgentsTab />}
                     {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} metaSuiteEnabled={metaSuiteEnabled} onToggleMetaSuite={setMetaSuiteEnabled} />}
                 </main>
             </div>
@@ -421,7 +420,7 @@ function OverviewTab({ workspace, onNavigate }) {
                 <Panel title={`Projects (${projects.length})`}>
                     {projects.length === 0 ? (
                         <EmptyNote>
-                            No projects yet. Run the bootstrap prompt in the Claude Code tab and
+                            No projects yet. Run the bootstrap prompt in the Connected Agents tab and
                             one project per selected process gets seeded into{' '}
                             <code className="text-primary text-xs">state/projects.json</code>.
                         </EmptyNote>
@@ -591,7 +590,7 @@ function PrioritiesTab({ workspace }) {
             )}
             {!hasAi && source === 'memory' && (
                 <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card">
-                    These priorities are seeded from your blueprint roadmap. Run the bootstrap prompt in the Claude Code tab to turn TODO.md into your real priority list.
+                    These priorities are seeded from your blueprint roadmap. Run the bootstrap prompt in the Connected Agents tab to turn TODO.md into your real priority list.
                 </div>
             )}
 
@@ -650,7 +649,7 @@ function MemoryTab({ workspace, scratchpad, onScratchpadChange }) {
                         ))}
                     </ul>
                     <p className="text-[10px] text-text-subtle mt-4 font-mono">
-                        Copy the ones worth keeping into <code className="text-primary">memory/MEMORY.md</code> via the <code className="text-primary">/handoff</code> Claude Code skill.
+                        Copy the ones worth keeping into <code className="text-primary">memory/MEMORY.md</code> via the <code className="text-primary">/handoff</code> skill.
                     </p>
                 </Panel>
             )}
@@ -735,132 +734,7 @@ function SessionsTab({ workspace }) {
     );
 }
 
-/* ── Claude Code ─────────────────────────────────────────── */
-
-function ClaudeTab({ blueprint, email }) {
-    const [copyState, setCopyState] = useState('idle');
-    const prompt = useMemo(() => bootstrapPrompt(blueprint, email), [blueprint, email]);
-    const textareaRef = useRef(null);
-    const timerRef = useRef(null);
-
-    const flash = (state) => {
-        setCopyState(state);
-        if (timerRef.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => setCopyState('idle'), 2500);
-    };
-
-    const copy = useCallback(async () => {
-        try {
-            if (navigator.clipboard?.writeText) {
-                await navigator.clipboard.writeText(prompt);
-                flash('copied');
-                return;
-            }
-        } catch {
-            // fall through to execCommand fallback
-        }
-        try {
-            const ta = textareaRef.current;
-            if (ta) {
-                ta.focus();
-                ta.select();
-                const ok = document.execCommand('copy');
-                flash(ok ? 'copied' : 'failed');
-                return;
-            }
-        } catch {
-            // ignore
-        }
-        flash('failed');
-    }, [prompt]);
-
-    const selectAll = () => {
-        const ta = textareaRef.current;
-        if (ta) { ta.focus(); ta.select(); }
-    };
-
-    return (
-        <div className="space-y-6">
-            <div className="glass rounded-xl p-6">
-                <h2 className="font-display font-bold text-lg text-text-main mb-2">
-                    Plug your blueprint into Claude Code
-                </h2>
-                <p className="text-sm text-text-muted mb-5 leading-relaxed">
-                    Run this in the root of your cloned blueprint repo. Claude reads your answers,
-                    writes your state files, and the dashboard above flips from Preview to Live on
-                    the next render.
-                </p>
-
-                <ol className="space-y-3 mb-6">
-                    <Step n={1}>
-                        Install Claude Code if you don't already have it.{' '}
-                        <a className="text-primary hover:underline" href="https://claude.com/claude-code" target="_blank" rel="noreferrer">
-                            claude.com/claude-code
-                        </a>
-                    </Step>
-                    <Step n={2}>
-                        Open your terminal in the folder where you cloned{' '}
-                        <code className="text-primary">armory-centramind-blueprint</code>. Run{' '}
-                        <code className="text-primary">claude</code>.
-                    </Step>
-                    <Step n={3}>Paste the prompt below. Hit enter. Let it run.</Step>
-                    <Step n={4}>Refresh this page. The Overview tab reads the files Claude just wrote.</Step>
-                </ol>
-
-                <div className="relative">
-                    <div className="absolute top-3 right-3 z-10 flex gap-2">
-                        <button
-                            onClick={selectAll}
-                            className="px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider rounded-md bg-bg-elevated border border-border hover:border-primary/30 text-text-main transition-colors cursor-pointer"
-                        >
-                            Select
-                        </button>
-                        <button
-                            onClick={copy}
-                            className={`px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider rounded-md transition-all cursor-pointer ${
-                                copyState === 'copied'
-                                    ? 'bg-success text-bg'
-                                    : copyState === 'failed'
-                                        ? 'bg-warning text-bg'
-                                        : 'bg-primary text-bg hover:brightness-110'
-                            }`}
-                        >
-                            {copyState === 'copied' ? 'Copied' : copyState === 'failed' ? 'Select + copy' : 'Copy Prompt'}
-                        </button>
-                    </div>
-                    <textarea
-                        ref={textareaRef}
-                        readOnly
-                        value={prompt}
-                        className="w-full bg-bg-elevated border border-border rounded-lg p-4 pr-40 text-xs text-text-main font-mono max-h-96 h-96 resize-y focus:outline-none focus:border-primary/50"
-                    />
-                    {copyState === 'failed' && (
-                        <p className="text-[11px] text-warning mt-2 font-mono">
-                            Clipboard access blocked. Use Select, then Ctrl+C / Cmd+C.
-                        </p>
-                    )}
-                </div>
-            </div>
-
-            <div className="glass rounded-xl p-6">
-                <h3 className="font-display font-semibold text-sm text-text-main mb-2">Prefer a file?</h3>
-                <p className="text-xs text-text-muted mb-4">
-                    Download your blueprint as JSON. You can hand it to Claude directly or keep it
-                    for your records.
-                </p>
-                <button
-                    onClick={() => downloadBlueprint(blueprint, email)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-bg-elevated border border-border hover:border-primary/30 text-sm text-text-main transition-colors cursor-pointer"
-                >
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                    </svg>
-                    Download blueprint.json
-                </button>
-            </div>
-        </div>
-    );
-}
+/* ── Connected Agents (rendered by ConnectedAgentsTab.jsx) ── */
 
 function Step({ n, children }) {
     return (
@@ -1477,7 +1351,7 @@ function CRMTab({ workspace }) {
         <div className="space-y-6">
             {source === 'memory' && !hasAiClients && (
                 <div className="text-[11px] text-text-subtle font-mono border border-border rounded-lg p-3 bg-bg-card">
-                    These pipelines are seeded from your blueprint. Once the bootstrap prompt writes state/crm.json, your Claude Code operators can add contacts, accounts, and deals and you will see them here.
+                    These pipelines are seeded from your blueprint. Once the bootstrap prompt writes state/crm.json, your agents can add contacts, accounts, and deals and you will see them here.
                 </div>
             )}
 

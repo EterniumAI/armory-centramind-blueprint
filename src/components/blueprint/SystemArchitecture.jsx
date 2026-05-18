@@ -3,7 +3,7 @@ const TIERS = [
     id: 'solo',
     name: 'Solo Operator',
     subtitle: 'One AI agent, one human',
-    desc: 'Perfect for solopreneurs and small teams. A single Claude Code instance acts as your operator, handling tasks you dispatch to it. You stay in the loop on every decision.',
+    desc: 'Perfect for solopreneurs and small teams. A single agent instance acts as your operator, handling tasks you dispatch to it. You stay in the loop on every decision.',
     agents: '1 Agent',
     bestFor: '1-5 processes',
     features: [
@@ -154,7 +154,7 @@ function ArchitectureDiagram({ tier }) {
       <div className="flex flex-col items-center gap-4 py-4">
         <Box label="You" sub="Dispatch tasks" color="text-text-main" border="border-text-subtle" />
         <Arrow />
-        <Box label="AI Operator" sub="Claude Code instance" color="text-primary" border="border-primary/40" />
+        <Box label="AI Operator" sub="Your agent instance" color="text-primary" border="border-primary/40" />
         <Arrow />
         <div className="flex flex-wrap justify-center gap-3">
           <SmallBox label="Memory" />

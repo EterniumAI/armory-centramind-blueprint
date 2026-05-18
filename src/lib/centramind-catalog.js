@@ -234,7 +234,7 @@ export const SKILLS = [
         id: 'skill-handoff',
         name: 'Session Handoff',
         category: 'Operations',
-        purpose: 'Captures state between Claude Code sessions.',
+        purpose: 'Captures state between agent sessions.',
         defaultOn: true,
     },
 ];
