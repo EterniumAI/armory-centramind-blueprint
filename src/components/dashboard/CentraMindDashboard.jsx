@@ -39,6 +39,10 @@ const firstEntry = (g) => Object.values(g)[0];
 
 const LS_ETERNIUM_KEY = 'centramind:eternium-api-key';
 const LS_FEATURE_META_SUITE = 'centramind:feature:meta_suite';
+const LS_AGENT_MODEL = 'centramind:agent:default_model';
+const LS_AGENT_MAX_TOKENS = 'centramind:agent:max_tokens';
+const DEFAULT_MODEL = 'gpt-5.1-codex-mini';
+const DEFAULT_MAX_TOKENS = 1500;
 
 const TABS = [
     { id: 'overview',   label: 'Overview' },
@@ -1016,6 +1020,8 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled,
                 </div>
             </div>
 
+            <AgentSettingsSection />
+
             <div className="glass rounded-xl p-6">
                 <h3 className="font-display font-semibold text-sm text-text-main mb-2">Retake the questionnaire</h3>
                 <p className="text-sm text-text-muted mb-4">
@@ -1029,6 +1035,135 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled,
                     Retake Blueprint
                 </button>
             </div>
+        </div>
+    );
+}
+
+/* -- Agent Settings -------------------------------------- */
+
+let _modelsCache = null;
+
+function AgentSettingsSection() {
+    const [models, setModels] = useState(() => _modelsCache || []);
+    const [loadingModels, setLoadingModels] = useState(() => !_modelsCache);
+    const [selectedModel, setSelectedModel] = useState(() => {
+        try { return localStorage.getItem(LS_AGENT_MODEL) || DEFAULT_MODEL; }
+        catch { return DEFAULT_MODEL; }
+    });
+    const [maxTokens, setMaxTokens] = useState(() => {
+        try {
+            const stored = localStorage.getItem(LS_AGENT_MAX_TOKENS);
+            return stored ? Number(stored) : DEFAULT_MAX_TOKENS;
+        } catch { return DEFAULT_MAX_TOKENS; }
+    });
+
+    useEffect(() => {
+        if (_modelsCache) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch('/api/workspace/models');
+                if (res.ok) {
+                    const data = await res.json();
+                    const list = Array.isArray(data) ? data : (data?.data || data?.models || []);
+                    if (!cancelled) {
+                        _modelsCache = list;
+                        setModels(list);
+                    }
+                }
+            } catch { /* non-fatal */ }
+            if (!cancelled) setLoadingModels(false);
+        })();
+        return () => { cancelled = true; };
+    }, []);
+
+    const handleModelChange = (e) => {
+        const val = e.target.value;
+        setSelectedModel(val);
+        try { localStorage.setItem(LS_AGENT_MODEL, val); } catch { /* ignore */ }
+    };
+
+    const handleMaxTokensChange = (e) => {
+        const raw = e.target.value.replace(/[^0-9]/g, '');
+        const val = raw ? Math.max(1, Math.min(Number(raw), 4096)) : '';
+        setMaxTokens(val);
+        if (val) {
+            try { localStorage.setItem(LS_AGENT_MAX_TOKENS, String(val)); } catch { /* ignore */ }
+        }
+    };
+
+    const handleMaxTokensBlur = () => {
+        if (!maxTokens || maxTokens < 1) {
+            setMaxTokens(DEFAULT_MAX_TOKENS);
+            try { localStorage.setItem(LS_AGENT_MAX_TOKENS, String(DEFAULT_MAX_TOKENS)); } catch { /* ignore */ }
+        }
+    };
+
+    return (
+        <div className="glass rounded-xl p-6">
+            <h3 className="font-display font-semibold text-sm text-text-main mb-4">Agent</h3>
+
+            {/* Default model dropdown */}
+            <div className="mb-5">
+                <label className="block text-sm text-text-main mb-1" htmlFor="agent-model">Default AI model</label>
+                <p className="text-xs text-text-muted mb-2">
+                    This model powers the Chat tab and any AI features in your workspace.
+                    Different models trade off speed, cost, and capability.
+                </p>
+                <select
+                    id="agent-model"
+                    value={selectedModel}
+                    onChange={handleModelChange}
+                    className="w-full px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors cursor-pointer"
+                >
+                    {loadingModels && <option value={selectedModel}>{selectedModel} (loading...)</option>}
+                    {!loadingModels && models.length === 0 && (
+                        <option value={DEFAULT_MODEL}>{DEFAULT_MODEL}</option>
+                    )}
+                    {models.map((m) => (
+                        <option key={m.id} value={m.id}>
+                            {m.id}{m.description ? ` - ${m.description}` : ''}{m.credit_cost ? ` (${m.credit_cost} credits)` : ''}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Max response tokens */}
+            <div className="mb-5">
+                <label className="block text-sm text-text-main mb-1" htmlFor="agent-max-tokens">Max response tokens</label>
+                <p className="text-xs text-text-muted mb-2">
+                    Higher values produce longer responses but cost more credits.
+                </p>
+                <input
+                    id="agent-max-tokens"
+                    type="text"
+                    inputMode="numeric"
+                    value={maxTokens}
+                    onChange={handleMaxTokensChange}
+                    onBlur={handleMaxTokensBlur}
+                    className="w-32 px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors"
+                />
+            </div>
+
+            {/* Tool use toggle (placeholder) */}
+            <div className="flex items-center justify-between gap-4 mb-4">
+                <div>
+                    <p className="text-sm text-text-main">Tool use</p>
+                    <p className="text-xs text-text-muted mt-0.5">Coming soon. The agent will be able to perform actions on your behalf.</p>
+                </div>
+                <button
+                    type="button"
+                    disabled
+                    className="relative inline-flex h-6 w-11 items-center rounded-full bg-bg-elevated border border-border opacity-50 cursor-not-allowed"
+                >
+                    <span className="inline-block h-4 w-4 rounded-full bg-white translate-x-1" />
+                </button>
+            </div>
+
+            {/* Credit hint */}
+            <p className="text-xs text-text-subtle">
+                Models are powered by the Eternium API. Your credits are debited per call.
+            </p>
         </div>
     );
 }

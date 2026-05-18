@@ -3,6 +3,10 @@ import { buildSystemPrompt, aiFirstChatMessage } from '../../lib/chat-context';
 
 const HISTORY_KEY = 'centramind:chat-history';
 const MAX_HISTORY = 50;
+const LS_AGENT_MODEL = 'centramind:agent:default_model';
+const LS_AGENT_MAX_TOKENS = 'centramind:agent:max_tokens';
+const DEFAULT_MODEL = 'gpt-5.1-codex-mini';
+const DEFAULT_MAX_TOKENS = 1500;
 
 const SUGGESTED_PROMPTS = [
   'What should I focus on today?',
@@ -92,7 +96,11 @@ export default function ChatTab({ blueprint }) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({
+          messages: apiMessages,
+          model: (() => { try { return localStorage.getItem(LS_AGENT_MODEL) || DEFAULT_MODEL; } catch { return DEFAULT_MODEL; } })(),
+          max_tokens: (() => { try { const v = localStorage.getItem(LS_AGENT_MAX_TOKENS); return v ? Number(v) : DEFAULT_MAX_TOKENS; } catch { return DEFAULT_MAX_TOKENS; } })(),
+        }),
         signal: controller.signal,
       });
 
