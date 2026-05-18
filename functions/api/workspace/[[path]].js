@@ -5,13 +5,18 @@
 const UPSTREAM_BASE = 'https://api.eternium.ai/v1/workspace';
 
 export async function onRequest({ request, env, params }) {
+  const subPath = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
+  const method = request.method;
+
+  // Route: GET /api/workspace/models (no auth required)
+  if (subPath === 'models' && method === 'GET') {
+    return handleModels();
+  }
+
   const apiKey = env.ETERNIUM_API_KEY;
   if (!apiKey) {
     return json({ error: 'Server is not configured. Set ETERNIUM_API_KEY in your Pages env.' }, 503);
   }
-
-  const subPath = Array.isArray(params.path) ? params.path.join('/') : (params.path || '');
-  const method = request.method;
 
   // Route: POST /api/workspace/ai/suggest
   if (subPath === 'ai/suggest' && method === 'POST') {
@@ -24,6 +29,29 @@ export async function onRequest({ request, env, params }) {
   }
 
   return json({ error: 'not_found', detail: `No handler for ${method} /api/workspace/${subPath}` }, 404);
+}
+
+async function handleModels() {
+  let upstream;
+  try {
+    upstream = await fetch('https://api.eternium.ai/v1/models');
+  } catch (err) {
+    return json({ error: 'upstream_unreachable', detail: err.message }, 502);
+  }
+
+  if (!upstream.ok) {
+    const errText = await upstream.text().catch(() => '');
+    return json({ error: `upstream_${upstream.status}`, detail: errText.slice(0, 500) }, 502);
+  }
+
+  const data = await upstream.json().catch(() => null);
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'private, max-age=3600',
+    },
+  });
 }
 
 async function handleAiSuggest(request, apiKey) {
