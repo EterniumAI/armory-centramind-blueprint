@@ -41,8 +41,21 @@ const LS_ETERNIUM_KEY = 'centramind:eternium-api-key';
 const LS_FEATURE_META_SUITE = 'centramind:feature:meta_suite';
 const LS_AGENT_MODEL = 'centramind:agent:default_model';
 const LS_AGENT_MAX_TOKENS = 'centramind:agent:max_tokens';
+const LS_AGENT_NAME = 'centramind:agent:name';
+const LS_AGENT_SYSTEM_PROMPT = 'centramind:agent:system_prompt';
+const LS_AGENT_PROVIDER = 'centramind:agent:provider';
 const DEFAULT_MODEL = 'gpt-5.1-codex-mini';
 const DEFAULT_MAX_TOKENS = 1500;
+const DEFAULT_AGENT_NAME = 'Centramind';
+
+const AGENT_PROVIDERS = [
+    { id: 'centramind', label: 'Centramind agent', description: 'Powered by Eternium API. Credit-billed per use.', enabled: true, isDefault: true },
+    { id: 'claude_code', label: 'Claude Code', description: 'Run a local Claude Code instance. See Connected Agents tab to set up.', enabled: true },
+    { id: 'openclaw', label: 'OpenClaw', description: 'Coming soon.', enabled: false },
+    { id: 'hermesclaw', label: 'HermesClaw', description: 'Coming soon.', enabled: false },
+    { id: 'codex', label: 'Codex', description: 'OpenAI Codex CLI. See Connected Agents tab to set up.', enabled: true },
+    { id: 'custom_mcp', label: 'Custom MCP', description: 'Coming soon.', enabled: false },
+];
 
 const TABS = [
     { id: 'overview',   label: 'Overview' },
@@ -98,6 +111,17 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
     });
 
     useEffect(() => { saveState(email, persisted); }, [email, persisted]);
+
+    // State migration: populate agent defaults if not already set
+    useEffect(() => {
+        try {
+            if (!localStorage.getItem(LS_AGENT_NAME)) localStorage.setItem(LS_AGENT_NAME, DEFAULT_AGENT_NAME);
+            if (!localStorage.getItem(LS_AGENT_SYSTEM_PROMPT)) localStorage.setItem(LS_AGENT_SYSTEM_PROMPT, '');
+            if (!localStorage.getItem(LS_AGENT_PROVIDER)) localStorage.setItem(LS_AGENT_PROVIDER, 'centramind');
+            if (!localStorage.getItem(LS_AGENT_MODEL)) localStorage.setItem(LS_AGENT_MODEL, DEFAULT_MODEL);
+            if (!localStorage.getItem(LS_AGENT_MAX_TOKENS)) localStorage.setItem(LS_AGENT_MAX_TOKENS, String(DEFAULT_MAX_TOKENS));
+        } catch { /* non-fatal */ }
+    }, []);
 
     // Merge AI-generated workspace from /api/build into the base workspace.
     // When present, dashboard surfaces prefer AI output (owner.context, projects,
@@ -1056,6 +1080,19 @@ function AgentSettingsSection() {
             return stored ? Number(stored) : DEFAULT_MAX_TOKENS;
         } catch { return DEFAULT_MAX_TOKENS; }
     });
+    const [agentName, setAgentName] = useState(() => {
+        try { return localStorage.getItem(LS_AGENT_NAME) || DEFAULT_AGENT_NAME; }
+        catch { return DEFAULT_AGENT_NAME; }
+    });
+    const [systemPrompt, setSystemPrompt] = useState(() => {
+        try { return localStorage.getItem(LS_AGENT_SYSTEM_PROMPT) || ''; }
+        catch { return ''; }
+    });
+    const [provider, setProvider] = useState(() => {
+        try { return localStorage.getItem(LS_AGENT_PROVIDER) || 'centramind'; }
+        catch { return 'centramind'; }
+    });
+    const [providerHelpOpen, setProviderHelpOpen] = useState(false);
 
     useEffect(() => {
         if (_modelsCache) return;
@@ -1076,6 +1113,23 @@ function AgentSettingsSection() {
         })();
         return () => { cancelled = true; };
     }, []);
+
+    const handleAgentNameChange = (e) => {
+        const val = e.target.value;
+        setAgentName(val);
+        try { localStorage.setItem(LS_AGENT_NAME, val); } catch { /* ignore */ }
+    };
+
+    const handleSystemPromptChange = (e) => {
+        const val = e.target.value;
+        setSystemPrompt(val);
+        try { localStorage.setItem(LS_AGENT_SYSTEM_PROMPT, val); } catch { /* ignore */ }
+    };
+
+    const handleProviderChange = (id) => {
+        setProvider(id);
+        try { localStorage.setItem(LS_AGENT_PROVIDER, id); } catch { /* ignore */ }
+    };
 
     const handleModelChange = (e) => {
         const val = e.target.value;
@@ -1099,51 +1153,145 @@ function AgentSettingsSection() {
         }
     };
 
+    const isCentramind = provider === 'centramind';
+    const SYSTEM_PROMPT_WARN = 2000;
+
     return (
         <div className="glass rounded-xl p-6">
             <h3 className="font-display font-semibold text-sm text-text-main mb-4">Agent</h3>
 
-            {/* Default model dropdown */}
+            {/* Agent name */}
             <div className="mb-5">
-                <label className="block text-sm text-text-main mb-1" htmlFor="agent-model">Default AI model</label>
+                <label className="block text-sm text-text-main mb-1" htmlFor="agent-name">Agent name</label>
                 <p className="text-xs text-text-muted mb-2">
-                    This model powers the Chat tab and any AI features in your workspace.
-                    Different models trade off speed, cost, and capability.
-                </p>
-                <select
-                    id="agent-model"
-                    value={selectedModel}
-                    onChange={handleModelChange}
-                    className="w-full px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors cursor-pointer"
-                >
-                    {loadingModels && <option value={selectedModel}>{selectedModel} (loading...)</option>}
-                    {!loadingModels && models.length === 0 && (
-                        <option value={DEFAULT_MODEL}>{DEFAULT_MODEL}</option>
-                    )}
-                    {models.map((m) => (
-                        <option key={m.id} value={m.id}>
-                            {m.id}{m.description ? ` - ${m.description}` : ''}{m.credit_cost ? ` (${m.credit_cost} credits)` : ''}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Max response tokens */}
-            <div className="mb-5">
-                <label className="block text-sm text-text-main mb-1" htmlFor="agent-max-tokens">Max response tokens</label>
-                <p className="text-xs text-text-muted mb-2">
-                    Higher values produce longer responses but cost more credits.
+                    Customize what you call this agent. Use any name you like.
                 </p>
                 <input
-                    id="agent-max-tokens"
+                    id="agent-name"
                     type="text"
-                    inputMode="numeric"
-                    value={maxTokens}
-                    onChange={handleMaxTokensChange}
-                    onBlur={handleMaxTokensBlur}
-                    className="w-32 px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors"
+                    value={agentName}
+                    onChange={handleAgentNameChange}
+                    placeholder={DEFAULT_AGENT_NAME}
+                    className="w-full max-w-xs px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors"
                 />
             </div>
+
+            {/* Agent system prompt */}
+            <div className="mb-5">
+                <label className="block text-sm text-text-main mb-1" htmlFor="agent-system-prompt">Agent personality (optional)</label>
+                <p className="text-xs text-text-muted mb-2">
+                    Define how your agent talks, what it knows about your business, what tone to use.
+                    Leave blank for default behavior.
+                </p>
+                <textarea
+                    id="agent-system-prompt"
+                    value={systemPrompt}
+                    onChange={handleSystemPromptChange}
+                    placeholder="e.g. You are a friendly assistant for my bakery business. Use a warm, casual tone."
+                    rows={4}
+                    className="w-full px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors resize-y"
+                />
+                <div className="flex items-center justify-between mt-1">
+                    <span className={`text-[10px] font-mono ${systemPrompt.length >= SYSTEM_PROMPT_WARN ? 'text-warning' : 'text-text-subtle'}`}>
+                        {systemPrompt.length.toLocaleString()} / ~{SYSTEM_PROMPT_WARN.toLocaleString()} chars
+                        {systemPrompt.length >= SYSTEM_PROMPT_WARN && ' (long prompts add token cost to every chat call)'}
+                    </span>
+                </div>
+            </div>
+
+            {/* Provider toggle */}
+            <div className="mb-5">
+                <label className="block text-sm text-text-main mb-1">Provider</label>
+                <p className="text-xs text-text-muted mb-3">
+                    Choose which agent powers your workspace. The default Centramind agent is credit-billed through the Eternium API.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                    {AGENT_PROVIDERS.map((p) => (
+                        <button
+                            key={p.id}
+                            type="button"
+                            disabled={!p.enabled}
+                            onClick={() => p.enabled && handleProviderChange(p.id)}
+                            className={`text-left px-4 py-3 rounded-lg border text-xs transition-all ${
+                                provider === p.id
+                                    ? 'border-primary/50 bg-primary/10 text-text-main'
+                                    : p.enabled
+                                        ? 'border-border bg-bg-card text-text-muted hover:border-primary/30 cursor-pointer'
+                                        : 'border-border bg-bg-card text-text-subtle opacity-50 cursor-not-allowed'
+                            }`}
+                        >
+                            <span className="font-medium block mb-0.5">{p.label}{p.isDefault ? ' (default)' : ''}</span>
+                            <span className="text-[10px] text-text-subtle">{p.description}</span>
+                        </button>
+                    ))}
+                </div>
+                <button
+                    type="button"
+                    onClick={() => setProviderHelpOpen(!providerHelpOpen)}
+                    className="text-[10px] font-mono text-primary mt-2 hover:underline cursor-pointer"
+                >
+                    {providerHelpOpen ? 'Hide details' : "What's this?"}
+                </button>
+                {providerHelpOpen && (
+                    <div className="mt-2 p-3 rounded-lg bg-bg-card border border-border text-xs text-text-muted space-y-1">
+                        <p><strong>Centramind agent:</strong> Uses the Eternium API. Each chat call deducts credits from your balance. No setup required.</p>
+                        <p><strong>Claude Code / Codex:</strong> Bring-your-own (BYO) agents. You run them locally or connect them via the Connected Agents tab. No credit cost, but you manage your own API keys and compute.</p>
+                        <p><strong>OpenClaw / HermesClaw / Custom MCP:</strong> Additional providers launching soon.</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Default model dropdown -- only for Centramind provider */}
+            {isCentramind ? (
+                <>
+                    <div className="mb-5">
+                        <label className="block text-sm text-text-main mb-1" htmlFor="agent-model">Default AI model</label>
+                        <p className="text-xs text-text-muted mb-2">
+                            This model powers the Chat tab and any AI features in your workspace.
+                            Different models trade off speed, cost, and capability.
+                        </p>
+                        <select
+                            id="agent-model"
+                            value={selectedModel}
+                            onChange={handleModelChange}
+                            className="w-full px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors cursor-pointer"
+                        >
+                            {loadingModels && <option value={selectedModel}>{selectedModel} (loading...)</option>}
+                            {!loadingModels && models.length === 0 && (
+                                <option value={DEFAULT_MODEL}>{DEFAULT_MODEL}</option>
+                            )}
+                            {models.map((m) => (
+                                <option key={m.id} value={m.id}>
+                                    {m.id}{m.description ? ` - ${m.description}` : ''}{m.credit_cost ? ` (${m.credit_cost} credits)` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    {/* Max response tokens */}
+                    <div className="mb-5">
+                        <label className="block text-sm text-text-main mb-1" htmlFor="agent-max-tokens">Max response tokens</label>
+                        <p className="text-xs text-text-muted mb-2">
+                            Higher values produce longer responses but cost more credits.
+                        </p>
+                        <input
+                            id="agent-max-tokens"
+                            type="text"
+                            inputMode="numeric"
+                            value={maxTokens}
+                            onChange={handleMaxTokensChange}
+                            onBlur={handleMaxTokensBlur}
+                            className="w-32 px-4 py-2.5 rounded-lg bg-bg-card border border-border text-text-main text-sm font-mono focus:outline-none focus:border-primary/40 transition-colors"
+                        />
+                    </div>
+                </>
+            ) : (
+                <div className="mb-5 p-3 rounded-lg bg-bg-card border border-border">
+                    <p className="text-xs text-text-muted">
+                        Your selected provider manages its own models.
+                    </p>
+                </div>
+            )}
 
             {/* Tool use toggle (placeholder) */}
             <div className="flex items-center justify-between gap-4 mb-4">
@@ -1162,7 +1310,9 @@ function AgentSettingsSection() {
 
             {/* Credit hint */}
             <p className="text-xs text-text-subtle">
-                Models are powered by the Eternium API. Your credits are debited per call.
+                {isCentramind
+                    ? 'Models are powered by the Eternium API. Your credits are debited per call.'
+                    : 'BYO providers use your own API keys and compute. No Eternium credits are consumed.'}
             </p>
         </div>
     );
