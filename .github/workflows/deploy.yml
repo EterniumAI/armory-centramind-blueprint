@@ -38,28 +38,36 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler pages deploy dist --project-name centramind-vc --branch main --commit-dirty=true
 
-  deploy-marketing:
-    name: Deploy marketing to centramind-marketing
+  deploy-marketing-redirect:
+    name: Deploy redirect to centramind-marketing
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
+      - name: Generate redirect dist
+        run: |
+          mkdir -p dist
+          cat > dist/_redirects <<'EOF'
+          /audit                https://eternium.ai/centramind/audit  301
+          /audit/*              https://eternium.ai/centramind/audit  301
+          /                     https://eternium.ai/centramind        301
+          /*                    https://eternium.ai/centramind        301
+          EOF
+          cat > dist/index.html <<'EOF'
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta http-equiv="refresh" content="0;url=https://eternium.ai/centramind">
+            <link rel="canonical" href="https://eternium.ai/centramind">
+            <title>Centramind has moved</title>
+          </head>
+          <body style="background:#000;color:#e5e5e5;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;">
+            <p>Centramind has moved to <a href="https://eternium.ai/centramind" style="color:#06b6d4;">eternium.ai/centramind</a>.</p>
+          </body>
+          </html>
+          EOF
 
-      - name: Setup Node
-        uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build (audit mode)
-        env:
-          VITE_AUDIT_MODE: '1'
-        run: npm run build
-
-      - name: Deploy to centramind-marketing (centramind.eternium.ai)
+      - name: Deploy redirect to centramind-marketing (centramind.eternium.ai)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
