@@ -16,6 +16,17 @@ const AUDIT_MODE = import.meta.env.VITE_AUDIT_MODE === '1';
 const BLUEPRINT_LS_KEY = 'centramind:blueprint';
 const EMAIL_LS_KEY     = 'centramind:email';
 
+// Build-time eager glob. If state/tenant.json was written by the W9.B
+// provision-tenant.yml pipeline (every paying customer's auto-deployed
+// workspace), this resolves to the file. When that file exists AND carries
+// a non-empty eternium_api_key, the workspace belongs to a customer who
+// already completed the public Blueprint at eternium.ai/centramind/blueprint
+// and paid for their MAD. We skip the in-workspace wizard entirely for them.
+// Self-deploy clones (no tenant.json, or empty key) still see the wizard.
+const tenantGlob = import.meta.glob('/state/tenant.json', { eager: true, import: 'default' });
+const tenantJson = Object.values(tenantGlob)[0] || null;
+const IS_AUTO_DEPLOY = Boolean(tenantJson?.eternium_api_key);
+
 const STEPS = [
   { id: 'processes',    label: 'Process Audit' },
   { id: 'team',         label: 'Team' },
@@ -39,6 +50,39 @@ export default function App() {
   const url = typeof window !== 'undefined' ? new URL(window.location.href) : null;
   const forceOnboard = url ? url.searchParams.get('onboard') === '1' : false;
   const forceSkip    = url ? (url.searchParams.get('skip') === '1' || url.searchParams.get('demo') === '1') : false;
+  // Auto-deployed customer workspaces skip the wizard entirely. The
+  // customer already walked through the public Blueprint at
+  // eternium.ai/centramind/blueprint, already paid for their MAD, and
+  // already had their workspace provisioned by the W9.B pipeline. Asking
+  // them to do another 6-step wizard inside their own deployed Centramind
+  // is illogical, so we drop them straight onto the dashboard.
+  //
+  // The wizard components stay in the codebase for the self-deploy path
+  // (clone the template, no tenant.json, fall through to the wizard).
+  // ?onboard=1 still forces the wizard if Ty needs to QA the flow inside
+  // an auto-deployed workspace.
+  //
+  // Seed localStorage with a minimal blueprint shape BEFORE we read it
+  // below, so the rest of App and the dashboard see a non-null blueprint
+  // on first mount.
+  if (IS_AUTO_DEPLOY && typeof window !== 'undefined' && !forceOnboard) {
+    try {
+      const raw = window.localStorage.getItem(BLUEPRINT_LS_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      if (!parsed || !parsed.processes) {
+        const seed = {
+          processes: [],
+          team: { executives: ['orchestrator'], operators: [] },
+          systems: {},
+          architectureTier: 'team',
+          completedAt: new Date().toISOString(),
+          source: 'auto-deploy',
+        };
+        window.localStorage.setItem(BLUEPRINT_LS_KEY, JSON.stringify(seed));
+      }
+    } catch { /* localStorage may be unavailable; non-fatal */ }
+  }
+
   const storedBlueprint = (() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -50,9 +94,11 @@ export default function App() {
     if (typeof window === 'undefined') return '';
     try { return window.localStorage.getItem(EMAIL_LS_KEY) || ''; } catch { return ''; }
   })();
-  // Landing is gone. First-visit users walk straight into the wizard.
+  // Landing is gone. First-visit users walk straight into the wizard,
+  // unless they are an auto-deployed customer (skip wizard, go to dashboard).
   // launched = blueprint has been generated and the dashboard is showing.
-  const launchedInitially = !forceOnboard && (forceSkip || (storedBlueprint && storedBlueprint.processes));
+  const launchedInitially =
+    !forceOnboard && (forceSkip || IS_AUTO_DEPLOY || (storedBlueprint && storedBlueprint.processes));
 
   const [launched, setLaunched] = useState(launchedInitially);
   const [email, setEmail] = useState(storedEmail);
@@ -71,7 +117,11 @@ export default function App() {
 
   // Blueprint state collected across steps
   const defaults = defaultSelections();
-  const [blueprint, setBlueprint] = useState(storedBlueprint || {
+  // Default blueprint shape used by the wizard. The dashboard reads many
+  // of these fields directly, so we merge any stored blueprint on top of
+  // the defaults rather than replacing wholesale, ensuring the auto-deploy
+  // seed (which carries a slim shape) does not cause null-derefs downstream.
+  const defaultBlueprint = {
     processes: [],
     tier: 'solo',
     roi: {
@@ -85,7 +135,10 @@ export default function App() {
     skills: defaults.skills,
     features: { meta_suite: true },
     eterniumApiKey: '',
-  });
+  };
+  const [blueprint, setBlueprint] = useState(
+    storedBlueprint ? { ...defaultBlueprint, ...storedBlueprint } : defaultBlueprint
+  );
 
   // Persist blueprint + email on every change so refreshes preserve state.
   useEffect(() => {
