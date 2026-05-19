@@ -7,11 +7,12 @@
   "scripts": {
     "predev": "node scripts/build-theme.cjs",
     "dev": "vite",
-    "prebuild": "node scripts/build-theme.cjs && npm run check:no-em-dashes",
+    "prebuild": "node scripts/build-theme.cjs && npm run check:no-em-dashes && npm run check:friendly-copy",
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
     "check:no-em-dashes": "node scripts/check-no-em-dashes.cjs",
+    "check:friendly-copy": "node scripts/lint-friendly-copy.cjs",
     "theme": "node scripts/build-theme.cjs"
   },
   "author": "Eternium LLC",
