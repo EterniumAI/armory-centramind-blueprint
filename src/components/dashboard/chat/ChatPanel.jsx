@@ -105,9 +105,10 @@ export default function ChatPanel({
 
     return (
         <div
-            className="fixed z-50 flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl
+            className="z-50 flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl
                         animate-[slideUp_0.2s_ease-out]"
             style={{
+                position: 'fixed',
                 bottom: 96,
                 right: 24,
                 width: panelSize.width,
@@ -195,6 +196,7 @@ export default function ChatPanel({
                 disabled={streaming}
                 suggestedPrompts={suggestedPrompts}
                 onSelectPrompt={handleSelectPrompt}
+                hideChips={messages.length === 0}
             />
         </div>
     );

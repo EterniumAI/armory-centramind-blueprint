@@ -108,15 +108,6 @@ const MOCK_AGENTS_LIST = [
         ],
         metadata: { color: '#8b5cf6' },
     },
-    {
-        id: 'hermes',
-        display_name: 'Hermes',
-        description: 'Research and analysis agent powered by Nous Research.',
-        tool_allowlist: [
-            { key: 'supabase_query', enabled: true },
-        ],
-        metadata: { color: '#ec4899' },
-    },
 ];
 
 let mockConversations = [

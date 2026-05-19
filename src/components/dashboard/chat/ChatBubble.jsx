@@ -41,17 +41,18 @@ export default function ChatBubble() {
 
     return (
         <>
-            {/* Floating bubble */}
+            {/* Floating bubble -- hidden when the panel is open */}
             <button
                 onClick={toggle}
-                className="fixed z-50 group cursor-pointer"
+                className={`fixed z-50 group cursor-pointer transition-all duration-200
+                            ${isOpen ? 'opacity-0 pointer-events-none scale-90' : 'opacity-100 scale-100'}`}
                 style={{ bottom: 24, right: 24 }}
                 title="Talk to your agents"
+                aria-hidden={isOpen}
             >
-                <div className={`relative w-14 h-14 rounded-full glass-panel flex items-center justify-center
+                <div className="relative w-14 h-14 rounded-full glass-panel flex items-center justify-center
                                  transition-all duration-200
-                                 group-hover:shadow-[0_0_24px_rgba(24,181,240,0.25)]
-                                 ${isOpen ? 'scale-95 opacity-70' : ''}`}>
+                                 group-hover:shadow-[0_0_24px_rgba(24,181,240,0.25)]">
                     {/* Gradient ring on hover */}
                     <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
                          style={{

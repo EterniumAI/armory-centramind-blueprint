@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 
-export default function ChatComposer({ agentName, onSend, disabled, suggestedPrompts, onSelectPrompt }) {
+export default function ChatComposer({ agentName, onSend, disabled, suggestedPrompts, onSelectPrompt, hideChips }) {
     const [text, setText] = useState('');
     const [chipsVisible, setChipsVisible] = useState(true);
     const textareaRef = useRef(null);
@@ -36,7 +36,7 @@ export default function ChatComposer({ agentName, onSend, disabled, suggestedPro
         if (onSelectPrompt) onSelectPrompt(prompt);
     };
 
-    const showChips = chipsVisible && suggestedPrompts && suggestedPrompts.length > 0 && !text;
+    const showChips = chipsVisible && suggestedPrompts && suggestedPrompts.length > 0 && !text && !hideChips;
 
     return (
         <div className="border-t border-white/[0.06] px-3 py-2.5">
