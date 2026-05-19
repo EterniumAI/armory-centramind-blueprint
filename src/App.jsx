@@ -8,6 +8,7 @@ import SystemArchitecture from './components/blueprint/SystemArchitecture';
 import BlueprintSummary from './components/blueprint/BlueprintSummary';
 import CentraMindDashboard from './components/dashboard/CentraMindDashboard';
 import MarketingLanding from './components/marketing/MarketingLanding';
+import FriendlyPrimitivesShowcase from './pages/internal/FriendlyPrimitivesShowcase';
 import { defaultSelections } from './lib/centramind-catalog';
 import { theme } from '../theme.config.js';
 
@@ -37,6 +38,11 @@ const STEPS = [
 ];
 
 export default function App() {
+  // ──── Internal showcase: friendly primitives preview ─────────────────────
+  if (typeof window !== 'undefined' && window.location.pathname === '/internal/friendly-showcase') {
+    return <FriendlyPrimitivesShowcase />;
+  }
+
   // ──── Audit mode: marketing landing ──────────────────────────────────────
   if (AUDIT_MODE) {
     return <MarketingLanding />;
