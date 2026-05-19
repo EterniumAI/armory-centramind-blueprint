@@ -21,7 +21,7 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       if (!res.ok || !data.ok) {
         // Soft fallback: launch with default template if AI build fails.
         // Better than blocking the user. Surface the error subtly.
-        console.warn('[CentraMind] AI build failed, launching with defaults:', data);
+        console.warn('[Centramind] AI build failed, launching with defaults:', data);
         setBuildError(data.error || 'AI build failed; launched with defaults.');
         onLaunch?.(null);
         return;
@@ -34,7 +34,7 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       }
       onLaunch?.(data.workspace);
     } catch (err) {
-      console.warn('[CentraMind] AI build network error:', err);
+      console.warn('[Centramind] AI build network error:', err);
       setBuildError(err.message || 'Network error; launched with defaults.');
       onLaunch?.(null);
     } finally {
@@ -75,17 +75,19 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
 
   return (
     <div>
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-success font-mono mb-4">
-          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-          </svg>
-          Blueprint Complete
+      {/* Hero */}
+      <div className="mb-10 text-center">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-brand/10 border border-cyan-brand/30 mb-5 fade-up">
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-brand pulse-dot" />
+          <span className="text-[10px] font-mono tracking-widest uppercase text-cyan-brand">
+            Blueprint Complete
+          </span>
         </div>
-        <h2 className="font-display font-bold text-xl sm:text-2xl text-text-main mb-2">
-          Your CentraMind Blueprint
+        <div className="cm-eyebrow mb-3">// STEP 06  /  YOUR BLUEPRINT</div>
+        <h2 className="font-display font-black text-3xl sm:text-4xl md:text-5xl text-text-main mb-3 tracking-tight">
+          Your Centramind Blueprint.
         </h2>
-        <p className="text-text-muted text-sm leading-relaxed max-w-2xl">
+        <p className="text-text-muted text-sm sm:text-base leading-relaxed max-w-2xl mx-auto">
           Here is your personalized plan for building an AI operating system.
           Save this page or bookmark it to reference during implementation.
         </p>
@@ -93,17 +95,17 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
 
       {/* Overview cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        <SummaryCard label="Processes" value={processes.length} />
-        <SummaryCard label="Architecture" value={TIER_NAMES[tier]} small />
-        <SummaryCard label="Hours Saved/wk" value={weeklyHoursSaved + 'h'} color="text-primary" />
-        <SummaryCard label="Annual Savings" value={'$' + annualSavings.toLocaleString()} color="text-success" />
+        <SummaryCard label="Processes" value={processes.length} tone="text-text-main" />
+        <SummaryCard label="Architecture" value={TIER_NAMES[tier]} small tone="text-text-main" />
+        <SummaryCard label="Hours saved / week" value={weeklyHoursSaved + 'h'} tone="text-cyan-brand" />
+        <SummaryCard label="Annual savings" value={'$' + annualSavings.toLocaleString()} tone="text-violet-brand" />
       </div>
 
       {/* ROI assumptions */}
-      <div className="glass rounded-xl p-6 mb-6">
-        <div className="flex items-baseline justify-between mb-3">
-          <h3 className="font-display font-semibold text-sm text-text-main">ROI assumptions</h3>
-          <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">tweak to recompute</span>
+      <div className="cm-card p-6 mb-6">
+        <div className="flex items-baseline justify-between mb-4">
+          <h3 className="font-display font-semibold text-base text-text-main tracking-tight">ROI assumptions</h3>
+          <span className="text-[10px] font-mono tracking-widest uppercase text-text-subtle">tweak to recompute</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <RoiInput
@@ -138,8 +140,10 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       </div>
 
       {/* Team + systems picks */}
-      <div className="glass rounded-xl p-6 mb-6">
-        <h3 className="font-display font-semibold text-sm text-text-main mb-4">Your CentraMind, at a glance</h3>
+      <div className="cm-card p-6 mb-6">
+        <h3 className="font-display font-semibold text-base text-text-main mb-4 tracking-tight">
+          Your Centramind, at a glance
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <PickList title="Executives" items={execList.map((e) => ({ id: e.id, name: e.name, meta: e.role }))} />
           <PickList title="Operators" items={operatorList.map((o) => ({ id: o.id, name: o.name }))} />
@@ -149,12 +153,14 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       </div>
 
       {/* Eternium key status */}
-      <div className="glass rounded-xl p-6 mb-6 flex items-start gap-4">
-        <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${hasEterniumKey ? 'bg-success' : 'bg-warning'}`} />
+      <div className="cm-card p-6 mb-6 flex items-start gap-4">
+        <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${hasEterniumKey ? 'bg-cyan-brand pulse-dot' : 'bg-warning'}`} />
         <div className="flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <h3 className="font-display font-semibold text-sm text-text-main">Eternium API key</h3>
-            <span className={`text-[10px] font-mono uppercase tracking-wider ${hasEterniumKey ? 'text-success' : 'text-warning'}`}>
+          <div className="flex items-baseline justify-between gap-2 flex-wrap">
+            <h3 className="font-display font-semibold text-base text-text-main tracking-tight">
+              Eternium API key
+            </h3>
+            <span className={`text-[10px] font-mono tracking-widest uppercase ${hasEterniumKey ? 'text-cyan-brand' : 'text-warning'}`}>
               {hasEterniumKey ? 'connected' : 'not connected'}
             </span>
           </div>
@@ -167,16 +173,21 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       </div>
 
       {/* Process breakdown by category */}
-      <div className="glass rounded-xl p-6 mb-6">
-        <h3 className="font-display font-semibold text-sm text-text-main mb-4">Process Coverage by Department</h3>
+      <div className="cm-card p-6 mb-6">
+        <h3 className="font-display font-semibold text-base text-text-main mb-4 tracking-tight">
+          Process coverage by department
+        </h3>
         <div className="space-y-3">
           {categoryBreakdown.map(([cat, count]) => (
             <div key={cat} className="flex items-center gap-3">
               <span className="text-xs text-text-muted w-28 flex-shrink-0">{cat}</span>
-              <div className="flex-1 h-2 bg-bg-elevated rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-white/[0.05] rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary rounded-full"
-                  style={{ width: `${(count / 5) * 100}%` }}
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${(count / 5) * 100}%`,
+                    background: 'linear-gradient(90deg, var(--color-cyan-brand), var(--color-violet-brand))',
+                  }}
                 />
               </div>
               <span className="text-xs text-text-main font-mono w-6 text-right">{count}</span>
@@ -186,28 +197,28 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       </div>
 
       {/* Implementation Roadmap */}
-      <div className="glass rounded-xl p-6 mb-6">
-        <h3 className="font-display font-semibold text-sm text-text-main mb-4">
-          90-Day Implementation Roadmap ({TIER_NAMES[tier]})
+      <div className="cm-card p-6 mb-6">
+        <h3 className="font-display font-semibold text-base text-text-main mb-4 tracking-tight">
+          90-day implementation roadmap ({TIER_NAMES[tier]})
         </h3>
         <div className="space-y-6">
           {roadmap.map((phase, i) => (
             <div key={i} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/30 flex items-center justify-center text-xs font-bold text-primary">
+                <div className="w-8 h-8 rounded-full bg-cyan-brand/10 border border-cyan-brand/40 flex items-center justify-center text-xs font-mono font-bold text-cyan-brand">
                   {i + 1}
                 </div>
-                {i < roadmap.length - 1 && <div className="w-px flex-1 bg-border mt-2" />}
+                {i < roadmap.length - 1 && <div className="w-px flex-1 bg-gradient-to-b from-cyan-brand/40 via-violet-brand/30 to-transparent mt-2" />}
               </div>
               <div className="flex-1 pb-2">
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-xs font-mono text-primary">{phase.phase}</span>
-                  <span className="font-display font-semibold text-sm text-text-main">{phase.title}</span>
+                <div className="flex items-baseline gap-2 mb-2 flex-wrap">
+                  <span className="text-[11px] font-mono tracking-wider uppercase text-cyan-brand">{phase.phase}</span>
+                  <span className="font-display font-semibold text-sm text-text-main tracking-tight">{phase.title}</span>
                 </div>
                 <ul className="space-y-1">
                   {phase.tasks.map((task) => (
                     <li key={task} className="flex items-start gap-2 text-xs text-text-muted">
-                      <span className="w-1 h-1 rounded-full bg-text-subtle mt-1.5 flex-shrink-0" />
+                      <span className="w-1 h-1 rounded-full bg-cyan-brand/60 mt-1.5 flex-shrink-0" />
                       {task}
                     </li>
                   ))}
@@ -219,69 +230,87 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
       </div>
 
       {/* CTA */}
-      <div className="glass rounded-xl p-8 text-center mb-8 glow-sm">
-        <h3 className="font-display font-bold text-lg text-text-main mb-2">
-          Your system is ready.
-        </h3>
-        <p className="text-text-muted text-sm mb-6 max-w-md mx-auto">
-          This was the plan. Now let's step into the actual CentraMind dashboard,
-          where your blueprint is wired in and you can start using it.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <button
-            onClick={handleLaunch}
-            disabled={building}
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait"
-          >
-            {building ? (
-              <>
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-                </svg>
-                Building your CentraMind...
-              </>
-            ) : (
-              <>
-                Launch My CentraMind
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-              </>
-            )}
-          </button>
-          <a
-            href={theme.links?.community || 'https://eternium.ai/community'}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-bg-elevated border border-border hover:border-primary/30 text-text-main text-sm transition-colors"
-          >
-            Join the Community
-          </a>
+      <div className="cm-card p-8 sm:p-10 text-center mb-8 relative overflow-hidden">
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(600px circle at 30% 0%, rgba(24,181,240,0.15), transparent 60%), radial-gradient(500px circle at 70% 100%, rgba(139,92,246,0.12), transparent 60%)',
+          }}
+        />
+        <div className="relative">
+          <img
+            src="/centramind-logos/centramind-logo-purple.png"
+            alt=""
+            className="w-12 h-12 mx-auto mb-4"
+            style={{ filter: 'drop-shadow(0 0 18px rgba(139,92,246,0.5))' }}
+          />
+          <h3 className="font-display font-black text-2xl sm:text-3xl text-text-main mb-3 tracking-tight">
+            Your system is ready.
+          </h3>
+          <p className="text-text-muted text-sm sm:text-base mb-6 max-w-md mx-auto leading-relaxed">
+            This was the plan. Now let's step into the actual Centramind dashboard,
+            where your blueprint is wired in and you can start using it.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={handleLaunch}
+              disabled={building}
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-cyan-brand text-black font-bold text-sm shadow-[0_0_28px_rgba(24,181,240,0.4)] hover:shadow-[0_0_38px_rgba(24,181,240,0.6)] transition-all cursor-pointer disabled:opacity-60 disabled:cursor-wait whitespace-nowrap"
+            >
+              {building ? (
+                <>
+                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                  </svg>
+                  Building your Centramind...
+                </>
+              ) : (
+                <>
+                  Launch my Centramind
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                </>
+              )}
+            </button>
+            <a
+              href={theme.links?.community || 'https://eternium.ai/community'}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-cyan-brand/30 bg-cyan-brand/5 text-cyan-brand text-sm font-medium hover:border-cyan-brand/50 hover:bg-cyan-brand/10 transition-colors whitespace-nowrap"
+            >
+              Join the community
+            </a>
+          </div>
+          <p className="text-text-subtle text-xs mt-4 max-w-sm mx-auto leading-relaxed">
+            {building
+              ? 'Claude is generating your owner profile, projects, roadmap, and first-day priorities. 10-20 seconds.'
+              : 'Your dashboard ships with your roadmap, memory, and a bootstrap prompt for your agent.'}
+          </p>
+          {buildError && !building && (
+            <p className="text-text-subtle text-[11px] mt-2">{buildError}</p>
+          )}
         </div>
-        <p className="text-text-subtle text-xs mt-4">
-          {building
-            ? 'Claude is generating your owner profile, projects, roadmap, and first-day priorities. 10-20 seconds.'
-            : 'Your dashboard ships with your roadmap, memory, and a bootstrap prompt for your agent.'}
-        </p>
-        {buildError && !building && (
-          <p className="text-text-subtle text-[11px] mt-2">{buildError}</p>
-        )}
       </div>
 
       {/* Navigation */}
-      <div className="flex justify-between">
+      <div className="flex justify-between gap-3">
         <button
           onClick={onBack}
-          className="px-5 py-3 rounded-lg text-sm text-text-muted hover:text-text-main border border-border hover:border-text-subtle transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase border border-white/10 bg-white/[0.03] text-text-muted hover:text-text-main hover:border-cyan-brand/30 transition-all cursor-pointer whitespace-nowrap"
         >
-          <span className="mr-2">&#8592;</span> Back to Architecture
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+          </svg>
+          Back to Architecture
         </button>
         <button
           onClick={onRestart}
-          className="px-5 py-3 rounded-lg text-sm text-text-muted hover:text-text-main border border-border hover:border-text-subtle transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-3 rounded-xl font-mono text-xs tracking-wider uppercase border border-white/10 bg-white/[0.03] text-text-muted hover:text-text-main hover:border-violet-brand/40 transition-all cursor-pointer whitespace-nowrap"
         >
-          Start Over
+          Start over
         </button>
       </div>
     </div>
@@ -291,8 +320,8 @@ export default function BlueprintSummary({ blueprint, onChangeRoi, onBack, onRes
 function PickList({ title, items }) {
   return (
     <div>
-      <div className="flex items-baseline justify-between mb-2">
-        <span className="text-xs font-mono uppercase tracking-wider text-text-subtle">{title}</span>
+      <div className="flex items-baseline justify-between mb-2.5">
+        <span className="text-[10px] font-mono tracking-widest uppercase text-cyan-brand">{title}</span>
         <span className="text-[10px] font-mono text-text-subtle">{items.length}</span>
       </div>
       {items.length === 0 ? (
@@ -313,8 +342,10 @@ function PickList({ title, items }) {
 
 function RoiInput({ label, sub, value, min, max, onChange }) {
   return (
-    <div className="bg-bg-elevated rounded-lg p-3">
-      <label className="block text-[10px] uppercase tracking-wider text-text-subtle mb-1">{label}</label>
+    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3 transition-colors hover:border-cyan-brand/30">
+      <label className="block text-[10px] font-mono tracking-widest uppercase text-text-subtle mb-1.5">
+        {label}
+      </label>
       <input
         type="number"
         min={min}
@@ -325,18 +356,20 @@ function RoiInput({ label, sub, value, min, max, onChange }) {
           const clamped = Math.max(min, Math.min(max, Number.isFinite(n) ? n : min));
           onChange(clamped);
         }}
-        className="w-full bg-bg border border-border rounded px-3 py-2 text-lg font-display font-bold text-text-main focus:outline-none focus:border-primary"
+        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-lg font-display font-bold text-text-main focus:outline-none focus:border-cyan-brand/50 focus:ring-2 focus:ring-cyan-brand/20 transition-all"
       />
-      <span className="text-[10px] text-text-subtle mt-1 block">{sub}</span>
+      <span className="text-[10px] text-text-subtle mt-1.5 block">{sub}</span>
     </div>
   );
 }
 
-function SummaryCard({ label, value, color, small }) {
+function SummaryCard({ label, value, tone, small }) {
   return (
-    <div className="glass rounded-xl p-4 text-center">
-      <div className={`${small ? 'text-sm' : 'text-xl'} font-display font-bold ${color || 'text-text-main'}`}>{value}</div>
-      <div className="text-[10px] text-text-subtle mt-1">{label}</div>
+    <div className="cm-card p-4 text-center">
+      <div className={`${small ? 'text-sm' : 'text-xl sm:text-2xl'} font-display font-black tracking-tight ${tone || 'text-text-main'}`}>
+        {value}
+      </div>
+      <div className="text-[10px] font-mono tracking-wider uppercase text-text-subtle mt-1.5">{label}</div>
     </div>
   );
 }

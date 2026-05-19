@@ -1,9 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
 /* Theme tokens come from theme.config.js at repo root. Edit that file, then
  * run `npm run theme` (or just `npm run dev`) to regenerate this import. */
 @import "./theme.generated.css";
+
+/* Centramind brand tokens.
+ * These are NOT tenant-themed. The in-workspace Blueprint wizard always
+ * renders in the canonical Centramind aesthetic (cyan + violet) regardless
+ * of how a tenant has skinned the dashboard via theme.config.js. */
+@theme {
+  --color-cyan-brand:        #18b5f0;
+  --color-cyan-bright:       #06b6d4;
+  --color-cyan-deep:         #0d52bc;
+  --color-violet-brand:      #8b5cf6;
+  --color-violet-deep:       #6d28d9;
+  --color-indigo-brand:      #6366f1;
+}
 
 body {
   font-family: var(--font-sans);
@@ -25,7 +38,12 @@ body {
   color: white;
 }
 
-/* Glass panel */
+/* ────────────────────────────────────────────────────────────────────
+ * Glass surfaces. The Centramind aesthetic stacks two tiers of glass:
+ *   .glass         lighter chrome for header / strips
+ *   .glass-card    heavier card surface used for step containers
+ * Both blur the radial backdrop behind them.
+ * ──────────────────────────────────────────────────────────────────── */
 .glass {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(16px);
@@ -33,9 +51,62 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-radius: 1rem;
+}
+
+/* Cyan-tinted top accent stripe on premium cards. */
+.cm-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.cm-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(24, 181, 240, 0.4) 20%, rgba(139, 92, 246, 0.4) 80%, transparent 100%);
+  pointer-events: none;
+}
+
+/* Ambient backdrop. A pair of radial gradients (cyan top-left, violet
+ * bottom-right) layered under the wizard. */
+.cm-ambient {
+  position: relative;
+  isolation: isolate;
+}
+.cm-ambient::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(900px circle at 12% 8%, rgba(24, 181, 240, 0.16), transparent 55%),
+    radial-gradient(800px circle at 90% 92%, rgba(139, 92, 246, 0.13), transparent 55%),
+    radial-gradient(600px circle at 50% 50%, rgba(13, 82, 188, 0.06), transparent 60%);
+  pointer-events: none;
+  z-index: -1;
+}
+
 /* Glow effects */
-.glow-sm { box-shadow: 0 0 20px rgba(24, 181, 240, 0.12); }
-.glow-md { box-shadow: 0 0 40px rgba(24, 181, 240, 0.18); }
+.glow-sm { box-shadow: 0 0 22px rgba(24, 181, 240, 0.30); }
+.glow-md { box-shadow: 0 0 44px rgba(24, 181, 240, 0.40); }
+.glow-violet { box-shadow: 0 0 22px rgba(139, 92, 246, 0.35); }
+
+/* Pill glow used on the active step indicator. */
+.glow-step-active {
+  box-shadow:
+    0 0 0 1px rgba(24, 181, 240, 0.6),
+    0 0 18px rgba(24, 181, 240, 0.35);
+}
 
 /* Fade in */
 @keyframes fadeUp {
@@ -43,6 +114,12 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 .fade-up { animation: fadeUp 0.5s ease-out forwards; }
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.fade-in { animation: fadeIn 0.6s ease-out forwards; }
 
 /* Stagger children */
 .stagger > *:nth-child(1) { animation-delay: 0ms; }
@@ -60,6 +137,22 @@ body {
   50% { opacity: 0.5; transform: scale(1.5); }
 }
 .pulse-dot { animation: pulseDot 2s ease-in-out infinite; }
+
+/* Animated progress bar fill (used by the step progress indicator). */
+.cm-progress-fill {
+  transition: width 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  background: linear-gradient(90deg, var(--color-cyan-brand), var(--color-violet-brand));
+}
+
+/* Eyebrow label utility. Mono, tracked, cyan. */
+.cm-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  color: rgba(24, 181, 240, 0.85);
+  text-transform: uppercase;
+}
 
 /* Number input arrows hidden */
 input[type="number"]::-webkit-inner-spin-button,

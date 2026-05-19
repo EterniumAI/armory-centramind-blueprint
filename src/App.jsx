@@ -193,17 +193,22 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="min-h-screen bg-bg cm-ambient relative">
       {/* Top bar */}
-      <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md sticky top-0 z-50">
+      <header className="border-b border-white/[0.06] bg-black/40 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary pulse-dot" />
-            <span className="font-display font-bold text-sm tracking-wide text-text-main">
-              CentraMind Blueprint
+          <div className="flex items-center gap-2.5">
+            <img
+              src="/centramind-logos/centramind-logo-purple.png"
+              alt=""
+              className="w-7 h-7"
+              style={{ filter: 'drop-shadow(0 0 12px rgba(139,92,246,0.4))' }}
+            />
+            <span className="font-display font-bold text-sm tracking-tight text-text-main">
+              Centramind Blueprint
             </span>
           </div>
-          <span className="text-xs text-text-subtle font-mono">
+          <span className="text-[10px] font-mono tracking-wider uppercase text-text-subtle whitespace-nowrap">
             Step {currentStep + 1} of {STEPS.length}
           </span>
         </div>
@@ -213,19 +218,19 @@ export default function App() {
       <StepNav steps={STEPS} current={currentStep} onNavigate={goToStep} />
 
       {/* Step content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="fade-up" key={currentStep}>
           {stepComponents[currentStep]}
         </div>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-        <a href={theme.links?.home || 'https://eternium.ai/centramind'} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-          {theme.brandName || 'CentraMind'}
+      <footer className="border-t border-white/[0.06] py-6 text-center text-xs text-text-subtle">
+        <a href={theme.links?.home || 'https://eternium.ai/centramind'} className="text-cyan-brand hover:underline" target="_blank" rel="noopener noreferrer">
+          {theme.brandName || 'Centramind'}
         </a>
         {' '}is powered by{' '}
-        <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+        <a href="https://eternium.ai" className="text-cyan-brand hover:underline" target="_blank" rel="noopener noreferrer">
           Eternium AI
         </a>.
       </footer>

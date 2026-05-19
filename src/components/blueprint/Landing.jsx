@@ -3,7 +3,7 @@ import { theme } from '../../../theme.config.js';
 
 const FEATURES = [
   {
-    title: 'Map Your Processes',
+    title: 'Map your processes',
     desc: 'Identify which business operations are ready for AI automation today.',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -12,7 +12,7 @@ const FEATURES = [
     ),
   },
   {
-    title: 'Match AI Tools',
+    title: 'Match AI tools',
     desc: 'See exactly which AI capabilities fit each process in your workflow.',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -21,7 +21,7 @@ const FEATURES = [
     ),
   },
   {
-    title: 'Design Your System',
+    title: 'Design your system',
     desc: 'Pick the right architecture tier and see how your agents will work together.',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -30,7 +30,7 @@ const FEATURES = [
     ),
   },
   {
-    title: 'Calculate Your ROI',
+    title: 'Calculate your ROI',
     desc: 'Get real numbers on time saved, cost reduction, and annual return.',
     icon: (
       <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -56,54 +56,70 @@ export default function Landing({ onStart }) {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col">
+    <div className="min-h-screen bg-bg cm-ambient flex flex-col">
       {/* Hero */}
       <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 py-16 sm:py-24">
+        {/* Logo */}
+        <img
+          src="/centramind-logos/centramind-logo-purple.png"
+          alt=""
+          className="w-16 h-16 mb-6 fade-up"
+          style={{ filter: 'drop-shadow(0 0 22px rgba(139,92,246,0.45))' }}
+        />
+
         {/* Badge */}
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full glass text-xs text-primary font-mono mb-8 fade-up">
-          <div className="w-1.5 h-1.5 rounded-full bg-primary pulse-dot" />
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-brand/10 border border-cyan-brand/30 text-[10px] font-mono tracking-widest uppercase text-cyan-brand mb-6 fade-up" style={{ animationDelay: '60ms' }}>
+          <span className="w-1.5 h-1.5 rounded-full bg-cyan-brand pulse-dot" />
           Free Interactive Blueprint
         </div>
 
         {/* Headline */}
-        <h1 className="font-display font-extrabold text-3xl sm:text-5xl lg:text-6xl text-center leading-tight max-w-3xl mb-6 fade-up" style={{ animationDelay: '80ms' }}>
-          Build Your Own{' '}
-          <span className="text-primary">AI Operating System</span>
+        <h1 className="font-display font-black text-4xl sm:text-5xl lg:text-6xl text-center leading-[1.05] tracking-tight max-w-3xl mb-6 fade-up" style={{ animationDelay: '120ms' }}>
+          Build your own{' '}
+          <span
+            className="bg-clip-text text-transparent"
+            style={{ backgroundImage: 'linear-gradient(90deg, #18b5f0, #8b5cf6)' }}
+          >
+            AI operating system
+          </span>
+          .
         </h1>
 
         {/* Subheading */}
-        <p className="text-text-muted text-center text-base sm:text-lg max-w-xl mb-10 fade-up" style={{ animationDelay: '160ms' }}>
+        <p className="text-text-muted text-center text-base sm:text-lg max-w-xl mb-10 leading-relaxed fade-up" style={{ animationDelay: '200ms' }}>
           The step-by-step blueprint for deploying autonomous AI agents
           that handle your business operations while you focus on growth.
         </p>
 
         {/* Email capture */}
-        <form onSubmit={handleSubmit} className="w-full max-w-md flex flex-col sm:flex-row gap-3 fade-up" style={{ animationDelay: '240ms' }}>
+        <form onSubmit={handleSubmit} className="w-full max-w-md flex flex-col sm:flex-row gap-3 fade-up" style={{ animationDelay: '280ms' }}>
           <input
             type="email"
             value={email}
             onChange={(e) => { setEmail(e.target.value); setError(''); }}
             placeholder="you@company.com"
-            className="flex-1 px-4 py-3 rounded-lg bg-bg-card border border-border text-text-main placeholder:text-text-subtle focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 text-sm"
+            className="flex-1 px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 text-text-main placeholder:text-text-subtle focus:outline-none focus:border-cyan-brand/50 focus:bg-white/[0.05] focus:ring-2 focus:ring-cyan-brand/20 text-sm backdrop-blur-md transition-all"
           />
           <button
             type="submit"
-            className="px-6 py-3 rounded-lg bg-primary text-bg font-semibold text-sm hover:brightness-110 transition-all cursor-pointer whitespace-nowrap"
+            className="px-6 py-3 rounded-xl bg-cyan-brand text-black font-bold text-sm shadow-[0_0_22px_rgba(24,181,240,0.35)] hover:shadow-[0_0_32px_rgba(24,181,240,0.55)] transition-all cursor-pointer whitespace-nowrap"
           >
-            Start Building
+            Start building
           </button>
         </form>
         {error && <p className="text-error text-xs mt-2">{error}</p>}
-        <p className="text-text-subtle text-xs mt-3 fade-up" style={{ animationDelay: '300ms' }}>
+        <p className="text-text-subtle text-xs mt-3 fade-up" style={{ animationDelay: '340ms' }}>
           No signup required to explore. Email saves your progress.
         </p>
 
         {/* Features grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-16 max-w-2xl w-full stagger">
           {FEATURES.map((f) => (
-            <div key={f.title} className="glass rounded-xl p-5 fade-up">
-              <div className="text-primary mb-3">{f.icon}</div>
-              <h3 className="font-display font-semibold text-sm text-text-main mb-1">{f.title}</h3>
+            <div key={f.title} className="cm-card p-5 fade-up">
+              <div className="text-cyan-brand mb-3">{f.icon}</div>
+              <h3 className="font-display font-semibold text-sm text-text-main mb-1 tracking-tight">
+                {f.title}
+              </h3>
               <p className="text-text-muted text-xs leading-relaxed">{f.desc}</p>
             </div>
           ))}
@@ -111,12 +127,12 @@ export default function Landing({ onStart }) {
       </div>
 
       {/* Footer */}
-      <footer className="border-t border-border py-6 text-center text-xs text-text-subtle">
-        <a href={theme.links?.home || 'https://eternium.ai/centramind'} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-          {theme.brandName || 'CentraMind'}
+      <footer className="border-t border-white/[0.06] py-6 text-center text-xs text-text-subtle">
+        <a href={theme.links?.home || 'https://eternium.ai/centramind'} className="text-cyan-brand hover:underline" target="_blank" rel="noopener noreferrer">
+          {theme.brandName || 'Centramind'}
         </a>
         {' '}is powered by{' '}
-        <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+        <a href="https://eternium.ai" className="text-cyan-brand hover:underline" target="_blank" rel="noopener noreferrer">
           Eternium AI
         </a>.
       </footer>
