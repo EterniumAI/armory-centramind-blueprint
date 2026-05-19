@@ -379,7 +379,7 @@ function OverviewTab({ workspace, onNavigate }) {
                     )}
                 </Panel>
 
-                <Panel title="Your CentraMind team">
+                <Panel title="Your Centramind team">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <div className="flex items-baseline justify-between mb-2">
