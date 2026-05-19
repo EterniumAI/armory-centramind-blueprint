@@ -51,10 +51,17 @@ const AGENT_PROVIDERS = [
     { id: 'centramind', label: 'Centramind agent', description: 'Powered by Eternium API. Credit-billed per use.', enabled: true, isDefault: true },
     { id: 'claude_code', label: 'Claude Code', description: 'Run a local Claude Code instance. See Connected Agents tab to set up.', enabled: true },
     { id: 'openclaw', label: 'OpenClaw', description: 'Coming soon.', enabled: false },
-    { id: 'hermesclaw', label: 'HermesClaw', description: 'Coming soon.', enabled: false },
+    { id: 'hermesclaw', label: 'HermesClaw', description: 'Nous Research Hermes 4 via Eternium API. Credit-billed per use.', enabled: true },
     { id: 'codex', label: 'Codex', description: 'OpenAI Codex CLI. See Connected Agents tab to set up.', enabled: true },
     { id: 'custom_mcp', label: 'Custom MCP', description: 'Coming soon.', enabled: false },
 ];
+
+// Providers that route through the Eternium API with a specific model. When
+// one of these is selected, the chat handler uses the mapped model regardless
+// of the user's default_model setting.
+const PROVIDER_MODEL_MAP = {
+    hermesclaw: 'hermes-4-405b',
+};
 
 const TABS = [
     { id: 'overview',   label: 'Overview' },
@@ -1028,6 +1035,8 @@ function AgentSettingsSection() {
     };
 
     const isCentramind = provider === 'centramind';
+    const isEterniumApiBacked = isCentramind || provider === 'hermesclaw';
+    const pinnedProviderModel = PROVIDER_MODEL_MAP[provider] || null;
     const SYSTEM_PROMPT_WARN = 2000;
 
     return (
@@ -1109,13 +1118,15 @@ function AgentSettingsSection() {
                 {providerHelpOpen && (
                     <div className="mt-2 p-3 rounded-lg bg-bg-card border border-border text-xs text-text-muted space-y-1">
                         <p><strong>Centramind agent:</strong> Uses the Eternium API. Each chat call deducts credits from your balance. No setup required.</p>
+                        <p><strong>HermesClaw:</strong> Nous Research Hermes 4 405B routed through the Eternium API. Open-source steerable model for builders who want a high-control alternative to closed models. Credit-billed per call.</p>
                         <p><strong>Claude Code / Codex:</strong> Bring-your-own (BYO) agents. You run them locally or connect them via the Connected Agents tab. No credit cost, but you manage your own API keys and compute.</p>
-                        <p><strong>OpenClaw / HermesClaw / Custom MCP:</strong> Additional providers launching soon.</p>
+                        <p><strong>OpenClaw / Custom MCP:</strong> Additional providers launching soon.</p>
                     </div>
                 )}
             </div>
 
-            {/* Default model dropdown -- only for Centramind provider */}
+            {/* Default model dropdown -- Centramind provider lets the user pick. */}
+            {/* HermesClaw is pinned to a specific model under the hood. BYO providers manage their own. */}
             {isCentramind ? (
                 <>
                     <div className="mb-5">
@@ -1159,6 +1170,12 @@ function AgentSettingsSection() {
                         />
                     </div>
                 </>
+            ) : pinnedProviderModel ? (
+                <div className="mb-5 p-3 rounded-lg bg-bg-card border border-border">
+                    <p className="text-xs text-text-muted">
+                        This provider is pinned to the <span className="font-mono text-text-main">{pinnedProviderModel}</span> model on the Eternium API.
+                    </p>
+                </div>
             ) : (
                 <div className="mb-5 p-3 rounded-lg bg-bg-card border border-border">
                     <p className="text-xs text-text-muted">
@@ -1184,7 +1201,7 @@ function AgentSettingsSection() {
 
             {/* Credit hint */}
             <p className="text-xs text-text-subtle">
-                {isCentramind
+                {isEterniumApiBacked
                     ? 'Models are powered by the Eternium API. Your credits are debited per call.'
                     : 'BYO providers use your own API keys and compute. No Eternium credits are consumed.'}
             </p>

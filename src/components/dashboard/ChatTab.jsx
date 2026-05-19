@@ -12,6 +12,14 @@ const DEFAULT_MODEL = 'gpt-5.1-codex-mini';
 const DEFAULT_MAX_TOKENS = 1500;
 const DEFAULT_AGENT_NAME = 'Centramind';
 
+// Providers that route through the Eternium API with a specific pinned model.
+// When one of these is selected, the chat call uses the mapped model regardless
+// of the user's default_model setting.
+const PROVIDER_MODEL_MAP = {
+  hermesclaw: 'hermes-4-405b',
+};
+const ETERNIUM_API_PROVIDERS = new Set(['centramind', 'hermesclaw']);
+
 const SUGGESTED_PROMPTS = [
   'What should I focus on today?',
   'Summarize my active projects',
@@ -54,7 +62,7 @@ export default function ChatTab({ blueprint }) {
   // Read agent settings
   const agentName = (() => { try { return localStorage.getItem(LS_AGENT_NAME) || DEFAULT_AGENT_NAME; } catch { return DEFAULT_AGENT_NAME; } })();
   const agentProvider = (() => { try { return localStorage.getItem(LS_AGENT_PROVIDER) || 'centramind'; } catch { return 'centramind'; } })();
-  const isBYO = agentProvider !== 'centramind';
+  const isBYO = !ETERNIUM_API_PROVIDERS.has(agentProvider);
 
   // Persist messages on change
   useEffect(() => { saveHistory(messages); }, [messages]);
@@ -109,7 +117,15 @@ export default function ChatTab({ blueprint }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: apiMessages,
-          model: (() => { try { return localStorage.getItem(LS_AGENT_MODEL) || DEFAULT_MODEL; } catch { return DEFAULT_MODEL; } })(),
+          // Provider-pinned model (e.g. HermesClaw -> hermes-4-405b) wins over
+          // the user's default model setting. Otherwise fall back to default.
+          model: (() => {
+            try {
+              const p = localStorage.getItem(LS_AGENT_PROVIDER) || 'centramind';
+              if (PROVIDER_MODEL_MAP[p]) return PROVIDER_MODEL_MAP[p];
+              return localStorage.getItem(LS_AGENT_MODEL) || DEFAULT_MODEL;
+            } catch { return DEFAULT_MODEL; }
+          })(),
           max_tokens: (() => { try { const v = localStorage.getItem(LS_AGENT_MAX_TOKENS); return v ? Number(v) : DEFAULT_MAX_TOKENS; } catch { return DEFAULT_MAX_TOKENS; } })(),
         }),
         signal: controller.signal,
