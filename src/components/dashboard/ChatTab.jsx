@@ -277,7 +277,7 @@ export default function ChatTab({ blueprint }) {
         {messages.length === 0 && !streaming && (
           <div className="flex flex-col items-center justify-center h-full gap-6 py-12">
             <div className="text-center">
-              <p className="text-sm text-text-muted mb-1">Ask your CentraMind anything.</p>
+              <p className="text-sm text-text-muted mb-1">Ask your Centramind anything.</p>
               <p className="text-xs text-text-subtle">
                 Your chat agent has context from OWNER.md, TODO.md, projects, sessions, and memory.
               </p>
