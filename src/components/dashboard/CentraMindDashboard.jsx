@@ -938,6 +938,8 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled,
 
             <AgentSettingsSection />
 
+            <AgentBudgetsSection />
+
             <div className="glass rounded-xl p-6">
                 <h3 className="font-display font-semibold text-sm text-text-main mb-2">Retake the questionnaire</h3>
                 <p className="text-sm text-text-muted mb-4">
@@ -1432,6 +1434,269 @@ function Row({ label, value, mono, last }) {
         <div className={`flex justify-between py-2 ${last ? '' : 'border-b border-border'}`}>
             <dt className="text-text-muted">{label}</dt>
             <dd className={`text-text-main ${mono ? 'font-mono text-xs' : ''}`}>{value}</dd>
+        </div>
+    );
+}
+
+/* -- Agent Credit Budgets (CMv2 W11.3) -------------------- */
+/*  Per-agent monthly ceilings. Lists every activated agent in this
+    workspace, shows current period spend vs ceiling, lets the customer
+    adjust ceiling + pause. Backed by /api/agent-budgets which proxies
+    to the Eternium workspace API. */
+
+const LS_CONNECTED_AGENTS_KEY = 'centramind:connected_agents';
+
+const AGENT_META = {
+    centramind: { name: 'Centramind', initials: 'CM', color: '#D4AF37' },
+    hermes:     { name: 'Hermes',     initials: 'HM', color: '#8B7EC8' },
+    claude_code:{ name: 'Claude Code', initials: 'CC', color: '#7FB069' },
+    codex:      { name: 'Codex',      initials: 'CX', color: '#4A90D9' },
+    openclaw:   { name: 'OpenClaw',   initials: 'OC', color: '#A0A0A0' },
+    custom_mcp: { name: 'Custom MCP', initials: 'MC', color: '#A0A0A0' },
+};
+
+function loadActivatedAgents() {
+    // Centramind is always activated. Other agents come from localStorage
+    // managed by ConnectedAgentsTab.
+    const ids = new Set(['centramind']);
+    try {
+        const raw = localStorage.getItem(LS_CONNECTED_AGENTS_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            for (const [id, cfg] of Object.entries(parsed || {})) {
+                if (cfg && cfg.enabled) ids.add(id);
+            }
+        }
+    } catch { /* ignore */ }
+    return Array.from(ids);
+}
+
+function formatResetDate(iso) {
+    if (!iso) return null;
+    try {
+        return new Date(iso).toLocaleDateString(undefined, {
+            month: 'long', day: 'numeric', year: 'numeric',
+        });
+    } catch { return null; }
+}
+
+function progressColor(pct) {
+    if (pct >= 90) return 'bg-error';
+    if (pct >= 70) return 'bg-warning';
+    return 'bg-primary';
+}
+
+function AgentBudgetsSection() {
+    const [budgets, setBudgets] = useState([]);
+    const [resetIso, setResetIso] = useState(null);
+    const [defaultCeiling, setDefaultCeiling] = useState(1000);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
+    const [savingAgent, setSavingAgent] = useState(null);
+    const [ceilingDrafts, setCeilingDrafts] = useState({});
+    const activatedIds = useMemo(() => loadActivatedAgents(), []);
+
+    const refresh = useCallback(async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const res = await fetch('/api/agent-budgets', { method: 'GET' });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setError(data?.error || `Failed to load budgets (${res.status}).`);
+                setBudgets([]);
+                setLoading(false);
+                return;
+            }
+            setBudgets(Array.isArray(data?.budgets) ? data.budgets : []);
+            setResetIso(data?.next_period_reset || null);
+            setDefaultCeiling(Number(data?.default_monthly_ceiling) || 1000);
+        } catch (err) {
+            setError(err?.message || 'Network error.');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { refresh(); }, [refresh]);
+
+    // Merge activated agents with returned budget rows. If an activated
+    // agent has no row yet, render a default placeholder the customer can
+    // edit. The PATCH call lazily inserts the row server-side.
+    const rows = useMemo(() => {
+        const byId = new Map();
+        for (const b of budgets) byId.set(b.agent_id, b);
+        return activatedIds.map((id) => {
+            const meta = AGENT_META[id] || { name: id, initials: id.slice(0, 2).toUpperCase(), color: '#A0A0A0' };
+            const row = byId.get(id) || {
+                agent_id: id,
+                monthly_ceiling_credits: defaultCeiling,
+                current_period_spent_credits: 0,
+                is_paused: false,
+                _placeholder: true,
+            };
+            return { ...row, _meta: meta };
+        });
+    }, [activatedIds, budgets, defaultCeiling]);
+
+    const patchBudget = useCallback(async (agentId, patch) => {
+        setSavingAgent(agentId);
+        setError('');
+        try {
+            const res = await fetch('/api/agent-budgets', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ agent_id: agentId, ...patch }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                setError(data?.error || `Failed to update ${agentId} (${res.status}).`);
+                return;
+            }
+            await refresh();
+        } catch (err) {
+            setError(err?.message || 'Network error.');
+        } finally {
+            setSavingAgent(null);
+        }
+    }, [refresh]);
+
+    const saveCeiling = (agentId) => {
+        const draft = ceilingDrafts[agentId];
+        const parsed = Number(draft);
+        if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+            setError('Monthly ceiling must be a non-negative whole number.');
+            return;
+        }
+        setCeilingDrafts((prev) => { const n = { ...prev }; delete n[agentId]; return n; });
+        patchBudget(agentId, { monthly_ceiling_credits: parsed });
+    };
+
+    const togglePause = (row) => {
+        patchBudget(row.agent_id, { is_paused: !row.is_paused });
+    };
+
+    const resetLabel = formatResetDate(resetIso);
+
+    return (
+        <div className="glass rounded-xl p-6">
+            <div className="flex items-baseline justify-between gap-3 mb-2 flex-wrap">
+                <h3 className="font-display font-semibold text-sm text-text-main">Credit Budgets</h3>
+                {resetLabel && (
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">
+                        Resets on {resetLabel}
+                    </span>
+                )}
+            </div>
+            <p className="text-sm text-text-muted mb-5 leading-relaxed">
+                Cap how many credits each connected agent can spend per calendar month. A runaway agent
+                cannot drain past its ceiling. Pause an agent to freeze its spend without dropping the ceiling.
+            </p>
+
+            {loading && (
+                <p className="text-xs font-mono text-text-subtle">Loading budgets...</p>
+            )}
+
+            {error && !loading && (
+                <p className="text-xs font-mono text-error mb-3">{error}</p>
+            )}
+
+            {!loading && rows.length === 0 && (
+                <p className="text-sm text-text-muted">No activated agents yet. Open the Connected Agents tab to add one.</p>
+            )}
+
+            {!loading && rows.length > 0 && (
+                <div className="space-y-3">
+                    {rows.map((row) => {
+                        const ceiling = Number(row.monthly_ceiling_credits) || 0;
+                        const spent = Number(row.current_period_spent_credits) || 0;
+                        const pct = ceiling > 0 ? Math.min(100, Math.round((spent / ceiling) * 100)) : 0;
+                        const draftVal = ceilingDrafts[row.agent_id];
+                        const ceilingValue = draftVal !== undefined ? draftVal : String(ceiling);
+                        const dirty = draftVal !== undefined && String(draftVal) !== String(ceiling);
+                        const saving = savingAgent === row.agent_id;
+                        return (
+                            <div
+                                key={row.agent_id}
+                                className="rounded-lg border border-border bg-bg-elevated/40 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4"
+                            >
+                                <div className="flex items-center gap-3 sm:w-40 shrink-0">
+                                    <span
+                                        className="inline-flex items-center justify-center w-9 h-9 rounded-lg font-mono font-bold text-xs text-bg shrink-0"
+                                        style={{ backgroundColor: row._meta.color }}
+                                    >
+                                        {row._meta.initials}
+                                    </span>
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-semibold text-text-main truncate">{row._meta.name}</p>
+                                        <p className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">
+                                            {row.is_paused ? 'paused' : 'active'}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-baseline justify-between gap-2 mb-1">
+                                        <p className="text-xs font-mono text-text-muted">
+                                            {spent.toLocaleString()} / {ceiling.toLocaleString()} credits used this month
+                                        </p>
+                                        <p className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">
+                                            {pct}%
+                                        </p>
+                                    </div>
+                                    <div className="h-2 rounded-full bg-bg-card overflow-hidden">
+                                        <div
+                                            className={`h-full ${progressColor(pct)} transition-all`}
+                                            style={{ width: `${pct}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 sm:shrink-0">
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            step="100"
+                                            inputMode="numeric"
+                                            value={ceilingValue}
+                                            onChange={(e) => setCeilingDrafts((prev) => ({ ...prev, [row.agent_id]: e.target.value }))}
+                                            className="w-24 px-2.5 py-1.5 rounded-md bg-bg-card border border-border text-text-main text-xs font-mono focus:outline-none focus:border-primary/40 transition-colors"
+                                            aria-label={`Monthly credit ceiling for ${row._meta.name}`}
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => saveCeiling(row.agent_id)}
+                                            disabled={!dirty || saving}
+                                            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                                                dirty && !saving
+                                                    ? 'bg-primary text-bg hover:brightness-110'
+                                                    : 'bg-bg-card text-text-subtle cursor-not-allowed'
+                                            }`}
+                                        >
+                                            {saving ? 'Saving' : 'Save'}
+                                        </button>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => togglePause(row)}
+                                        disabled={saving}
+                                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                                            row.is_paused ? 'bg-warning' : 'bg-bg-elevated border border-border'
+                                        }`}
+                                        aria-label={`${row.is_paused ? 'Resume' : 'Pause'} ${row._meta.name}`}
+                                        title={row.is_paused ? 'Resume agent' : 'Pause agent'}
+                                    >
+                                        <span className={`inline-block h-4 w-4 rounded-full bg-white transition-transform ${
+                                            row.is_paused ? 'translate-x-6' : 'translate-x-1'
+                                        }`} />
+                                    </button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
         </div>
     );
 }
