@@ -129,6 +129,17 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
         } catch { /* non-fatal */ }
     }, []);
 
+    // Listen for in-app navigation requests (e.g. the Connected Agents tab's
+    // Configure button on the foundation card deep-links to Settings).
+    useEffect(() => {
+        const handler = (e) => {
+            const target = e?.detail?.tab;
+            if (typeof target === 'string') setTab(target);
+        };
+        window.addEventListener('centramind:navigate', handler);
+        return () => window.removeEventListener('centramind:navigate', handler);
+    }, []);
+
     // Merge AI-generated workspace from /api/build into the base workspace.
     // When present, dashboard surfaces prefer AI output (owner.context, projects,
     // memory_facts, todo_items, first_chat_message) over template defaults.
