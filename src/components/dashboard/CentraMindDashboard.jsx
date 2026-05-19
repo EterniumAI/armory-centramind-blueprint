@@ -63,6 +63,57 @@ const PROVIDER_MODEL_MAP = {
     hermesclaw: 'hermes-4-405b',
 };
 
+// Inline icon set. Lucide-style 1.5px stroke icons, kept inline so the
+// Blueprint avoids pulling in lucide-react as a new dependency. One icon
+// per tab id, used by the canonical Command Center sidebar pattern.
+function NavIcon({ id, className = 'w-[18px] h-[18px] shrink-0', strokeWidth = 1.5 }) {
+    const common = {
+        className,
+        viewBox: '0 0 24 24',
+        fill: 'none',
+        stroke: 'currentColor',
+        strokeWidth,
+        strokeLinecap: 'round',
+        strokeLinejoin: 'round',
+    };
+    switch (id) {
+        case 'overview':
+            return (<svg {...common}><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>);
+        case 'chat':
+            return (<svg {...common}><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>);
+        case 'meta_suite':
+            return (<svg {...common}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12" rx="1"/><circle cx="4" cy="4" r="2"/></svg>);
+        case 'executives':
+            return (<svg {...common}><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>);
+        case 'fleet':
+            return (<svg {...common}><circle cx="12" cy="12" r="2"/><path d="M16.24 7.76A6 6 0 0 1 12 18a6 6 0 0 1-4.24-10.24"/><path d="M19.07 4.93A10 10 0 0 1 12 22a10 10 0 0 1-7.07-17.07"/></svg>);
+        case 'crm':
+            return (<svg {...common}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>);
+        case 'skills':
+            return (<svg {...common}><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>);
+        case 'processes':
+            return (<svg {...common}><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>);
+        case 'priorities':
+            return (<svg {...common}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>);
+        case 'memory':
+            return (<svg {...common}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>);
+        case 'sessions':
+            return (<svg {...common}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
+        case 'connected_agents':
+            return (<svg {...common}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>);
+        case 'settings':
+            return (<svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>);
+        case 'menu':
+            return (<svg {...common}><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>);
+        case 'panel-close':
+            return (<svg {...common}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="16 15 13 12 16 9"/></svg>);
+        case 'panel-open':
+            return (<svg {...common}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><polyline points="14 9 17 12 14 15"/></svg>);
+        default:
+            return (<svg {...common}><circle cx="12" cy="12" r="9"/></svg>);
+    }
+}
+
 const TABS = [
     { id: 'overview',   label: 'Overview' },
     { id: 'chat',       label: 'Chat' },
@@ -80,14 +131,15 @@ const TABS = [
 ];
 
 // Sidebar groupings -- shapes the CRM-style nav. Each group renders a
-// small uppercase label, then the tab buttons.
+// small uppercase label, then the tab buttons. Mirrors the Command
+// Center pattern (OVERVIEW / BUSINESS / TECHNOLOGY / SYSTEM groupings).
 const NAV_SECTIONS = [
-    { label: 'Workspace',  tabs: ['overview', 'chat'] },
-    { label: 'Channels',   tabs: ['meta_suite'] },
-    { label: 'Operations', tabs: ['priorities', 'processes', 'sessions'] },
-    { label: 'People',     tabs: ['executives', 'fleet', 'crm'] },
-    { label: 'Knowledge',  tabs: ['skills', 'memory'] },
-    { label: 'System',     tabs: ['connected_agents', 'settings'] },
+    { label: 'WORKSPACE',     tabs: ['overview', 'chat'] },
+    { label: 'MARKETING',     tabs: ['meta_suite'] },
+    { label: 'OPERATIONS',    tabs: ['priorities', 'processes', 'sessions'] },
+    { label: 'PEOPLE',        tabs: ['executives', 'fleet', 'crm'] },
+    { label: 'KNOWLEDGE',     tabs: ['skills', 'memory'] },
+    { label: 'SYSTEM',        tabs: ['connected_agents', 'settings'] },
 ];
 
 const storageKey = (email) => `centramind:${email || 'anon'}`;
@@ -107,6 +159,11 @@ function saveState(email, state) {
 
 export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onRetakeBlueprint, onUpdateBlueprint }) {
     const [tab, setTab] = useState('overview');
+    // Shell state for the Command Center canonical layout. `sidebarOpen`
+    // drives the mobile drawer; `collapsed` toggles the desktop rail
+    // between 56px (icon-only) and 220px (icon + label).
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [collapsed, setCollapsed] = useState(false);
     const [persisted, setPersisted] = useState(() => loadState(email));
     const [metaSuiteEnabled, setMetaSuiteEnabled] = useState(() => {
         try {
@@ -171,32 +228,190 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
     }, [metaSuiteEnabled]);
     const tabsById = Object.fromEntries(visibleTabs.map((t) => [t.id, t]));
 
+    const activeTab = tabsById[tab];
+    const activeLabel = activeTab?.label || 'Workspace';
+
+    const renderNavItem = (t) => {
+        const active = tab === t.id;
+        return (
+            <button
+                key={t.id}
+                onClick={() => { setTab(t.id); setSidebarOpen(false); }}
+                className={`nav-glass-item ${active ? 'nav-glass-item--active' : ''} text-[13px] tracking-wide whitespace-nowrap overflow-hidden w-full ${
+                    active ? 'font-medium' : 'font-normal'
+                } ${
+                    collapsed
+                        ? 'justify-center w-10 h-10 mx-auto px-0 gap-0'
+                        : 'gap-3 py-2.5 px-4'
+                }`}
+                title={t.label}
+                type="button"
+            >
+                <NavIcon id={t.id} strokeWidth={active ? 2 : 1.5} />
+                <span className={`transition-opacity duration-300 ${collapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>
+                    {t.label}
+                </span>
+            </button>
+        );
+    };
+
+    const renderNavGroup = (section, idx) => (
+        <div key={section.label} className={idx > 0 ? 'mt-4' : ''}>
+            {!collapsed && (
+                <div className="text-[9px] font-mono uppercase tracking-widest text-text-subtle px-4 mb-1">
+                    {section.label}
+                </div>
+            )}
+            <div className="space-y-1.5">
+                {section.tabs.map((tabId) => {
+                    const t = tabsById[tabId];
+                    if (!t) return null;
+                    return renderNavItem(t);
+                })}
+            </div>
+        </div>
+    );
+
+    const dateStr = new Date().toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+    });
+
     return (
-        <div className="min-h-screen bg-bg flex flex-col">
-            {/* Compact top bar */}
-            <header className="border-b border-border bg-bg-surface/80 backdrop-blur-md sticky top-0 z-50">
-                <div className="px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <span className="font-display font-extrabold text-base tracking-[0.05em] text-primary truncate">
-                            {brandName}
-                        </span>
+        <div className="h-screen overflow-hidden bg-command-depth text-text-main flex">
+            {/* Sidebar -- mirrors the Command Center CommandLayout pattern.
+                Desktop: sticky rail, collapses 220px -> 56px. Mobile: drawer. */}
+            <aside
+                className={`
+                    fixed inset-y-0 left-0 z-50 bg-black/80 backdrop-blur-xl border-r border-white/[0.06]
+                    transform transition-all duration-200 ease-out
+                    md:translate-x-0 md:sticky md:top-0 md:h-screen md:self-start md:flex-shrink-0
+                    ${collapsed ? 'w-[56px]' : 'w-[220px]'}
+                    ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+                `}
+            >
+                <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-b from-white/[0.02] to-transparent">
+                    {/* Brand mark */}
+                    <div className={`border-b border-white/5 shrink-0 ${collapsed ? 'p-2 flex justify-center' : 'p-4'}`}>
+                        {collapsed ? (
+                            <img
+                                src="/centramind-logos/centramind-logo-white.png"
+                                alt={brandName}
+                                className="h-7 w-7 object-contain"
+                            />
+                        ) : (
+                            <div className="flex items-center gap-2.5">
+                                <img
+                                    src="/centramind-logos/centramind-logo-white.png"
+                                    alt=""
+                                    className="h-7 w-7 object-contain"
+                                />
+                                <div className="flex flex-col leading-none min-w-0">
+                                    <span className="text-sm font-display font-bold text-text-main tracking-wide truncate">
+                                        {brandName}
+                                    </span>
+                                    <div className="flex items-center gap-1 mt-0.5">
+                                        <span className="text-[8px] font-mono text-text-subtle uppercase tracking-wider">
+                                            by Eternium AI
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Nav */}
+                    <nav className={`flex-1 min-h-0 overflow-y-auto overflow-x-hidden scrollbar-thin ${collapsed ? 'p-2' : 'p-3'}`}>
+                        {NAV_SECTIONS.map((section, idx) => renderNavGroup(section, idx))}
+                    </nav>
+
+                    {/* Collapse toggle (desktop only) */}
+                    <div className={`border-t border-white/5 shrink-0 hidden md:block ${collapsed ? 'p-2' : 'px-3 py-2'}`}>
+                        <button
+                            onClick={() => setCollapsed(!collapsed)}
+                            className={`nav-glass-item ${
+                                collapsed ? 'w-10 h-10 mx-auto justify-center px-0 gap-0' : 'w-full h-10 gap-3 px-4 justify-center'
+                            }`}
+                            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                            type="button"
+                        >
+                            <NavIcon id={collapsed ? 'panel-open' : 'panel-close'} />
+                            {!collapsed && <span className="text-[12px] font-mono tracking-wide">Collapse</span>}
+                        </button>
+                    </div>
+
+                    {/* Powered-by footer */}
+                    <div className={`border-t border-white/5 shrink-0 ${collapsed ? 'p-1.5 text-center' : 'p-3'}`}>
+                        {collapsed ? (
+                            <a
+                                href="https://eternium.ai"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] font-mono text-text-subtle hover:text-primary"
+                                title="Powered by Eternium AI"
+                            >
+                                AI
+                            </a>
+                        ) : (
+                            <div className="text-[10px] font-mono text-text-subtle">
+                                Powered by{' '}
+                                <a
+                                    href="https://eternium.ai"
+                                    className="text-primary hover:underline"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Eternium
+                                </a>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </aside>
+
+            {/* Mobile overlay */}
+            {sidebarOpen && (
+                <div
+                    className="fixed inset-0 bg-black/60 z-40 md:hidden"
+                    onClick={() => setSidebarOpen(false)}
+                />
+            )}
+
+            {/* Main column */}
+            <div className="flex-1 flex flex-col h-screen min-w-0">
+                {/* Top bar -- mirrors CommandHeader: hamburger + page title +
+                    spacer + meta badges + date. */}
+                <header className="h-12 border-b border-white/5 flex items-center px-4 lg:px-6 bg-black/50 backdrop-blur-sm shrink-0 z-30">
+                    <button
+                        onClick={() => setSidebarOpen(true)}
+                        className="md:hidden p-2 text-text-muted hover:text-text-main mr-2"
+                        type="button"
+                        aria-label="Open navigation"
+                    >
+                        <NavIcon id="menu" />
+                    </button>
+
+                    <div className="flex items-center gap-3 w-full">
+                        {/* Page title */}
+                        <h1 className="text-sm font-semibold text-text-main/80 truncate">
+                            {activeLabel}
+                        </h1>
+
                         {firstName && (
-                            <span className="hidden md:inline text-xs font-mono text-text-muted">
+                            <span className="hidden md:inline text-xs font-mono text-text-muted truncate">
                                 // hey {firstName.toLowerCase()}
                             </span>
                         )}
-                        {workspace.aiOwner?.tagline && (
-                            <span className="hidden lg:inline text-[11px] text-text-subtle italic truncate max-w-md">
-                                {workspace.aiOwner.tagline}
-                            </span>
-                        )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/5">
+
+                        <div className="flex-1" />
+
+                        {/* Tier + Live/Preview badges (preserved from prior header) */}
+                        <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-primary/30 text-primary bg-primary/5 shrink-0">
                             {TIER_NAMES[workspace.tier]}
                         </span>
                         <span
-                            className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-border text-text-subtle"
+                            className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border border-white/10 text-text-subtle shrink-0"
                             title={workspace.source === 'disk'
                                 ? 'Reading live files from your repo root.'
                                 : 'Reading from your in-browser blueprint. Run the bootstrap prompt in this folder to go live.'}
@@ -204,72 +419,16 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                             <span className={`inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle pulse-dot ${workspace.source === 'disk' ? 'bg-success' : 'bg-warning'}`} />
                             {workspace.source === 'disk' ? 'Live' : 'Preview'}
                         </span>
+
+                        {/* Date */}
+                        <div className="hidden sm:block text-[10px] font-mono text-text-subtle shrink-0">
+                            {dateStr}
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
 
-            <div className="flex flex-1 min-h-0">
-                {/* Sidebar nav */}
-                <aside className="hidden md:flex flex-col w-56 border-r border-border bg-bg-surface/40 shrink-0">
-                    <nav className="flex-1 overflow-y-auto py-4">
-                        {NAV_SECTIONS.map((section) => (
-                            <div key={section.label} className="mb-5">
-                                <div className="px-5 mb-1.5 text-[10px] font-mono uppercase tracking-[0.2em] text-text-subtle">
-                                    {section.label}
-                                </div>
-                                <ul>
-                                    {section.tabs.map((tabId) => {
-                                        const t = tabsById[tabId];
-                                        if (!t) return null;
-                                        const active = tab === t.id;
-                                        return (
-                                            <li key={t.id}>
-                                                <button
-                                                    onClick={() => setTab(t.id)}
-                                                    className={`w-full text-left px-5 py-1.5 text-sm flex items-center transition-colors cursor-pointer ${
-                                                        active
-                                                            ? 'text-primary bg-primary/10 border-l-2 border-primary -ml-px'
-                                                            : 'text-text-muted hover:text-text-main hover:bg-bg-elevated/40 border-l-2 border-transparent -ml-px'
-                                                    }`}
-                                                >
-                                                    {t.label}
-                                                </button>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        ))}
-                    </nav>
-                    <div className="px-5 py-3 border-t border-border text-[10px] font-mono text-text-subtle">
-                        Powered by{' '}
-                        <a href="https://eternium.ai" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                            Eternium
-                        </a>
-                    </div>
-                </aside>
-
-                {/* Mobile tab picker (visible only below md) */}
-                <div className="md:hidden border-b border-border bg-bg-surface/40 px-4 py-2 overflow-x-auto">
-                    <select
-                        value={tab}
-                        onChange={(e) => setTab(e.target.value)}
-                        className="bg-bg-elevated border border-border rounded px-2 py-1.5 text-xs font-mono text-text-main w-full"
-                    >
-                        {NAV_SECTIONS.map((section) => (
-                            <optgroup key={section.label} label={section.label}>
-                                {section.tabs.map((tabId) => {
-                                    const t = tabsById[tabId];
-                                    if (!t) return null;
-                                    return <option key={t.id} value={t.id}>{t.label}</option>;
-                                })}
-                            </optgroup>
-                        ))}
-                    </select>
-                </div>
-
-                {/* Tab content */}
-                <main className="flex-1 min-w-0 overflow-x-hidden px-4 sm:px-6 py-6">
+                {/* Page content */}
+                <main className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-4 lg:p-5">
                     {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
                     {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
                     {tab === 'meta_suite' && <MetaSuiteTab />}

@@ -154,6 +154,189 @@ body {
   text-transform: uppercase;
 }
 
+/* ────────────────────────────────────────────────────────────────────
+ * Command Center canonical primitives. Ported verbatim (semantically)
+ * from Website-Eternium's src/index.css so the Blueprint dashboard
+ * shell renders in the same liquid-glass language as the Eternium
+ * Command Center. Active / accent states reference the per-tenant
+ * primary token from theme.config.js so a yellow VSN|CUT or any other
+ * brand still inherits the canonical chrome with its own brand color.
+ * ──────────────────────────────────────────────────────────────────── */
+
+/* Liquid glass panel -- the base card primitive. */
+.glass-panel {
+  position: relative;
+  background: rgba(10, 10, 18, 0.6);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 4px 30px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.2);
+  isolation: isolate;
+}
+
+.glass-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.08) 0%,
+    transparent 40%,
+    rgba(255, 255, 255, 0.03) 60%,
+    transparent 100%
+  );
+}
+
+.glass-panel::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05) 0%,
+    transparent 50%
+  );
+  mask-image: linear-gradient(to bottom, black 0%, transparent 30%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 30%);
+}
+
+/* Specular top-edge highlight. */
+.glass-specular {
+  position: relative;
+}
+.glass-specular::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+}
+
+/* Auto-applied glass for inline cards. */
+.glass-surface {
+  position: relative;
+  overflow: hidden;
+  background: rgba(12, 12, 20, 0.55);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.12),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-surface:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar nav pills. Active state pulls the per-tenant primary token
+ * so cyan (Eternium), yellow (VSN|CUT), or any other brand color paints
+ * the active row without code changes. */
+.nav-glass-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(8px) saturate(1.2);
+  -webkit-backdrop-filter: blur(8px) saturate(1.2);
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+}
+
+.nav-glass-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.nav-glass-item--active {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-primary) 14%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary) 6%, transparent) 55%,
+    color-mix(in srgb, var(--color-primary) 1%, transparent) 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--color-primary) 25%, transparent);
+  color: var(--color-primary);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 4px 20px color-mix(in srgb, var(--color-primary) 8%, transparent);
+}
+
+.nav-glass-item--active:hover {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-primary) 18%, transparent) 0%,
+    color-mix(in srgb, var(--color-primary) 8%, transparent) 55%,
+    color-mix(in srgb, var(--color-primary) 2%, transparent) 100%
+  );
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  color: var(--color-primary);
+}
+
+/* HD radial depth background -- the Command Center page chrome. The
+ * primary brand color tints the top-left radial; a secondary violet
+ * tone holds the bottom-right for visual depth. */
+.bg-command-depth {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, color-mix(in srgb, var(--color-primary) 3%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 90%, rgba(139, 92, 246, 0.04) 0%, transparent 50%),
+    radial-gradient(ellipse 100% 80% at 50% 50%, rgba(20, 20, 30, 0.8) 0%, transparent 70%),
+    linear-gradient(180deg, #080810 0%, #050508 30%, #0a0a12 60%, #060610 100%);
+  min-height: 100vh;
+  position: relative;
+}
+
+.bg-command-depth::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 70%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 10%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Thin scrollbar for the sidebar nav, matching the Command Center. */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 2px;
+}
+
 /* Number input arrows hidden */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
