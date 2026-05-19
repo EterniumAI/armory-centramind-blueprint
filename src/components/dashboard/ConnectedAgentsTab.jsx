@@ -32,10 +32,9 @@ const AGENTS = [
   {
     id: 'hermesclaw',
     name: 'HermesClaw',
-    tagline: 'Fast, lightweight agent runner.',
+    tagline: 'Open-source steerable agent from Nous Research. Runs on Eternium API. Great for builders who want a high-control alternative to closed models.',
     alwaysActive: false,
-    comingSoon: true,
-    setup: 'Coming soon.',
+    setup: 'HermesClaw uses the Hermes 4 405B model from Nous Research, routed through the Eternium API. Click Add to enable it for this workspace. Once enabled, pick HermesClaw as your provider in Settings > Agent to route chat through Hermes instead of the default Centramind model. Calls are credit-billed against your Eternium balance.',
     color: '#8B7EC8',
     initials: 'HC',
   },
