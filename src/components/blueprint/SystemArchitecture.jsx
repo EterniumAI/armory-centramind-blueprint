@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { EXECUTIVES, OPERATORS, resolveById } from '../../lib/centramind-catalog';
+
 const TIERS = [
   {
     id: 'solo',
@@ -52,9 +55,60 @@ const TIERS = [
   },
 ];
 
-export default function SystemArchitecture({ tier, processCount, onChange, onNext, onBack }) {
-  // Suggest a tier based on process count
-  const suggested = processCount <= 5 ? 'solo' : processCount <= 15 ? 'team' : 'enterprise';
+// Recommend a tier from team composition. Thresholds:
+//   solo:       <=1 executive total + 0-1 operators, OR Orchestrator-only roster
+//   team:       2-4 executives + 2-5 operators
+//   enterprise: >=5 executives OR >=6 operators
+// Process count is a tiebreaker when team is ambiguous so we never under-spec
+// a workspace that has a lot of work but a thin roster.
+export function recommendTier({ executives = [], operators = [], processCount = 0 } = {}) {
+  // Orchestrator is required by the catalog so it counts toward execCount,
+  // but a roster of "just Orchestrator" should still feel like Solo.
+  const execCount = executives.length;
+  const opCount = operators.length;
+  const onlyOrchestrator = execCount === 1 && executives.includes('orchestrator');
+
+  if (execCount >= 5 || opCount >= 6 || processCount >= 16) {
+    return 'enterprise';
+  }
+  if (execCount <= 1 || onlyOrchestrator) {
+    if (opCount <= 1 && processCount <= 5) return 'solo';
+  }
+  if (execCount >= 2 && execCount <= 4 && opCount >= 2 && opCount <= 5) {
+    return 'team';
+  }
+  // Fallbacks for the in-between cases. Lean on process count.
+  if (processCount <= 5 && opCount <= 1) return 'solo';
+  if (processCount >= 6) return 'team';
+  return 'solo';
+}
+
+export default function SystemArchitecture({
+  tier,
+  processCount,
+  executives = [],
+  operators = [],
+  onChange,
+  onNext,
+  onBack,
+}) {
+  const suggested = recommendTier({ executives, operators, processCount });
+
+  // On first render only, if the wizard's saved tier is still the static
+  // default ('solo') and the recommendation disagrees, snap the radio to
+  // the recommendation so badge + selection match. After the user touches
+  // a card, respect their pick on every re-render. We use a ref to avoid
+  // overriding manual selections when the user navigates Back -> Forward.
+  const didInitRef = useRef(false);
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+    if (tier !== suggested) {
+      onChange(suggested);
+    }
+    // We intentionally only run this once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div>
@@ -138,7 +192,12 @@ export default function SystemArchitecture({ tier, processCount, onChange, onNex
             live diagram
           </span>
         </div>
-        <ArchitectureDiagram tier={tier} />
+        <ArchitectureDiagram
+          tier={tier}
+          executives={executives}
+          operators={operators}
+          processCount={processCount}
+        />
       </div>
 
       {/* Navigation */}
@@ -166,34 +225,120 @@ export default function SystemArchitecture({ tier, processCount, onChange, onNex
   );
 }
 
-function ArchitectureDiagram({ tier }) {
+// Toolbox for resolving the user's actual picks into labels with sensible
+// fallbacks. We deliberately keep the visual primitives identical to the
+// previous static version. The only thing that changes is labels + counts.
+
+const EXEC_TONE_CYCLE = ['cyan', 'violet', 'amber'];
+const OP_TONE_CYCLE = ['violet', 'amber', 'cyan'];
+
+// Map an operator id to a short fleet label and the role it owns. Falls back
+// to a Title Case derivation of whatever id we don't recognize.
+function operatorFleetMeta(id) {
+  const found = OPERATORS.find((o) => o.id === id);
+  if (!found) {
+    const pretty = String(id).replace(/^op-/, '').replace(/[-_]/g, ' ');
+    return { fleetLabel: pretty.replace(/\b\w/g, (c) => c.toUpperCase()) + ' Fleet', shortLabel: pretty.replace(/\b\w/g, (c) => c.toUpperCase()) };
+  }
+  // Strip the trailing " Operator" the catalog uses, so "Support Operator" reads as "Support Fleet".
+  const base = found.name.replace(/\s+Operator$/i, '');
+  return { fleetLabel: `${base} Fleet`, shortLabel: base };
+}
+
+function executiveDisplay(id) {
+  const found = EXECUTIVES.find((e) => e.id === id);
+  if (!found) return { name: String(id).toUpperCase(), role: '' };
+  return { name: found.role || found.name, role: found.name };
+}
+
+function ArchitectureDiagram({ tier, executives = [], operators = [], processCount = 0 }) {
+  // Resolve user picks. resolveById preserves order; we keep Orchestrator
+  // first whenever present because it's the head of the C-suite.
+  const execItems = resolveById(EXECUTIVES, executives);
+  const opItems = resolveById(OPERATORS, operators);
+  const orchestrator = execItems.find((e) => e.id === 'orchestrator');
+  const otherExecs = execItems.filter((e) => e.id !== 'orchestrator');
+
   if (tier === 'solo') {
+    // Solo: You -> primary agent -> N processes. Pick the Orchestrator if
+    // they have one, else the first executive they selected, else a
+    // generic "AI Operator" fallback.
+    const lead = orchestrator || execItems[0] || null;
+    const leadLabel = lead ? (lead.role || lead.name) : 'AI Operator';
+    const leadSub = lead ? lead.name : 'Your agent instance';
+    const procLabel = processCount > 0
+      ? `${processCount} process${processCount === 1 ? '' : 'es'}`
+      : 'Processes';
+
     return (
       <div className="flex flex-col items-center gap-4 py-4">
         <Box label="You" sub="Dispatch tasks" tone="muted" />
         <Arrow />
-        <Box label="AI Operator" sub="Your agent instance" tone="cyan" />
+        <Box label={leadLabel} sub={leadSub} tone="cyan" />
         <Arrow />
         <div className="flex flex-wrap justify-center gap-2.5">
+          <SmallBox label={procLabel} />
           <SmallBox label="Memory" />
           <SmallBox label="Skills" />
-          <SmallBox label="Dashboard" />
         </div>
       </div>
     );
   }
 
   if (tier === 'team') {
+    // Team Fleet: You -> Orchestrator -> [user's selected executives or
+    // operators as a row] -> shared infra. If the user picked extra
+    // executives we show those; otherwise we drop straight to operators.
+    const orchLabel = orchestrator ? (orchestrator.role || orchestrator.name) : 'Orchestrator';
+    const orchSub = orchestrator ? orchestrator.name : 'Chief of Staff Agent';
+
+    const execRow = otherExecs.slice(0, 4);
+    const opRow = opItems.length > 0 ? opItems.slice(0, 4) : [];
+
+    // Per-operator process share. Floor it but at least 1 when processes exist.
+    const opShare = opItems.length > 0 && processCount > 0
+      ? Math.max(1, Math.floor(processCount / opItems.length))
+      : 0;
+
     return (
       <div className="flex flex-col items-center gap-4 py-4">
         <Box label="You" sub="High-level directives" tone="muted" />
         <Arrow />
-        <Box label="Orchestrator" sub="Chief of Staff Agent" tone="cyan" />
+        <Box label={orchLabel} sub={orchSub} tone="cyan" />
         <Arrow />
+        {execRow.length > 0 && (
+          <>
+            <div className="flex flex-wrap justify-center gap-2.5">
+              {execRow.map((e, i) => (
+                <Box
+                  key={e.id}
+                  label={e.role || e.name}
+                  sub={e.name}
+                  tone={EXEC_TONE_CYCLE[i % EXEC_TONE_CYCLE.length]}
+                  small
+                />
+              ))}
+            </div>
+            <Arrow />
+          </>
+        )}
         <div className="flex flex-wrap justify-center gap-2.5">
-          <Box label="Operator 1" sub="Backend Dev" tone="violet" small />
-          <Box label="Operator 2" sub="Sales Agent" tone="amber" small />
-          <Box label="Operator 3" sub="Content Agent" tone="cyan" small />
+          {opRow.length > 0 ? (
+            opRow.map((o, i) => {
+              const meta = operatorFleetMeta(o.id);
+              return (
+                <Box
+                  key={o.id}
+                  label={meta.shortLabel}
+                  sub={opShare > 0 ? `${opShare} process${opShare === 1 ? '' : 'es'}` : 'Operator'}
+                  tone={OP_TONE_CYCLE[i % OP_TONE_CYCLE.length]}
+                  small
+                />
+              );
+            })
+          ) : (
+            <Box label="Operator Fleet" sub="Field workers" tone="violet" small />
+          )}
         </div>
         <Arrow />
         <div className="flex flex-wrap justify-center gap-2.5">
@@ -205,20 +350,61 @@ function ArchitectureDiagram({ tier }) {
     );
   }
 
+  // Enterprise Grid: Leadership -> one Orchestrator per Big-3 executive ->
+  // fleets sized by operator selections + process count.
+  // Big-3 priority for orchestrator strands: CRO, CMO, CTO, CFO.
+  const STRAND_ORDER = ['cro', 'cmo', 'cto', 'cfo'];
+  const strands = STRAND_ORDER
+    .map((id) => execItems.find((e) => e.id === id))
+    .filter(Boolean);
+  // If they didn't pick any of the Big-3, fall back to whoever they did
+  // pick (excluding Orchestrator) up to 3 strands.
+  const strandRow = strands.length > 0 ? strands.slice(0, 3) : otherExecs.slice(0, 3);
+  // If still empty, surface a single generic Orchestrator strand.
+  const strandsToRender = strandRow.length > 0 ? strandRow : [{ id: 'fallback-orch', role: 'Orchestrator', name: 'Department lead' }];
+
+  const fleets = opItems.length > 0 ? opItems.slice(0, 4) : [];
+
+  // Each fleet sized from a chunk of the operator headcount + process load.
+  // n = max(2, floor(processCount / fleetCount)) when we have processes,
+  // else just floor(operators / fleetCount) clamped to >= 2.
+  const fleetSize = (idx, total) => {
+    if (total === 0) return 2;
+    const baseFromProcesses = processCount > 0 ? Math.floor(processCount / total) : 0;
+    const sizing = Math.max(2, baseFromProcesses);
+    return sizing;
+  };
+
   return (
     <div className="flex flex-col items-center gap-4 py-4">
       <Box label="Leadership" sub="Strategy and oversight" tone="muted" />
       <Arrow />
       <div className="flex flex-wrap justify-center gap-2.5">
-        <Box label="Orchestrator A" sub="Engineering" tone="cyan" small />
-        <Box label="Orchestrator B" sub="Revenue" tone="amber" small />
+        {strandsToRender.map((e, i) => (
+          <Box
+            key={e.id}
+            label={`Orchestrator ${String.fromCharCode(65 + i)}`}
+            sub={e.role || e.name}
+            tone={EXEC_TONE_CYCLE[i % EXEC_TONE_CYCLE.length]}
+            small
+          />
+        ))}
       </div>
       <Arrow />
       <div className="flex flex-wrap justify-center gap-2.5">
-        <SmallBox label="Dev Fleet (4)" />
-        <SmallBox label="Sales Fleet (3)" />
-        <SmallBox label="Support Fleet (3)" />
-        <SmallBox label="Content Fleet (2)" />
+        {fleets.length > 0 ? (
+          fleets.map((o, i) => {
+            const meta = operatorFleetMeta(o.id);
+            return (
+              <SmallBox key={o.id} label={`${meta.fleetLabel} (${fleetSize(i, fleets.length)})`} />
+            );
+          })
+        ) : (
+          <>
+            <SmallBox label="Operator Fleet (4)" />
+            <SmallBox label="Operator Fleet (3)" />
+          </>
+        )}
       </div>
       <Arrow />
       <div className="flex flex-wrap justify-center gap-2.5">

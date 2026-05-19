@@ -170,6 +170,8 @@ export default function App() {
       key="architecture"
       tier={blueprint.tier}
       processCount={blueprint.processes.length}
+      executives={blueprint.executives}
+      operators={blueprint.operators}
       onChange={(v) => updateBlueprint('tier', v)}
       onNext={goNext}
       onBack={goPrev}
