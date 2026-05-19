@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { adminApi } from '../../../lib/admin-api-mock';
+import FriendlyStatus from '../../friendly/FriendlyStatus.jsx';
 
 const CHANNEL_TYPES = [
     { id: 'telegram', label: 'Telegram', icon: 'telegram', available: true },
@@ -24,11 +25,6 @@ function ChannelIcon({ type, className = 'w-5 h-5 shrink-0' }) {
             <path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z" />
         </svg>
     );
-}
-
-function StatusDot({ status }) {
-    const color = status === 'active' ? 'bg-green-500' : status === 'paused' ? 'bg-amber-500' : 'bg-red-500';
-    return <span className={`inline-block w-2 h-2 rounded-full ${color}`} />;
 }
 
 function relativeTime(iso) {
@@ -80,12 +76,12 @@ export default function ChannelsSettings() {
     };
 
     const handleTest = async (id) => {
-        setTestResult((p) => ({ ...p, [id]: 'sending...' }));
+        setTestResult((p) => ({ ...p, [id]: { status: 'sending' } }));
         try {
-            const res = await adminApi.testChannel(id);
-            setTestResult((p) => ({ ...p, [id]: res.message || 'Sent.' }));
+            await adminApi.testChannel(id);
+            setTestResult((p) => ({ ...p, [id]: { status: 'sent' } }));
         } catch (err) {
-            setTestResult((p) => ({ ...p, [id]: `Error: ${err.message}` }));
+            setTestResult((p) => ({ ...p, [id]: { status: 'failed', detail: err.message } }));
         }
     };
 
@@ -95,7 +91,7 @@ export default function ChannelsSettings() {
                 <div>
                     <p className="text-[10px] font-mono uppercase tracking-widest text-cyan-bright mb-1">// CONNECTED CHANNELS</p>
                     <p className="text-sm text-white/60">
-                        Where this agent reaches you. Add channels here, then configure per-trigger routing in Triggers.
+                        Where this agent reaches you. Add channels here, then set up how each automation uses them in Triggers.
                     </p>
                 </div>
                 <button
@@ -116,11 +112,8 @@ export default function ChannelsSettings() {
                         <ChannelIcon type={ch.channel_type} className="w-5 h-5 shrink-0 text-white/60" />
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-white font-medium truncate">{ch.label}</span>
-                                <StatusDot status={ch.status} />
-                                <span className="text-[10px] font-mono uppercase tracking-wider text-white/35">
-                                    {ch.channel_type}
-                                </span>
+                                <span className="text-sm text-white font-medium truncate">{ch.display_name || ch.label}</span>
+                                <FriendlyStatus status={ch.status} />
                             </div>
                             <div className="text-[11px] text-white/40 mt-0.5">
                                 Last event: {relativeTime(ch.last_event_at)}
@@ -130,10 +123,13 @@ export default function ChannelsSettings() {
                             onClick={() => handleTest(ch.id)}
                             className="text-[10px] font-mono uppercase tracking-wider text-[var(--color-primary)] hover:text-white transition-colors cursor-pointer"
                         >
-                            Test
+                            Send test message
                         </button>
                         {testResult[ch.id] && (
-                            <span className="text-[10px] font-mono text-white/50">{testResult[ch.id]}</span>
+                            <FriendlyStatus
+                                status={testResult[ch.id].status === 'sending' ? 'queued' : testResult[ch.id].status}
+                                errorDetail={testResult[ch.id].detail}
+                            />
                         )}
                         <div className="relative">
                             <button
@@ -194,21 +190,22 @@ function AddChannelModal({ editingChannel, onClose, onSaved }) {
     const [chatId, setChatId] = useState(editingChannel?.config?.chat_id || '');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [helpOpen, setHelpOpen] = useState(false);
 
     const handleSave = async () => {
         if (!label.trim()) { setError('Label is required.'); return; }
         setSaving(true);
         setError('');
         try {
-            const payload = {
+            const data = {
                 channel_type: channelType,
                 label: label.trim(),
                 config: channelType === 'telegram' ? { bot_token: botToken || undefined, chat_id: chatId } : {},
             };
             if (editingChannel) {
-                await adminApi.patchChannel(editingChannel.id, payload);
+                await adminApi.patchChannel(editingChannel.id, data);
             } else {
-                await adminApi.createChannel(payload);
+                await adminApi.createChannel(data);
             }
             onSaved();
         } catch (err) {
@@ -257,14 +254,14 @@ function AddChannelModal({ editingChannel, onClose, onSaved }) {
                         value={label}
                         onChange={(e) => setLabel(e.target.value)}
                         placeholder="e.g. Ty Personal TG"
-                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors"
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors"
                     />
                 </div>
 
                 {channelType === 'telegram' && (
                     <>
                         <div className="mb-4">
-                            <label className="block text-xs text-white/60 mb-1">Bot token</label>
+                            <label className="block text-xs text-white/60 mb-1">Bot token (paste from BotFather)</label>
                             <input
                                 type="password"
                                 value={botToken}
@@ -272,10 +269,10 @@ function AddChannelModal({ editingChannel, onClose, onSaved }) {
                                 placeholder="123456:ABC-DEF..."
                                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors"
                             />
-                            <p className="text-[10px] text-white/30 mt-1">Stored as a Cloudflare secret. Never exposed after save.</p>
+                            <p className="text-[10px] text-white/30 mt-1">Stored securely. Never exposed after save.</p>
                         </div>
                         <div className="mb-4">
-                            <label className="block text-xs text-white/60 mb-1">Chat ID</label>
+                            <label className="block text-xs text-white/60 mb-1">Chat ID (your personal Telegram ID)</label>
                             <input
                                 type="text"
                                 value={chatId}
@@ -283,6 +280,29 @@ function AddChannelModal({ editingChannel, onClose, onSaved }) {
                                 placeholder="-100123456789"
                                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors"
                             />
+                        </div>
+                        <div className="mb-4">
+                            <button
+                                type="button"
+                                onClick={() => setHelpOpen(!helpOpen)}
+                                className="text-xs text-white/40 hover:text-white/60 transition-colors cursor-pointer"
+                            >
+                                {helpOpen ? 'Hide help' : 'How do I find these?'}
+                            </button>
+                            {helpOpen && (
+                                <div className="mt-2 glass-surface rounded-lg p-3 text-xs text-white/50 space-y-2">
+                                    <p>
+                                        To get a bot token, open Telegram and search for @BotFather. Start a conversation,
+                                        send /newbot, and follow the prompts. BotFather will give you a token that looks
+                                        like 123456789:ABCdefGhIJKlmNoPQRstuVWXyz.
+                                    </p>
+                                    <p>
+                                        To find your chat ID, search for @userinfobot on Telegram and start a conversation.
+                                        It will reply with your numeric ID. For group chats, add @userinfobot to the group
+                                        and it will show the group chat ID (starts with -100).
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </>
                 )}

@@ -1,12 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { adminApi } from '../../lib/admin-api-mock';
+import FriendlyStatus from '../friendly/FriendlyStatus.jsx';
 
-const SEVERITY_CONFIG = {
-    P0: { dot: 'bg-red-500', text: 'text-red-400' },
-    P1: { dot: 'bg-amber-500', text: 'text-amber-400' },
-    P2: { dot: 'bg-cyan-500', text: 'text-cyan-400' },
-    P3: { dot: 'bg-white/30', text: 'text-white/40' },
+const URGENCY_CONFIG = {
+    P0: { dot: 'bg-[var(--color-error)]', text: 'text-[var(--color-error)]', label: 'Wake-up' },
+    P1: { dot: 'bg-[var(--color-warning)]', text: 'text-[var(--color-warning)]', label: 'Important' },
+    P2: { dot: 'bg-[var(--color-cyan-brand)]', text: 'text-[var(--color-cyan-brand)]', label: 'Worth knowing' },
+    P3: { dot: 'bg-white/30', text: 'text-white/40', label: 'Just for the log' },
 };
+
+const URGENCY_LABELS = [
+    { value: null, label: 'Filter by urgency' },
+    { value: 'P0', label: 'Wake-up' },
+    { value: 'P1', label: 'Important' },
+    { value: 'P2', label: 'Worth knowing' },
+    { value: 'P3', label: 'Just for the log' },
+];
 
 function relativeTime(iso) {
     if (!iso) return '';
@@ -48,11 +57,11 @@ export default function InboxTab() {
     };
 
     // Derive filter options from data
-    const triggerKeys = [...new Set(items.map((i) => i.trigger_key))];
+    const triggerNames = [...new Set(items.map((i) => i.trigger_display_name || i.trigger_key))];
 
     const filtered = items.filter((item) => {
         if (filterSeverity && item.severity !== filterSeverity) return false;
-        if (filterTrigger && item.trigger_key !== filterTrigger) return false;
+        if (filterTrigger && (item.trigger_display_name || item.trigger_key) !== filterTrigger) return false;
         return true;
     });
 
@@ -65,24 +74,24 @@ export default function InboxTab() {
                 {/* Filter chips */}
                 <div className="flex gap-1.5 p-3 pb-2 flex-wrap">
                     <FilterChip
-                        label="sovereign"
+                        label="Filter by agent"
                         active={true}
                         onClick={() => {}}
                     />
                     <FilterChip
-                        label={filterSeverity || 'severity'}
+                        label={filterSeverity ? (URGENCY_CONFIG[filterSeverity]?.label || filterSeverity) : 'Filter by urgency'}
                         active={!!filterSeverity}
                         onClick={() => {
-                            const levels = [null, 'P0', 'P1', 'P2', 'P3'];
+                            const levels = URGENCY_LABELS.map((l) => l.value);
                             const idx = levels.indexOf(filterSeverity);
                             setFilterSeverity(levels[(idx + 1) % levels.length]);
                         }}
                     />
                     <FilterChip
-                        label={filterTrigger || 'trigger'}
+                        label={filterTrigger || 'Filter by what fired this'}
                         active={!!filterTrigger}
                         onClick={() => {
-                            const keys = [null, ...triggerKeys];
+                            const keys = [null, ...triggerNames];
                             const idx = keys.indexOf(filterTrigger);
                             setFilterTrigger(keys[(idx + 1) % keys.length]);
                         }}
@@ -97,7 +106,7 @@ export default function InboxTab() {
                     {filtered.map((item) => {
                         const isRead = !!item.read_at;
                         const isActive = selectedId === item.id;
-                        const sev = SEVERITY_CONFIG[item.severity] || SEVERITY_CONFIG.P3;
+                        const urgency = URGENCY_CONFIG[item.severity] || URGENCY_CONFIG.P3;
                         return (
                             <button
                                 key={item.id}
@@ -108,7 +117,7 @@ export default function InboxTab() {
                                 }`}
                             >
                                 <div className="flex items-start gap-2">
-                                    <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${sev.dot}`} />
+                                    <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${urgency.dot}`} />
                                     <div className="flex-1 min-w-0">
                                         <p className={`text-sm truncate ${isRead ? 'text-white/60' : 'text-white'}`}>
                                             {item.title}
@@ -118,7 +127,7 @@ export default function InboxTab() {
                                         </p>
                                         <div className="flex items-center gap-2 mt-1">
                                             <span className="text-[9px] font-mono uppercase tracking-wider text-white/20">
-                                                {item.trigger_key}
+                                                {item.trigger_display_name || item.trigger_key}
                                             </span>
                                             <span className="text-[9px] text-white/15">
                                                 {relativeTime(item.created_at)}
@@ -142,16 +151,17 @@ export default function InboxTab() {
                 {selected ? (
                     <div className="max-w-2xl fade-up">
                         <div className="flex items-center gap-3 mb-4">
-                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${(SEVERITY_CONFIG[selected.severity] || SEVERITY_CONFIG.P3).dot}`} />
-                            <span className={`text-[10px] font-mono uppercase tracking-wider ${(SEVERITY_CONFIG[selected.severity] || SEVERITY_CONFIG.P3).text}`}>
-                                {selected.severity}
+                            <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${(URGENCY_CONFIG[selected.severity] || URGENCY_CONFIG.P3).dot}`} />
+                            <span className={`text-[10px] font-mono uppercase tracking-wider ${(URGENCY_CONFIG[selected.severity] || URGENCY_CONFIG.P3).text}`}>
+                                {(URGENCY_CONFIG[selected.severity] || URGENCY_CONFIG.P3).label}
                             </span>
                             <span className="text-[10px] font-mono uppercase tracking-wider text-white/30">
-                                {selected.trigger_key}
+                                {selected.trigger_display_name || selected.trigger_key}
                             </span>
                             <span className="text-[10px] text-white/20">
                                 {relativeTime(selected.created_at)}
                             </span>
+                            <FriendlyStatus status={selected.status} />
                         </div>
 
                         <h2 className="text-lg font-medium text-white mb-3">{selected.title}</h2>
@@ -160,12 +170,12 @@ export default function InboxTab() {
                             <p className="text-sm text-white/80 leading-relaxed whitespace-pre-wrap">{selected.body}</p>
                         </div>
 
-                        {selected.payload && (
+                        {selected.details && (
                             <div className="mb-4">
-                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/25 mb-2">// PAYLOAD</p>
+                                <p className="text-[10px] font-mono uppercase tracking-widest text-white/25 mb-2">// DETAILS</p>
                                 <div className="glass-surface rounded-lg p-3">
                                     <pre className="text-[11px] font-mono text-white/50 whitespace-pre-wrap overflow-x-auto">
-                                        {JSON.stringify(selected.payload, null, 2)}
+                                        {JSON.stringify(selected.details, null, 2)}
                                     </pre>
                                 </div>
                             </div>

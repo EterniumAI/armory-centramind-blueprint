@@ -1158,6 +1158,18 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled,
 
 /* -- Agent Settings Extended (W14.4) --------------------- */
 
+const FRIENDLY_TOOL_NAMES = {
+    supabase_query: { name: 'Read business data', description: 'Pull numbers and records from your workspace database.' },
+    fleet_dispatch_operator: { name: 'Hand off work to a teammate', description: 'Send a task to another operator in the fleet.' },
+    state_read_handoffs: { name: 'Read recent handoffs', description: 'See what other operators have reported back.' },
+    state_write_handoff: { name: 'Write a handoff note', description: 'Leave a status update for the rest of the team.' },
+    telegram_send: { name: 'Send a Telegram message', description: 'Post a message to a connected Telegram chat.' },
+    email_send: { name: 'Send an email', description: 'Send an email through your workspace mail provider.' },
+    cron_list: { name: 'List scheduled tasks', description: 'See all automations that are currently scheduled.' },
+    cron_schedule: { name: 'Schedule a task', description: 'Create or update a scheduled automation.' },
+    log_fleet_event: { name: 'Record an event in the activity log', description: 'Write an entry to the workspace activity log.' },
+};
+
 function AgentSettingsExtended() {
     const [agent, setAgent] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -1168,10 +1180,10 @@ function AgentSettingsExtended() {
     const [memorySearch, setMemorySearch] = useState('');
 
     const MODEL_OPTIONS = [
-        { id: 'nousresearch/hermes-4-405b', label: 'Hermes 4 405B', price: '$0.80' },
-        { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6', price: '$3.00' },
-        { id: 'openai/gpt-5.4', label: 'GPT-5.4', price: '$2.50' },
-        { id: 'openai/gpt-5.4-codex-mini', label: 'GPT-5.4 Codex Mini', price: '$0.40' },
+        { id: 'nousresearch/hermes-4-405b', label: 'Hermes 4 (smart, fast)', price: '$0.80' },
+        { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (excellent for complex work)', price: '$3.00' },
+        { id: 'openai/gpt-5.4', label: 'GPT-5.4 (OpenAI flagship)', price: '$2.50' },
+        { id: 'openai/gpt-5.4-codex-mini', label: 'GPT-5.4 Codex Mini (fast, affordable)', price: '$0.40' },
     ];
 
     useEffect(() => {
@@ -1232,14 +1244,15 @@ function AgentSettingsExtended() {
             {/* Model picker */}
             <div className="glass-panel rounded-xl p-5">
                 <label className="block text-xs text-white/60 mb-2">Primary model</label>
+                <p className="text-[10px] text-white/30 mb-2">The AI model your agent uses for conversations and tasks.</p>
                 <select
                     value={agent.model || ''}
                     onChange={(e) => update('model', e.target.value)}
-                    className="w-full max-w-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors cursor-pointer"
+                    className="w-full max-w-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors cursor-pointer"
                 >
                     {MODEL_OPTIONS.map((m) => (
                         <option key={m.id} value={m.id}>
-                            {m.label} ({m.price} / 1k tokens)
+                            {m.label} - {m.price} / 1k tokens
                         </option>
                     ))}
                 </select>
@@ -1247,25 +1260,26 @@ function AgentSettingsExtended() {
 
             {/* Fallback model picker */}
             <div className="glass-panel rounded-xl p-5">
-                <label className="block text-xs text-white/60 mb-2">Fallback model</label>
-                <p className="text-[10px] text-white/25 mb-2">Used when the primary model is unavailable or rate-limited.</p>
+                <label className="block text-xs text-white/60 mb-2">Backup model</label>
+                <p className="text-[10px] text-white/30 mb-2">Used when the primary model is unavailable or rate-limited.</p>
                 <select
                     value={agent.fallback_model || ''}
                     onChange={(e) => update('fallback_model', e.target.value)}
-                    className="w-full max-w-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors cursor-pointer"
+                    className="w-full max-w-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors cursor-pointer"
                 >
                     <option value="">None</option>
                     {MODEL_OPTIONS.map((m) => (
                         <option key={m.id} value={m.id}>
-                            {m.label} ({m.price} / 1k tokens)
+                            {m.label} - {m.price} / 1k tokens
                         </option>
                     ))}
                 </select>
             </div>
 
-            {/* System prompt */}
+            {/* Personality + instructions */}
             <div className="glass-panel rounded-xl p-5">
-                <label className="block text-xs text-white/60 mb-2">System prompt</label>
+                <label className="block text-xs text-white/60 mb-2">Personality + instructions</label>
+                <p className="text-[10px] text-white/30 mb-2">Tell the agent who it is and how to behave. This is the same instruction set the agent sees on every conversation.</p>
                 <div className="relative">
                     <textarea
                         value={agent.system_prompt || ''}
@@ -1281,13 +1295,15 @@ function AgentSettingsExtended() {
 
             {/* Tool toggles */}
             <div className="glass-panel rounded-xl p-5">
-                <label className="block text-xs text-white/60 mb-3">Tool allowlist</label>
+                <label className="block text-xs text-white/60 mb-3">What can this agent do?</label>
                 <div className="space-y-2">
-                    {(agent.tool_allowlist || []).map((tool) => (
+                    {(agent.tool_allowlist || []).map((tool) => {
+                        const friendly = FRIENDLY_TOOL_NAMES[tool.key] || { name: tool.name, description: tool.description };
+                        return (
                         <div key={tool.key} className="glass-surface rounded-lg px-4 py-3 flex items-center justify-between gap-3">
                             <div className="min-w-0">
-                                <p className="text-sm text-white font-mono">{tool.name}</p>
-                                <p className="text-[11px] text-white/35 mt-0.5">{tool.description}</p>
+                                <p className="text-sm text-white">{friendly.name}</p>
+                                <p className="text-[11px] text-white/35 mt-0.5">{friendly.description}</p>
                             </div>
                             <button
                                 type="button"
@@ -1301,13 +1317,15 @@ function AgentSettingsExtended() {
                                 }`} />
                             </button>
                         </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Memory sources */}
             <div className="glass-panel rounded-xl p-5">
-                <label className="block text-xs text-white/60 mb-2">Memory sources</label>
+                <label className="block text-xs text-white/60 mb-2">What should the agent remember?</label>
+                <p className="text-[10px] text-white/30 mb-2">Pick which knowledge files this agent reads on every conversation. More memory = slower but more context-aware.</p>
                 <input
                     type="text"
                     value={memorySearch}

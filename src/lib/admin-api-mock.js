@@ -48,41 +48,41 @@ const MOCK_AGENT = {
 };
 
 let mockChannels = [
-    { id: 'ch_01', channel_type: 'telegram', label: 'Ty Personal TG', status: 'active', config: { chat_id: '-100123456' }, last_event_at: new Date(Date.now() - 3600000).toISOString(), created_at: '2026-05-10T00:00:00Z' },
-    { id: 'ch_02', channel_type: 'inbox', label: 'Workspace Inbox', status: 'active', config: {}, last_event_at: new Date(Date.now() - 900000).toISOString(), created_at: '2026-05-10T00:00:00Z' },
+    { id: 'ch_01', channel_type: 'telegram', label: 'Ty Personal TG', display_name: 'Ty Personal TG', status: 'active', config: { chat_id: '-100123456' }, last_event_at: new Date(Date.now() - 3600000).toISOString(), created_at: '2026-05-10T00:00:00Z' },
+    { id: 'ch_02', channel_type: 'inbox', label: 'Workspace Inbox', display_name: 'Workspace Inbox', status: 'active', config: {}, last_event_at: new Date(Date.now() - 900000).toISOString(), created_at: '2026-05-10T00:00:00Z' },
 ];
 
 let mockTriggers = [
     {
-        id: 'tr_01', trigger_key: 'MORNING_BRIEF', cron_expr: '0 13 * * *', enabled: true,
+        id: 'tr_01', trigger_key: 'MORNING_BRIEF', display_name: 'Morning business audit', cron_expr: '0 13 * * *', friendly_schedule_preset: 'daily-morning-7', enabled: true,
         default_severity: 'P1',
-        prompt_template: 'Compile a morning brief for {{date}}. Include fleet status, open PRs, CRM pipeline, and any HEARTBEAT alerts.',
+        prompt_template: 'Compile a morning brief for {{date}}. Include fleet status, open PRs, CRM pipeline, and any alerts.',
         routing: [
-            { id: 'rt_01', channel_id: 'ch_01', mode: 'instant', severity_floor: 'P1', dedupe_window: 0, digest_cron: null },
-            { id: 'rt_02', channel_id: 'ch_02', mode: 'digest', severity_floor: 'P2', dedupe_window: 300, digest_cron: '0 14 * * *' },
+            { id: 'rt_01', channel_id: 'ch_01', mode: 'instant', severity_floor: 'P1', dedupe_window: 0, digest_cron: null, notification_preset: 'emergencies-only' },
+            { id: 'rt_02', channel_id: 'ch_02', mode: 'digest', severity_floor: 'P2', dedupe_window: 300, digest_cron: '0 14 * * *', notification_preset: 'daily-summary' },
         ],
     },
     {
-        id: 'tr_02', trigger_key: 'PR_REVIEW', cron_expr: '*/30 * * * *', enabled: true,
+        id: 'tr_02', trigger_key: 'PR_REVIEW', display_name: 'PR review check', cron_expr: '*/30 * * * *', friendly_schedule_preset: 'custom', enabled: true,
         default_severity: 'P2',
         prompt_template: 'Check for open PRs that need review. Summarize each with repo, title, author, and age.',
         routing: [
-            { id: 'rt_03', channel_id: 'ch_02', mode: 'instant', severity_floor: 'P2', dedupe_window: 1800, digest_cron: null },
+            { id: 'rt_03', channel_id: 'ch_02', mode: 'instant', severity_floor: 'P2', dedupe_window: 1800, digest_cron: null, notification_preset: 'buzz-immediately' },
         ],
     },
     {
-        id: 'tr_03', trigger_key: 'HEARTBEAT_CHECK', cron_expr: '0 */6 * * *', enabled: false,
+        id: 'tr_03', trigger_key: 'HEARTBEAT_CHECK', display_name: 'Fleet health check', cron_expr: '0 */6 * * *', friendly_schedule_preset: 'custom', enabled: false,
         default_severity: 'P0',
-        prompt_template: 'Run a heartbeat check on all fleet operators. Flag any that have not reported in 24h.',
+        prompt_template: 'Run a health check on all fleet operators. Flag any that have not reported in 24h.',
         routing: [],
     },
 ];
 
 let mockInbox = [
-    { id: 'in_01', agent_id: 'sovereign', trigger_key: 'MORNING_BRIEF', severity: 'P1', title: 'Morning Brief for May 19', body: 'Fleet status: 3/3 operators online. 2 open PRs need review. CRM pipeline has 4 new leads. No HEARTBEAT alerts.', payload: { fleet_online: 3, open_prs: 2, new_leads: 4 }, status: 'queued', channel_type: 'inbox', created_at: new Date(Date.now() - 1800000).toISOString(), read_at: null },
-    { id: 'in_02', agent_id: 'sovereign', trigger_key: 'PR_REVIEW', severity: 'P2', title: 'PR #52 needs review', body: 'armory-centramind-blueprint: feat(w14): agent channels triggers inbox UI by operator-1. Open for 2h, no reviewers assigned.', payload: { repo: 'armory-centramind-blueprint', pr: 52 }, status: 'sent', channel_type: 'inbox', created_at: new Date(Date.now() - 7200000).toISOString(), read_at: null },
-    { id: 'in_03', agent_id: 'sovereign', trigger_key: 'MORNING_BRIEF', severity: 'P1', title: 'Morning Brief for May 18', body: 'Fleet status: 3/3 operators online. W13 merge completed. No blockers. CRM: 2 leads converted.', payload: { fleet_online: 3, open_prs: 0, converted: 2 }, status: 'sent', channel_type: 'inbox', created_at: new Date(Date.now() - 86400000).toISOString(), read_at: new Date(Date.now() - 82800000).toISOString() },
-    { id: 'in_04', agent_id: 'sovereign', trigger_key: 'HEARTBEAT_CHECK', severity: 'P0', title: 'Operator-2 unresponsive', body: 'operator-2 has not reported a handoff in 26 hours. Last seen: 2026-05-17T11:00:00Z. Recommend manual check.', payload: { operator: 'operator-2', last_seen: '2026-05-17T11:00:00Z' }, status: 'queued', channel_type: 'inbox', created_at: new Date(Date.now() - 3600000).toISOString(), read_at: null },
+    { id: 'in_01', agent_id: 'sovereign', trigger_key: 'MORNING_BRIEF', trigger_display_name: 'Morning business audit', severity: 'P1', title: 'Morning Brief for May 19', body: 'Fleet status: 3/3 operators online. 2 open PRs need review. CRM pipeline has 4 new leads. No alerts.', details: { fleet_online: 3, open_prs: 2, new_leads: 4 }, status: 'queued', channel_type: 'inbox', created_at: new Date(Date.now() - 1800000).toISOString(), read_at: null },
+    { id: 'in_02', agent_id: 'sovereign', trigger_key: 'PR_REVIEW', trigger_display_name: 'PR review check', severity: 'P2', title: 'PR #52 needs review', body: 'armory-centramind-blueprint: feat(w14): agent channels triggers inbox UI by operator-1. Open for 2h, no reviewers assigned.', details: { repo: 'armory-centramind-blueprint', pr: 52 }, status: 'sent', channel_type: 'inbox', created_at: new Date(Date.now() - 7200000).toISOString(), read_at: null },
+    { id: 'in_03', agent_id: 'sovereign', trigger_key: 'MORNING_BRIEF', trigger_display_name: 'Morning business audit', severity: 'P1', title: 'Morning Brief for May 18', body: 'Fleet status: 3/3 operators online. W13 merge completed. No blockers. CRM: 2 leads converted.', details: { fleet_online: 3, open_prs: 0, converted: 2 }, status: 'sent', channel_type: 'inbox', created_at: new Date(Date.now() - 86400000).toISOString(), read_at: new Date(Date.now() - 82800000).toISOString() },
+    { id: 'in_04', agent_id: 'sovereign', trigger_key: 'HEARTBEAT_CHECK', trigger_display_name: 'Fleet health check', severity: 'P0', title: 'Operator-2 unresponsive', body: 'operator-2 has not reported a handoff in 26 hours. Last seen: 2026-05-17T11:00:00Z. Recommend manual check.', details: { operator: 'operator-2', last_seen: '2026-05-17T11:00:00Z' }, status: 'queued', channel_type: 'inbox', created_at: new Date(Date.now() - 3600000).toISOString(), read_at: null },
 ];
 
 let _nextId = 100;

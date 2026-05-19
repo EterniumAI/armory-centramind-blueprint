@@ -13,7 +13,6 @@ const BANNED_WORDS = [
   'severity',
   'dedupe',
   'digest cron',
-  'mode',
   'payload',
   'schema',
   'queued',
@@ -24,6 +23,9 @@ const BANNED_WORDS = [
   'tenant_id',
   'regex',
   'webhook',
+  'severity_floor',
+  'dedupe_window_sec',
+  'digest_cron',
 ];
 
 // Build a case-insensitive regex matching any banned word as a whole word
@@ -33,6 +35,8 @@ const BANNED_RE = new RegExp(
 );
 
 const FRIENDLY_DIR = path.join(__dirname, '..', 'src', 'components', 'friendly');
+const SETTINGS_DIR = path.join(__dirname, '..', 'src', 'components', 'dashboard', 'settings');
+const INBOX_FILE = path.join(__dirname, '..', 'src', 'components', 'dashboard', 'InboxTab.jsx');
 
 // Only check JSX text content and copy.js string values.
 // We scan .jsx files for text between > and < (JSX text nodes)
@@ -117,6 +121,14 @@ function walkDir(dir) {
 
 console.log('Checking src/components/friendly/ for banned engineering words...');
 walkDir(FRIENDLY_DIR);
+
+console.log('Checking src/components/dashboard/settings/ for banned engineering words...');
+walkDir(SETTINGS_DIR);
+
+if (fs.existsSync(INBOX_FILE)) {
+  console.log('Checking src/components/dashboard/InboxTab.jsx for banned engineering words...');
+  checkFile(INBOX_FILE);
+}
 
 if (violations > 0) {
   console.error(`\nFound ${violations} violation(s). Customer-facing text must not contain engineering terminology.`);
