@@ -78,6 +78,76 @@ let mockTriggers = [
     },
 ];
 
+// -- Chat mock data (W16) -------------------------------------------------
+
+const MOCK_AGENTS_LIST = [
+    {
+        id: 'sovereign',
+        display_name: 'Sovereign',
+        description: 'Your CTO agent. Manages fleet operations, code reviews, and business audits.',
+        tool_allowlist: [
+            { key: 'supabase_query', enabled: true },
+            { key: 'fleet_dispatch_operator', enabled: true },
+            { key: 'state_read_handoffs', enabled: true },
+            { key: 'state_write_handoff', enabled: false },
+            { key: 'telegram_send', enabled: true },
+            { key: 'cron_list', enabled: true },
+            { key: 'cron_schedule', enabled: true },
+            { key: 'log_fleet_event', enabled: true },
+        ],
+        metadata: { color: '#18b5f0' },
+    },
+    {
+        id: 'default',
+        display_name: 'Centramind Default',
+        description: 'General-purpose workspace assistant for everyday questions and tasks.',
+        tool_allowlist: [
+            { key: 'supabase_query', enabled: true },
+            { key: 'telegram_send', enabled: false },
+            { key: 'email_send', enabled: false },
+        ],
+        metadata: { color: '#8b5cf6' },
+    },
+];
+
+let mockConversations = [
+    {
+        id: 'conv_001', tenant_id: 'tenant_demo', agent_id: 'sovereign',
+        title: 'Morning status check', surface: 'web_bubble',
+        message_count: 4, last_message_at: new Date(Date.now() - 600000).toISOString(),
+        last_message_preview: 'All 3 operators are online. 2 PRs are waiting for review.',
+        pinned: false, archived: false,
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+    },
+    {
+        id: 'conv_002', tenant_id: 'tenant_demo', agent_id: 'default',
+        title: 'Help with onboarding flow', surface: 'web_bubble',
+        message_count: 2, last_message_at: new Date(Date.now() - 1800000).toISOString(),
+        last_message_preview: 'The onboarding wizard has 6 steps. Here is a summary of each...',
+        pinned: false, archived: false,
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+    },
+];
+
+let mockChatMessages = {
+    conv_001: [
+        { id: 'msg_001', conversation_id: 'conv_001', agent_id: 'sovereign', role: 'user', content: 'Give me a status update', tool_calls: null, model_used: null, tokens_in: null, tokens_out: null, created_at: new Date(Date.now() - 3600000).toISOString() },
+        { id: 'msg_002', conversation_id: 'conv_001', agent_id: 'sovereign', role: 'assistant', content: "Here is your current status:\n\n**Fleet:** All 3 operators are online and reporting normally.\n\n**Open PRs:** 2 pull requests are waiting for review:\n- `armory-centramind-blueprint` #52: W14 agent channels UI\n- `eternium-api` #18: Chat endpoint streaming fix\n\n**CRM:** 4 new leads this week, 2 converted.\n\nNo blockers or alerts at this time.", tool_calls: [{ function: { name: 'supabase_query' } }, { function: { name: 'state_read_handoffs' } }], model_used: 'nousresearch/hermes-4-405b', tokens_in: 320, tokens_out: 185, created_at: new Date(Date.now() - 3590000).toISOString() },
+        { id: 'msg_003', conversation_id: 'conv_001', agent_id: 'sovereign', role: 'user', content: 'Send the fleet status to Telegram', tool_calls: null, model_used: null, tokens_in: null, tokens_out: null, created_at: new Date(Date.now() - 1200000).toISOString() },
+        { id: 'msg_004', conversation_id: 'conv_001', agent_id: 'sovereign', role: 'assistant', content: 'Done. I sent the fleet status summary to your Telegram channel.', tool_calls: [{ function: { name: 'telegram_send' } }], model_used: 'nousresearch/hermes-4-405b', tokens_in: 290, tokens_out: 45, created_at: new Date(Date.now() - 1190000).toISOString() },
+    ],
+    conv_002: [
+        { id: 'msg_005', conversation_id: 'conv_002', agent_id: 'default', role: 'user', content: 'How does the onboarding flow work?', tool_calls: null, model_used: null, tokens_in: null, tokens_out: null, created_at: new Date(Date.now() - 7200000).toISOString() },
+        { id: 'msg_006', conversation_id: 'conv_002', agent_id: 'default', role: 'assistant', content: "The onboarding wizard has 6 steps. Here is a summary of each:\n\n1. **Business profile** - your company name, industry, and size\n2. **Process audit** - select which business processes you want to automate\n3. **Priority ranking** - order your processes by importance\n4. **Architecture** - choose your automation tier\n5. **Review** - confirm your selections\n6. **Deploy** - set your API key and go live\n\nYou can retake the wizard at any time from Settings.", tool_calls: [{ function: { name: 'supabase_query' } }], model_used: 'nousresearch/hermes-4-405b', tokens_in: 180, tokens_out: 210, created_at: new Date(Date.now() - 7190000).toISOString() },
+    ],
+};
+
+const MOCK_STREAM_RESPONSES = [
+    "Let me look into that for you.\n\n**Summary:**\n- Revenue is up 12% compared to last week\n- 3 new customers signed up today\n- No critical alerts\n\nEverything looks healthy. Want me to dig deeper into any of these areas?",
+    "I checked your workspace and here is what I found:\n\n1. **Fleet status** - all operators are online\n2. **Open tasks** - 5 items pending review\n3. **CRM pipeline** - 8 active leads, 2 ready to close\n\nLet me know if you want me to take action on any of these.",
+    "Got it. I have completed the task you requested.\n\nHere is a quick recap:\n- Pulled the latest data from your business records\n- Compared against last period\n- Sent a summary to your configured channels\n\nAnything else you need?",
+];
+
 let mockInbox = [
     { id: 'in_01', agent_id: 'sovereign', trigger_key: 'MORNING_BRIEF', trigger_display_name: 'Morning business audit', severity: 'P1', title: 'Morning Brief for May 19', body: 'Fleet status: 3/3 operators online. 2 open PRs need review. CRM pipeline has 4 new leads. No alerts.', details: { fleet_online: 3, open_prs: 2, new_leads: 4 }, status: 'queued', channel_type: 'inbox', created_at: new Date(Date.now() - 1800000).toISOString(), read_at: null },
     { id: 'in_02', agent_id: 'sovereign', trigger_key: 'PR_REVIEW', trigger_display_name: 'PR review check', severity: 'P2', title: 'PR #52 needs review', body: 'armory-centramind-blueprint: feat(w14): agent channels triggers inbox UI by operator-1. Open for 2h, no reviewers assigned.', details: { repo: 'armory-centramind-blueprint', pr: 52 }, status: 'sent', channel_type: 'inbox', created_at: new Date(Date.now() - 7200000).toISOString(), read_at: null },
@@ -268,4 +338,97 @@ export const adminApi = {
         }
         return realFetch(`/v1/admin/inbox/${id}/read`, { method: 'POST' });
     },
+
+    // -- Chat (W16) -------------------------------------------------------
+
+    async getAgents() {
+        if (USE_MOCK) { await delay(); return MOCK_AGENTS_LIST.map((a) => ({ ...a })); }
+        return realFetch('/v1/agents');
+    },
+
+    async getConversations(agentId) {
+        if (USE_MOCK) {
+            await delay();
+            return mockConversations
+                .filter((c) => c.agent_id === agentId)
+                .sort((a, b) => new Date(b.last_message_at) - new Date(a.last_message_at));
+        }
+        const params = new URLSearchParams({ agent_id: agentId });
+        return realFetch(`/v1/conversations?${params}`);
+    },
+
+    async getConversationMessages(conversationId, { before, limit = 30 } = {}) {
+        if (USE_MOCK) {
+            await delay();
+            let msgs = mockChatMessages[conversationId] || [];
+            if (before) {
+                msgs = msgs.filter((m) => new Date(m.created_at) < new Date(before));
+            }
+            return msgs.slice(-limit);
+        }
+        const params = new URLSearchParams({ limit: String(limit) });
+        if (before) params.set('before', before);
+        return realFetch(`/v1/conversations/${conversationId}/messages?${params}`);
+    },
+
+    async createConversation(agentId, message, onChunk) {
+        if (USE_MOCK) {
+            const convId = nextId('conv');
+            const conv = {
+                id: convId, tenant_id: 'tenant_demo', agent_id: agentId,
+                title: message.slice(0, 40), surface: 'web_bubble',
+                message_count: 2, last_message_at: new Date().toISOString(),
+                last_message_preview: '', pinned: false, archived: false,
+                created_at: new Date().toISOString(),
+            };
+            mockConversations.push(conv);
+
+            const userMsg = { id: nextId('msg'), conversation_id: convId, agent_id: agentId, role: 'user', content: message, tool_calls: null, model_used: null, tokens_in: null, tokens_out: null, created_at: new Date().toISOString() };
+
+            const responseText = MOCK_STREAM_RESPONSES[Math.floor(Math.random() * MOCK_STREAM_RESPONSES.length)];
+            await streamMockResponse(responseText, onChunk);
+
+            const assistantMsg = { id: nextId('msg'), conversation_id: convId, agent_id: agentId, role: 'assistant', content: responseText, tool_calls: [{ function: { name: 'supabase_query' } }], model_used: 'nousresearch/hermes-4-405b', tokens_in: 200, tokens_out: 150, created_at: new Date().toISOString() };
+
+            mockChatMessages[convId] = [userMsg, assistantMsg];
+            conv.last_message_preview = responseText.slice(0, 80);
+
+            return { conversation_id: convId, conversation: conv, messages: [userMsg, assistantMsg] };
+        }
+        return realFetch('/v1/conversations', { method: 'POST', body: JSON.stringify({ agent_id: agentId, message }) });
+    },
+
+    async sendMessage(conversationId, message, onChunk) {
+        if (USE_MOCK) {
+            const conv = mockConversations.find((c) => c.id === conversationId);
+            const agentId = conv?.agent_id || 'sovereign';
+
+            const userMsg = { id: nextId('msg'), conversation_id: conversationId, agent_id: agentId, role: 'user', content: message, tool_calls: null, model_used: null, tokens_in: null, tokens_out: null, created_at: new Date().toISOString() };
+
+            const responseText = MOCK_STREAM_RESPONSES[Math.floor(Math.random() * MOCK_STREAM_RESPONSES.length)];
+            await streamMockResponse(responseText, onChunk);
+
+            const assistantMsg = { id: nextId('msg'), conversation_id: conversationId, agent_id: agentId, role: 'assistant', content: responseText, tool_calls: [{ function: { name: 'supabase_query' } }], model_used: 'nousresearch/hermes-4-405b', tokens_in: 200, tokens_out: 150, created_at: new Date().toISOString() };
+
+            if (!mockChatMessages[conversationId]) mockChatMessages[conversationId] = [];
+            mockChatMessages[conversationId].push(userMsg, assistantMsg);
+
+            if (conv) {
+                conv.message_count += 2;
+                conv.last_message_at = new Date().toISOString();
+                conv.last_message_preview = responseText.slice(0, 80);
+            }
+
+            return { conversation: conv, messages: [userMsg, assistantMsg] };
+        }
+        return realFetch(`/v1/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ message }) });
+    },
 };
+
+async function streamMockResponse(text, onChunk) {
+    const words = text.split(/(\s+)/);
+    for (const word of words) {
+        if (onChunk) onChunk(word);
+        await delay(50);
+    }
+}

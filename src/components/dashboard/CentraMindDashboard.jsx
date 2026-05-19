@@ -5,6 +5,7 @@ import ConnectedAgentsTab from './ConnectedAgentsTab';
 import InboxTab from './InboxTab';
 import ChannelsSettings from './settings/ChannelsSettings';
 import TriggersSettings from './settings/TriggersSettings';
+import ChatBubble from './chat/ChatBubble';
 import { adminApi } from '../../lib/admin-api-mock';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
@@ -447,6 +448,9 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                     {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} metaSuiteEnabled={metaSuiteEnabled} onToggleMetaSuite={setMetaSuiteEnabled} />}
                 </main>
             </div>
+
+            {/* W16: Floating agent chat bubble -- persists across all dashboard tabs */}
+            <ChatBubble />
         </div>
     );
 }
