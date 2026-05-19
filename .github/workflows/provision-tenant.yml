@@ -27,6 +27,18 @@ on:
       eternium_api_key:
         type: string
         required: true
+      agent_name:
+        type: string
+        required: false
+        default: ''
+      agent_system_prompt:
+        type: string
+        required: false
+        default: ''
+      agent_default_model:
+        type: string
+        required: false
+        default: ''
 
 concurrency:
   group: provision-${{ github.event.inputs.slug }}
@@ -51,6 +63,13 @@ jobs:
           COMPANY_NAME: ${{ github.event.inputs.company_name }}
           LOGO_URL: ${{ github.event.inputs.logo_url }}
         run: node scripts/patch-tenant-theme.cjs
+
+      - name: Patch state/project.json agent overrides
+        env:
+          AGENT_NAME: ${{ github.event.inputs.agent_name }}
+          AGENT_SYSTEM_PROMPT: ${{ github.event.inputs.agent_system_prompt }}
+          AGENT_DEFAULT_MODEL: ${{ github.event.inputs.agent_default_model }}
+        run: node scripts/patch-tenant-agent.cjs
 
       - name: Write tenant config
         run: |
