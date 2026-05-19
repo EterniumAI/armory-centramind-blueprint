@@ -318,11 +318,6 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                                     <span className="text-sm font-display font-bold text-text-main tracking-wide truncate">
                                         {brandName}
                                     </span>
-                                    <div className="flex items-center gap-1 mt-0.5">
-                                        <span className="text-[8px] font-mono text-text-subtle uppercase tracking-wider">
-                                            by Eternium AI
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
                         )}
