@@ -1,7 +1,10 @@
-// Reusable checklist block used by the CentraMind Team and Systems steps.
+// Reusable checklist block used by the Centramind Team and Systems steps.
 // Takes a flat list of items (or an array of groups) plus the user's
 // selections. Items marked required are always checked and cannot be
 // toggled off.
+//
+// Visual aesthetic: glass-panel cards with cyan-tinted selected state
+// and violet ring on the locked / required ("always on") rows.
 
 export default function ChecklistGroup({
     title,
@@ -28,13 +31,13 @@ export default function ChecklistGroup({
         <div className="mb-8">
             {title && (
                 <div className="mb-4">
-                    <h3 className="font-display font-semibold text-base text-text-main">{title}</h3>
+                    <h3 className="font-display font-semibold text-base text-text-main tracking-tight">{title}</h3>
                     {subtitle && (
-                        <p className="text-text-subtle text-xs mt-1">{subtitle}</p>
+                        <p className="text-text-subtle text-xs mt-1 leading-relaxed">{subtitle}</p>
                     )}
                 </div>
             )}
-            <div className={`grid ${gridCols} gap-2`}>
+            <div className={`grid ${gridCols} gap-2.5`}>
                 {items.map((item) => {
                     const isSelected = item.required || selected.includes(item.id);
                     const locked = item.required;
@@ -44,17 +47,21 @@ export default function ChecklistGroup({
                             key={item.id}
                             onClick={() => toggle(item.id)}
                             disabled={locked}
-                            className={`text-left px-4 py-3 rounded-lg border transition-all flex items-start gap-3 ${
-                                isSelected
-                                    ? 'bg-primary/10 border-primary/30'
-                                    : 'bg-bg-card/40 border-border hover:border-primary/20'
-                            } ${locked ? 'cursor-default' : 'cursor-pointer'}`}
+                            className={`text-left px-4 py-3.5 rounded-xl border transition-all flex items-start gap-3 backdrop-blur-md ${
+                                locked
+                                    ? 'bg-violet-brand/5 border-violet-brand/25 cursor-default'
+                                    : isSelected
+                                        ? 'bg-cyan-brand/10 border-cyan-brand/40 shadow-[0_0_18px_rgba(24,181,240,0.12)] cursor-pointer'
+                                        : 'bg-white/[0.03] border-white/10 hover:border-cyan-brand/30 hover:bg-white/[0.05] cursor-pointer'
+                            }`}
                         >
                             <span
                                 className={`mt-0.5 w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-colors ${
-                                    isSelected
-                                        ? 'bg-primary border-primary'
-                                        : 'border-text-subtle'
+                                    locked
+                                        ? 'bg-violet-brand border-violet-brand'
+                                        : isSelected
+                                            ? 'bg-cyan-brand border-cyan-brand'
+                                            : 'border-text-subtle'
                                 }`}
                             >
                                 {isSelected && (
@@ -65,22 +72,22 @@ export default function ChecklistGroup({
                             </span>
                             <span className="flex-1 min-w-0">
                                 <span className="flex items-center gap-2 flex-wrap">
-                                    <span className={`text-sm font-medium ${isSelected ? 'text-text-main' : 'text-text-muted'}`}>
+                                    <span className={`text-sm font-medium tracking-tight ${isSelected ? 'text-text-main' : 'text-text-muted'}`}>
                                         {item.name}
                                     </span>
                                     {item.role && (
-                                        <span className="text-[10px] font-mono uppercase tracking-wider text-primary bg-primary/10 px-1.5 py-0.5 rounded">
+                                        <span className="text-[9px] font-mono uppercase tracking-widest text-cyan-brand bg-cyan-brand/10 border border-cyan-brand/20 px-1.5 py-0.5 rounded">
                                             {item.role}
                                         </span>
                                     )}
                                     {locked && (
-                                        <span className="text-[10px] font-mono uppercase tracking-wider text-text-subtle">
+                                        <span className="text-[9px] font-mono uppercase tracking-widest text-violet-brand bg-violet-brand/10 border border-violet-brand/25 px-1.5 py-0.5 rounded">
                                             always on
                                         </span>
                                     )}
                                 </span>
                                 {item.purpose && (
-                                    <span className="block text-xs text-text-subtle mt-1 leading-relaxed">
+                                    <span className="block text-xs text-text-subtle mt-1.5 leading-relaxed">
                                         {item.purpose}
                                     </span>
                                 )}
