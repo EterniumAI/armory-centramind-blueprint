@@ -2,6 +2,10 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import ChatTab from './ChatTab';
 import MetaSuiteTab from './MetaSuiteTab';
 import ConnectedAgentsTab from './ConnectedAgentsTab';
+import InboxTab from './InboxTab';
+import ChannelsSettings from './settings/ChannelsSettings';
+import TriggersSettings from './settings/TriggersSettings';
+import { adminApi } from '../../lib/admin-api-mock';
 import { CATEGORIES } from '../blueprint/ProcessAudit';
 import {
     EXECUTIVES,
@@ -99,6 +103,8 @@ function NavIcon({ id, className = 'w-[18px] h-[18px] shrink-0', strokeWidth = 1
             return (<svg {...common}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>);
         case 'sessions':
             return (<svg {...common}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
+        case 'inbox':
+            return (<svg {...common}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>);
         case 'connected_agents':
             return (<svg {...common}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>);
         case 'settings':
@@ -127,6 +133,7 @@ const TABS = [
     { id: 'memory',     label: 'Memory' },
     { id: 'sessions',   label: 'Sessions' },
     { id: 'connected_agents', label: 'Connected Agents' },
+    { id: 'inbox',      label: 'Inbox' },
     { id: 'settings',   label: 'Settings' },
 ];
 
@@ -136,7 +143,7 @@ const TABS = [
 const NAV_SECTIONS = [
     { label: 'WORKSPACE',     tabs: ['overview', 'chat'] },
     { label: 'MARKETING',     tabs: ['meta_suite'] },
-    { label: 'OPERATIONS',    tabs: ['priorities', 'processes', 'sessions'] },
+    { label: 'OPERATIONS',    tabs: ['inbox', 'priorities', 'processes', 'sessions'] },
     { label: 'PEOPLE',        tabs: ['executives', 'fleet', 'crm'] },
     { label: 'KNOWLEDGE',     tabs: ['skills', 'memory'] },
     { label: 'SYSTEM',        tabs: ['connected_agents', 'settings'] },
@@ -441,6 +448,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                     {tab === 'memory'     && <MemoryTab     workspace={workspace} scratchpad={persisted.scratchpad} onScratchpadChange={updateScratchpad} />}
                     {tab === 'sessions'   && <SessionsTab   workspace={workspace} />}
                     {tab === 'connected_agents' && <ConnectedAgentsTab />}
+                    {tab === 'inbox'      && <InboxTab />}
                     {tab === 'settings'   && <SettingsTab   workspace={workspace} onRetake={onRetakeBlueprint} onUpdateBlueprint={onUpdateBlueprint} metaSuiteEnabled={metaSuiteEnabled} onToggleMetaSuite={setMetaSuiteEnabled} />}
                 </main>
             </div>
@@ -950,11 +958,19 @@ function Step({ n, children }) {
 
 /* ── Settings ────────────────────────────────────────────── */
 
+const SETTINGS_SUBTABS = [
+    { id: 'general', label: 'General' },
+    { id: 'agent', label: 'Agent' },
+    { id: 'channels', label: 'Channels' },
+    { id: 'triggers', label: 'Triggers' },
+];
+
 function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled, onToggleMetaSuite }) {
     const { project, source, email, hasEterniumKey, eterniumApiKey } = workspace;
     const [keyDraft, setKeyDraft] = useState(eterniumApiKey || '');
     const [saveLabel, setSaveLabel] = useState('Save');
     const saveTimerRef = useRef(null);
+    const [settingsSubTab, setSettingsSubTab] = useState('general');
 
     const masked = keyDraft
         ? keyDraft.length > 8
@@ -980,6 +996,29 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled,
 
     return (
         <div className="space-y-6">
+            {/* Settings sub-tab navigation */}
+            <div className="flex gap-1 p-1 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+                {SETTINGS_SUBTABS.map((st) => (
+                    <button
+                        key={st.id}
+                        type="button"
+                        onClick={() => setSettingsSubTab(st.id)}
+                        className={`px-4 py-2 rounded-md text-xs font-mono uppercase tracking-wider transition-all cursor-pointer ${
+                            settingsSubTab === st.id
+                                ? 'bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/25'
+                                : 'text-white/40 hover:text-white/70 border border-transparent'
+                        }`}
+                    >
+                        {st.label}
+                    </button>
+                ))}
+            </div>
+
+            {settingsSubTab === 'channels' && <ChannelsSettings />}
+            {settingsSubTab === 'triggers' && <TriggersSettings />}
+            {settingsSubTab === 'agent' && <AgentSettingsExtended />}
+
+            {settingsSubTab === 'general' && (<>
             {!eterniumApiKey && (
                 <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-center justify-between gap-4">
                     <p className="text-sm text-text-main">
@@ -1112,6 +1151,224 @@ function SettingsTab({ workspace, onRetake, onUpdateBlueprint, metaSuiteEnabled,
                     Retake Blueprint
                 </button>
             </div>
+            </>)}
+        </div>
+    );
+}
+
+/* -- Agent Settings Extended (W14.4) --------------------- */
+
+const FRIENDLY_TOOL_NAMES = {
+    supabase_query: { name: 'Read business data', description: 'Pull numbers and records from your workspace database.' },
+    fleet_dispatch_operator: { name: 'Hand off work to a teammate', description: 'Send a task to another operator in the fleet.' },
+    state_read_handoffs: { name: 'Read recent handoffs', description: 'See what other operators have reported back.' },
+    state_write_handoff: { name: 'Write a handoff note', description: 'Leave a status update for the rest of the team.' },
+    telegram_send: { name: 'Send a Telegram message', description: 'Post a message to a connected Telegram chat.' },
+    email_send: { name: 'Send an email', description: 'Send an email through your workspace mail provider.' },
+    cron_list: { name: 'List scheduled tasks', description: 'See all automations that are currently scheduled.' },
+    cron_schedule: { name: 'Schedule a task', description: 'Create or update a scheduled automation.' },
+    log_fleet_event: { name: 'Record an event in the activity log', description: 'Write an entry to the workspace activity log.' },
+};
+
+function AgentSettingsExtended() {
+    const [agent, setAgent] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [dirty, setDirty] = useState({});
+    const [saveLabel, setSaveLabel] = useState('Save changes');
+    const saveTimerRef = useRef(null);
+    const [memorySearch, setMemorySearch] = useState('');
+
+    const MODEL_OPTIONS = [
+        { id: 'nousresearch/hermes-4-405b', label: 'Hermes 4 (smart, fast)', price: '$0.80' },
+        { id: 'anthropic/claude-sonnet-4-6', label: 'Claude Sonnet 4.6 (excellent for complex work)', price: '$3.00' },
+        { id: 'openai/gpt-5.4', label: 'GPT-5.4 (OpenAI flagship)', price: '$2.50' },
+        { id: 'openai/gpt-5.4-codex-mini', label: 'GPT-5.4 Codex Mini (fast, affordable)', price: '$0.40' },
+    ];
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const data = await adminApi.getAgent('sovereign');
+                setAgent(data);
+            } catch { /* non-fatal */ }
+            setLoading(false);
+        })();
+    }, []);
+
+    const update = (key, value) => {
+        setAgent((prev) => ({ ...prev, [key]: value }));
+        setDirty((prev) => ({ ...prev, [key]: value }));
+    };
+
+    const toggleTool = (key) => {
+        const tools = [...(agent?.tool_allowlist || [])];
+        const idx = tools.findIndex((t) => t.key === key);
+        if (idx >= 0) tools[idx] = { ...tools[idx], enabled: !tools[idx].enabled };
+        setAgent((prev) => ({ ...prev, tool_allowlist: tools }));
+        setDirty((prev) => ({ ...prev, tool_allowlist: tools }));
+    };
+
+    const toggleMemory = (memId) => {
+        const sources = [...(agent?.memory_sources || [])];
+        const idx = sources.findIndex((s) => s.id === memId);
+        if (idx >= 0) sources[idx] = { ...sources[idx], included: !sources[idx].included };
+        setAgent((prev) => ({ ...prev, memory_sources: sources }));
+        setDirty((prev) => ({ ...prev, memory_sources: sources }));
+    };
+
+    const handleSave = async () => {
+        if (Object.keys(dirty).length === 0) return;
+        setSaving(true);
+        try {
+            await adminApi.patchAgent('sovereign', dirty);
+            setDirty({});
+            setSaveLabel('Saved');
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            saveTimerRef.current = setTimeout(() => setSaveLabel('Save changes'), 2000);
+        } catch { /* non-fatal */ }
+        setSaving(false);
+    };
+
+    if (loading) return <div className="text-sm text-white/40 font-mono animate-pulse">Loading agent config...</div>;
+    if (!agent) return <div className="text-sm text-white/40">Failed to load agent configuration.</div>;
+
+    const filteredMemory = (agent.memory_sources || []).filter((m) =>
+        !memorySearch || m.label.toLowerCase().includes(memorySearch.toLowerCase())
+    );
+
+    return (
+        <div className="space-y-6 fade-up">
+            <p className="text-[10px] font-mono uppercase tracking-widest text-cyan-bright">// AGENT CONFIGURATION</p>
+
+            {/* Model picker */}
+            <div className="glass-panel rounded-xl p-5">
+                <label className="block text-xs text-white/60 mb-2">Primary model</label>
+                <p className="text-[10px] text-white/30 mb-2">The AI model your agent uses for conversations and tasks.</p>
+                <select
+                    value={agent.model || ''}
+                    onChange={(e) => update('model', e.target.value)}
+                    className="w-full max-w-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors cursor-pointer"
+                >
+                    {MODEL_OPTIONS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                            {m.label} - {m.price} / 1k tokens
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Fallback model picker */}
+            <div className="glass-panel rounded-xl p-5">
+                <label className="block text-xs text-white/60 mb-2">Backup model</label>
+                <p className="text-[10px] text-white/30 mb-2">Used when the primary model is unavailable or rate-limited.</p>
+                <select
+                    value={agent.fallback_model || ''}
+                    onChange={(e) => update('fallback_model', e.target.value)}
+                    className="w-full max-w-sm px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors cursor-pointer"
+                >
+                    <option value="">None</option>
+                    {MODEL_OPTIONS.map((m) => (
+                        <option key={m.id} value={m.id}>
+                            {m.label} - {m.price} / 1k tokens
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Personality + instructions */}
+            <div className="glass-panel rounded-xl p-5">
+                <label className="block text-xs text-white/60 mb-2">Personality + instructions</label>
+                <p className="text-[10px] text-white/30 mb-2">Tell the agent who it is and how to behave. This is the same instruction set the agent sees on every conversation.</p>
+                <div className="relative">
+                    <textarea
+                        value={agent.system_prompt || ''}
+                        onChange={(e) => update('system_prompt', e.target.value)}
+                        rows={5}
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors resize-y"
+                    />
+                    <span className="absolute bottom-2 right-3 text-[10px] font-mono text-white/20">
+                        {(agent.system_prompt || '').length} chars
+                    </span>
+                </div>
+            </div>
+
+            {/* Tool toggles */}
+            <div className="glass-panel rounded-xl p-5">
+                <label className="block text-xs text-white/60 mb-3">What can this agent do?</label>
+                <div className="space-y-2">
+                    {(agent.tool_allowlist || []).map((tool) => {
+                        const friendly = FRIENDLY_TOOL_NAMES[tool.key] || { name: tool.name, description: tool.description };
+                        return (
+                        <div key={tool.key} className="glass-surface rounded-lg px-4 py-3 flex items-center justify-between gap-3">
+                            <div className="min-w-0">
+                                <p className="text-sm text-white">{friendly.name}</p>
+                                <p className="text-[11px] text-white/35 mt-0.5">{friendly.description}</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => toggleTool(tool.key)}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors cursor-pointer shrink-0 ${
+                                    tool.enabled ? 'bg-[var(--color-primary)]' : 'bg-white/10'
+                                }`}
+                            >
+                                <span className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform ${
+                                    tool.enabled ? 'translate-x-[18px]' : 'translate-x-[3px]'
+                                }`} />
+                            </button>
+                        </div>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Memory sources */}
+            <div className="glass-panel rounded-xl p-5">
+                <label className="block text-xs text-white/60 mb-2">What should the agent remember?</label>
+                <p className="text-[10px] text-white/30 mb-2">Pick which knowledge files this agent reads on every conversation. More memory = slower but more context-aware.</p>
+                <input
+                    type="text"
+                    value={memorySearch}
+                    onChange={(e) => setMemorySearch(e.target.value)}
+                    placeholder="Search memory sources..."
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[var(--color-primary)]/40 transition-colors mb-3"
+                />
+                <div className="space-y-1 max-h-64 overflow-y-auto scrollbar-thin">
+                    {filteredMemory.map((mem) => (
+                        <button
+                            key={mem.id}
+                            type="button"
+                            onClick={() => toggleMemory(mem.id)}
+                            className={`w-full text-left px-3 py-2.5 rounded-lg text-sm transition-all cursor-pointer flex items-center gap-3 ${
+                                mem.included
+                                    ? 'bg-white/[0.04] border-l-2 border-l-violet-brand text-white'
+                                    : 'bg-white/[0.01] border-l-2 border-l-transparent text-white/40 hover:text-white/60'
+                            }`}
+                        >
+                            <span className={`w-3 h-3 rounded-sm border shrink-0 flex items-center justify-center ${
+                                mem.included ? 'border-violet-brand bg-violet-brand/20' : 'border-white/15'
+                            }`}>
+                                {mem.included && (
+                                    <svg viewBox="0 0 24 24" className="w-2 h-2" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                                )}
+                            </span>
+                            <span className="flex-1 truncate font-mono text-xs">{mem.label}</span>
+                            <span className="text-[9px] font-mono uppercase tracking-wider text-white/20">{mem.type}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Save button */}
+            {Object.keys(dirty).length > 0 && (
+                <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="glass-specular px-5 py-2.5 rounded-lg text-sm font-mono uppercase tracking-wider bg-[var(--color-primary)]/10 text-[var(--color-primary)] border border-[var(--color-primary)]/30 hover:border-[var(--color-primary)]/50 transition-all cursor-pointer disabled:opacity-50"
+                >
+                    {saving ? 'Saving...' : saveLabel}
+                </button>
+            )}
         </div>
     );
 }
