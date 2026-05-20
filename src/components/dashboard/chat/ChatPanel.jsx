@@ -75,7 +75,9 @@ export default function ChatPanel({
         sendMessage(prompt);
     }, [sendMessage]);
 
-    // Resize via drag
+    // Resize via drag. Clamp to viewport so the panel never extends past the
+    // window edge -- bottom/right anchor is fixed at (24, 96) so the maximum
+    // size is viewport minus that margin and a 24px breathing room on the other side.
     const handleResizeStart = useCallback((e) => {
         e.preventDefault();
         setIsResizing(true);
@@ -84,12 +86,15 @@ export default function ChatPanel({
         const startW = panelSize.width;
         const startH = panelSize.height;
 
+        const maxWidth = () => Math.max(320, window.innerWidth - 48);
+        const maxHeight = () => Math.max(400, window.innerHeight - 120);
+
         const onMove = (ev) => {
             const dw = startX - ev.clientX;
             const dh = startY - ev.clientY;
             onPanelResize({
-                width: Math.max(320, Math.min(600, startW + dw)),
-                height: Math.max(400, Math.min(900, startH + dh)),
+                width: Math.max(320, Math.min(maxWidth(), startW + dw)),
+                height: Math.max(400, Math.min(maxHeight(), startH + dh)),
             });
         };
         const onUp = () => {
@@ -101,11 +106,29 @@ export default function ChatPanel({
         window.addEventListener('mouseup', onUp);
     }, [panelSize, onPanelResize]);
 
+    // Re-clamp size if the window shrinks (e.g. user resizes the browser smaller
+    // than the persisted panel size from a previous session)
+    useEffect(() => {
+        const onWindowResize = () => {
+            const maxW = Math.max(320, window.innerWidth - 48);
+            const maxH = Math.max(400, window.innerHeight - 120);
+            if (panelSize.width > maxW || panelSize.height > maxH) {
+                onPanelResize({
+                    width: Math.min(panelSize.width, maxW),
+                    height: Math.min(panelSize.height, maxH),
+                });
+            }
+        };
+        window.addEventListener('resize', onWindowResize);
+        onWindowResize();
+        return () => window.removeEventListener('resize', onWindowResize);
+    }, [panelSize, onPanelResize]);
+
     if (!isOpen) return null;
 
     return (
         <div
-            className="z-50 flex flex-col glass-panel rounded-2xl overflow-hidden shadow-2xl
+            className="z-50 flex flex-col rounded-2xl overflow-hidden shadow-2xl border border-white/[0.08]
                         animate-[slideUp_0.2s_ease-out]"
             style={{
                 position: 'fixed',
@@ -113,6 +136,10 @@ export default function ChatPanel({
                 right: 24,
                 width: panelSize.width,
                 height: panelSize.height,
+                background: 'rgba(8, 8, 14, 0.97)',
+                backdropFilter: 'blur(24px) saturate(1.6)',
+                WebkitBackdropFilter: 'blur(24px) saturate(1.6)',
+                boxShadow: '0 24px 60px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04) inset',
             }}
         >
             {/* Cyan/violet top rim */}
@@ -141,26 +168,16 @@ export default function ChatPanel({
                         New
                     </button>
                 </div>
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={onClose}
-                        className="w-6 h-6 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-all cursor-pointer"
-                        title="Minimize"
-                    >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M5 12h14" />
-                        </svg>
-                    </button>
-                    <button
-                        onClick={onClose}
-                        className="w-6 h-6 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-all cursor-pointer"
-                        title="Close"
-                    >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M18 6L6 18M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+                <button
+                    onClick={onClose}
+                    className="w-8 h-8 rounded-md flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/[0.08] transition-all cursor-pointer"
+                    title="Close chat"
+                    aria-label="Close chat"
+                >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
             </div>
 
             {/* Agent tab strip */}
