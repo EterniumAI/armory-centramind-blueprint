@@ -10,10 +10,9 @@ export default function useAgentChat({ agentId, conversationId, onConversationCr
     const [error, setError] = useState(null);
     const cancelRef = useRef(null);
 
-    // Load agent
+    // Load agent metadata (parallel to message loading -- does NOT gate the loading indicator)
     useEffect(() => {
         if (!agentId) return;
-        setLoading(true);
         setError(null);
         adminApi.getAgents().then((agents) => {
             const found = agents.find((a) => a.id === agentId);
