@@ -1,6 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
 @import "tailwindcss";
 
+/* ── Horizontal-scroll lock ─────────────────────────────────────────
+   Prevents any accidental horizontal overflow on all viewports.
+   Must sit above component styles so nothing overrides it.         */
+@layer base {
+    html, body, #root { overflow-x: hidden; max-width: 100vw; }
+}
+
 /* Theme tokens come from theme.config.js at repo root. Edit that file, then
  * run `npm run theme` (or just `npm run dev`) to regenerate this import. */
 @import "./theme.generated.css";
