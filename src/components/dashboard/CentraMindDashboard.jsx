@@ -3,6 +3,7 @@ import ChatTab from './ChatTab';
 import MetaSuiteTab from './MetaSuiteTab';
 import ConnectedAgentsTab from './ConnectedAgentsTab';
 import InboxTab from './InboxTab';
+import ContentTab from './content/ContentTab';
 import ChannelsSettings from './settings/ChannelsSettings';
 import TriggersSettings from './settings/TriggersSettings';
 import ChatBubble from './chat/ChatBubble';
@@ -104,6 +105,8 @@ function NavIcon({ id, className = 'w-[18px] h-[18px] shrink-0', strokeWidth = 1
             return (<svg {...common}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>);
         case 'sessions':
             return (<svg {...common}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
+        case 'content':
+            return (<svg {...common}><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>);
         case 'inbox':
             return (<svg {...common}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>);
         case 'connected_agents':
@@ -125,6 +128,7 @@ const TABS = [
     { id: 'overview',   label: 'Overview' },
     { id: 'chat',       label: 'Chat' },
     { id: 'meta_suite', label: 'Meta Suite' },
+    { id: 'content',    label: 'Content' },
     { id: 'executives', label: 'Executives' },
     { id: 'fleet',      label: 'Fleet' },
     { id: 'crm',        label: 'CRM' },
@@ -143,7 +147,7 @@ const TABS = [
 // Center pattern (OVERVIEW / BUSINESS / TECHNOLOGY / SYSTEM groupings).
 const NAV_SECTIONS = [
     { label: 'WORKSPACE',     tabs: ['overview', 'chat'] },
-    { label: 'MARKETING',     tabs: ['meta_suite'] },
+    { label: 'MARKETING',     tabs: ['meta_suite', 'content'] },
     { label: 'OPERATIONS',    tabs: ['inbox', 'priorities', 'processes', 'sessions'] },
     { label: 'PEOPLE',        tabs: ['executives', 'fleet', 'crm'] },
     { label: 'KNOWLEDGE',     tabs: ['skills', 'memory'] },
@@ -435,6 +439,7 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                     {tab === 'overview'   && <OverviewTab   workspace={workspace} onNavigate={setTab} />}
                     {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
                     {tab === 'meta_suite' && <MetaSuiteTab />}
+                    {tab === 'content'    && <ContentTab />}
                     {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
                     {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
                     {tab === 'crm'        && <CRMTab        workspace={workspace} />}

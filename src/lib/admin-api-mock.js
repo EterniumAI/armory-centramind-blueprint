@@ -155,6 +155,139 @@ let mockInbox = [
     { id: 'in_04', agent_id: 'sovereign', trigger_key: 'HEARTBEAT_CHECK', trigger_display_name: 'Fleet health check', severity: 'P0', title: 'Operator-2 unresponsive', body: 'operator-2 has not reported a handoff in 26 hours. Last seen: 2026-05-17T11:00:00Z. Recommend manual check.', details: { operator: 'operator-2', last_seen: '2026-05-17T11:00:00Z' }, status: 'queued', channel_type: 'inbox', created_at: new Date(Date.now() - 3600000).toISOString(), read_at: null },
 ];
 
+// -- Content pipeline mock data (W17) -------------------------------------
+
+const MOCK_BRAND_PROJECTS = [
+    {
+        id: 'bp_eternium',
+        display_name: 'Eternium',
+        slug: 'eternium',
+        brand_strategy: {
+            brand_colors: { primary: '#18b5f0', secondary: '#0e7490' },
+            tone: 'Professional, forward-thinking',
+        },
+        created_at: '2026-04-01T00:00:00Z',
+    },
+    {
+        id: 'bp_centramind',
+        display_name: 'CentraMind',
+        slug: 'centramind',
+        brand_strategy: {
+            brand_colors: { primary: '#8b5cf6', secondary: '#6d28d9' },
+            tone: 'Friendly, approachable, technical',
+        },
+        created_at: '2026-04-15T00:00:00Z',
+    },
+];
+
+let mockContentPipeline = [
+    {
+        id: 'cp_01',
+        brand_project_id: 'bp_eternium',
+        title: 'Why AI agents need persistent memory',
+        body: 'Most AI tools forget everything between sessions. That is a problem for businesses that need continuity.\n\nPersistent memory changes the equation. When your agent remembers past conversations, client preferences, and ongoing projects, it stops being a tool and starts being a partner.\n\nHere are three ways persistent memory transforms your workflow:\n\n1. **Context carries forward** - no more re-explaining your business every Monday morning.\n2. **Pattern recognition** - the agent notices trends you might miss.\n3. **Proactive suggestions** - it can flag issues before they become problems.',
+        hashtags: ['#AIagents', '#memory', '#automation', '#Eternium'],
+        platforms: ['Instagram', 'Blog'],
+        status: 'draft',
+        source: 'agent',
+        confidence_score: 0.92,
+        agent_reasoning: 'Generated from the weekly content calendar trigger. Topic selected based on high engagement with previous memory-related posts (avg 4.2% engagement rate). Tone calibrated to Eternium brand voice: professional but accessible.',
+        model_used: 'claude-sonnet-4-6',
+        generated_from_trigger_key: 'WEEKLY_CONTENT',
+        tokens_in: 1240,
+        tokens_out: 890,
+        reviewer_notes: null,
+        scheduled_at: null,
+        published_at: null,
+        created_at: new Date(Date.now() - 7200000).toISOString(),
+        updated_at: new Date(Date.now() - 7200000).toISOString(),
+    },
+    {
+        id: 'cp_02',
+        brand_project_id: 'bp_centramind',
+        title: 'Getting started with your CentraMind workspace',
+        body: 'Your CentraMind workspace is live. Here is what to do first:\n\n1. **Set your API key** in Settings so your agent can connect.\n2. **Configure your channels** to decide where notifications land.\n3. **Run your first trigger** to see your agent in action.\n\nThe whole setup takes about 5 minutes. Your agent handles the rest.',
+        hashtags: ['#CentraMind', '#workspace', '#gettingstarted'],
+        platforms: ['Blog'],
+        status: 'draft',
+        source: 'agent',
+        confidence_score: 0.71,
+        agent_reasoning: 'Generated as onboarding content for new CentraMind users. Lower confidence because this is a new content category without historical engagement data to calibrate against.',
+        model_used: 'claude-sonnet-4-6',
+        generated_from_trigger_key: 'ONBOARD_CONTENT',
+        tokens_in: 980,
+        tokens_out: 620,
+        reviewer_notes: null,
+        scheduled_at: null,
+        published_at: null,
+        created_at: new Date(Date.now() - 3600000).toISOString(),
+        updated_at: new Date(Date.now() - 3600000).toISOString(),
+    },
+    {
+        id: 'cp_03',
+        brand_project_id: 'bp_eternium',
+        title: 'Fleet operations: how we manage 12 AI agents at once',
+        body: 'Running a single AI agent is straightforward. Running twelve in parallel, each with different specializations, permissions, and memory contexts? That requires orchestration.\n\nOur fleet architecture assigns each operator a role, a home directory, and a set of tools. Sovereign coordinates them all.\n\nThe result: tasks that used to take a team of engineers a full sprint now complete in hours.',
+        hashtags: ['#fleet', '#orchestration', '#Eternium', '#AIops'],
+        platforms: ['Instagram', 'Facebook'],
+        status: 'ready',
+        source: 'agent',
+        confidence_score: 0.88,
+        agent_reasoning: 'Approved by reviewer on May 18. Strong alignment with Eternium technical leadership positioning. Scheduled for next Monday.',
+        model_used: 'claude-sonnet-4-6',
+        generated_from_trigger_key: 'WEEKLY_CONTENT',
+        tokens_in: 1100,
+        tokens_out: 750,
+        reviewer_notes: null,
+        scheduled_at: new Date(Date.now() + 172800000).toISOString(),
+        published_at: null,
+        created_at: new Date(Date.now() - 172800000).toISOString(),
+        updated_at: new Date(Date.now() - 86400000).toISOString(),
+    },
+    {
+        id: 'cp_04',
+        brand_project_id: 'bp_centramind',
+        title: 'Product update: Inbox and notification routing',
+        body: 'Your CentraMind workspace now has a smart inbox.\n\nInstead of drowning in alerts, you configure how each notification reaches you. Want daily summaries for routine checks but instant alerts for emergencies? Done.\n\nThe new routing system puts you in control of your attention.',
+        hashtags: ['#CentraMind', '#productupdate', '#inbox'],
+        platforms: ['Blog', 'Facebook'],
+        status: 'scheduled',
+        source: 'agent',
+        confidence_score: null,
+        agent_reasoning: 'Product update post drafted from the W14.4 release notes. No confidence score because this was a factual summary rather than creative content.',
+        model_used: 'claude-sonnet-4-6',
+        generated_from_trigger_key: 'RELEASE_NOTES',
+        tokens_in: 800,
+        tokens_out: 540,
+        reviewer_notes: null,
+        scheduled_at: new Date(Date.now() + 86400000).toISOString(),
+        published_at: null,
+        created_at: new Date(Date.now() - 259200000).toISOString(),
+        updated_at: new Date(Date.now() - 172800000).toISOString(),
+    },
+    {
+        id: 'cp_05',
+        brand_project_id: 'bp_eternium',
+        title: '5 signs your business is ready for AI automation',
+        body: 'Not every business needs AI automation today. But these five signals suggest you are ready:\n\n1. You spend more than 10 hours per week on repetitive coordination tasks.\n2. Your team regularly misses follow-ups because of information overload.\n3. You have well-documented processes that rarely change.\n4. Your growth is outpacing your ability to hire.\n5. You are already using at least one SaaS tool with an API.\n\nIf three or more apply, it is time to talk.',
+        hashtags: ['#AIautomation', '#businessgrowth', '#Eternium'],
+        platforms: ['Instagram', 'Blog', 'Facebook'],
+        status: 'published',
+        source: 'manual',
+        confidence_score: 0.95,
+        agent_reasoning: 'Manual draft by marketing team, polished by agent. High confidence due to strong historical performance of listicle formats.',
+        model_used: 'claude-sonnet-4-6',
+        generated_from_trigger_key: null,
+        tokens_in: 600,
+        tokens_out: 480,
+        reviewer_notes: null,
+        scheduled_at: null,
+        published_at: new Date(Date.now() - 432000000).toISOString(),
+        created_at: new Date(Date.now() - 604800000).toISOString(),
+        updated_at: new Date(Date.now() - 432000000).toISOString(),
+    },
+];
+
 let _nextId = 100;
 const nextId = (prefix) => `${prefix}_${++_nextId}`;
 
@@ -396,6 +529,122 @@ export const adminApi = {
             return { conversation_id: convId, conversation: conv, messages: [userMsg, assistantMsg] };
         }
         return realFetch('/v1/conversations', { method: 'POST', body: JSON.stringify({ agent_id: agentId, message }) });
+    },
+
+    // -- Content pipeline (W17) --------------------------------------------
+
+    async getBrandProjects() {
+        if (USE_MOCK) { await delay(); return MOCK_BRAND_PROJECTS.map((p) => ({ ...p })); }
+        return realFetch('/v1/admin/brand-projects');
+    },
+
+    async getContent(params = {}) {
+        if (USE_MOCK) {
+            await delay();
+            let items = [...mockContentPipeline];
+            if (params.status) {
+                const statuses = params.status.split(',');
+                items = items.filter((c) => statuses.includes(c.status));
+            }
+            if (params.brand_project_id) {
+                items = items.filter((c) => c.brand_project_id === params.brand_project_id);
+            }
+            if (params.source) {
+                items = items.filter((c) => c.source === params.source);
+            }
+            return items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        }
+        const qs = new URLSearchParams(params);
+        return realFetch(`/v1/admin/content?${qs}`);
+    },
+
+    async createContent(data) {
+        if (USE_MOCK) {
+            await delay();
+            const item = {
+                id: nextId('cp'),
+                ...data,
+                status: 'draft',
+                source: 'manual',
+                confidence_score: null,
+                agent_reasoning: null,
+                model_used: null,
+                generated_from_trigger_key: null,
+                tokens_in: null,
+                tokens_out: null,
+                reviewer_notes: null,
+                scheduled_at: null,
+                published_at: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            };
+            mockContentPipeline.unshift(item);
+            return { ...item };
+        }
+        return realFetch('/v1/admin/content', { method: 'POST', body: JSON.stringify(data) });
+    },
+
+    async patchContent(id, patch) {
+        if (USE_MOCK) {
+            await delay();
+            const item = mockContentPipeline.find((c) => c.id === id);
+            if (item) {
+                Object.assign(item, patch, { updated_at: new Date().toISOString() });
+            }
+            return item ? { ...item } : null;
+        }
+        return realFetch(`/v1/admin/content/${id}`, { method: 'PATCH', body: JSON.stringify(patch) });
+    },
+
+    async deleteContent(id) {
+        if (USE_MOCK) {
+            await delay();
+            mockContentPipeline = mockContentPipeline.filter((c) => c.id !== id);
+            return { ok: true };
+        }
+        return realFetch(`/v1/admin/content/${id}`, { method: 'DELETE' });
+    },
+
+    async approveContent(id, body = {}) {
+        if (USE_MOCK) {
+            await delay();
+            const item = mockContentPipeline.find((c) => c.id === id);
+            if (item) {
+                item.status = body.scheduled_at ? 'scheduled' : 'ready';
+                if (body.scheduled_at) item.scheduled_at = body.scheduled_at;
+                item.updated_at = new Date().toISOString();
+            }
+            return item ? { ...item } : null;
+        }
+        return realFetch(`/v1/admin/content/${id}/approve`, { method: 'POST', body: JSON.stringify(body) });
+    },
+
+    async rejectContent(id, body = {}) {
+        if (USE_MOCK) {
+            await delay();
+            const item = mockContentPipeline.find((c) => c.id === id);
+            if (item) {
+                item.status = 'rejected';
+                if (body.reviewer_notes) item.reviewer_notes = body.reviewer_notes;
+                item.updated_at = new Date().toISOString();
+            }
+            return item ? { ...item } : null;
+        }
+        return realFetch(`/v1/admin/content/${id}/reject`, { method: 'POST', body: JSON.stringify(body) });
+    },
+
+    async sendBackContent(id, body = {}) {
+        if (USE_MOCK) {
+            await delay();
+            const item = mockContentPipeline.find((c) => c.id === id);
+            if (item) {
+                item.status = 'draft';
+                if (body.reviewer_notes) item.reviewer_notes = body.reviewer_notes;
+                item.updated_at = new Date().toISOString();
+            }
+            return item ? { ...item } : null;
+        }
+        return realFetch(`/v1/admin/content/${id}/send-back`, { method: 'POST', body: JSON.stringify(body) });
     },
 
     async sendMessage(conversationId, message, onChunk) {
