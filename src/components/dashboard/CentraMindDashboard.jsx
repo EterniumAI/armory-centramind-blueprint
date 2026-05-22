@@ -4,6 +4,10 @@ import MetaSuiteTab from './MetaSuiteTab';
 import ConnectedAgentsTab from './ConnectedAgentsTab';
 import InboxTab from './InboxTab';
 import ContentTab from './content/ContentTab';
+import PipelineView from './marketing/PipelineView';
+import LibraryView from './marketing/LibraryView';
+import ChannelsView from './marketing/ChannelsView';
+import BrainDumpView from './BrainDumpView';
 import ChannelsSettings from './settings/ChannelsSettings';
 import TriggersSettings from './settings/TriggersSettings';
 import ChatBubble from './chat/ChatBubble';
@@ -107,6 +111,16 @@ function NavIcon({ id, className = 'w-[18px] h-[18px] shrink-0', strokeWidth = 1
             return (<svg {...common}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>);
         case 'content':
             return (<svg {...common}><path d="M20.24 12.24a6 6 0 0 0-8.49-8.49L5 10.5V19h8.5z"/><line x1="16" y1="8" x2="2" y2="22"/><line x1="17.5" y1="15" x2="9" y2="15"/></svg>);
+        case 'marketing_pipeline':
+            return (<svg {...common}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>);
+        case 'marketing_library':
+            return (<svg {...common}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>);
+        case 'marketing_channels':
+            return (<svg {...common}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>);
+        case 'marketing_analytics':
+            return (<svg {...common}><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>);
+        case 'brain_dump':
+            return (<svg {...common}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>);
         case 'inbox':
             return (<svg {...common}><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>);
         case 'connected_agents':
@@ -127,8 +141,13 @@ function NavIcon({ id, className = 'w-[18px] h-[18px] shrink-0', strokeWidth = 1
 const TABS = [
     { id: 'overview',   label: 'Overview' },
     { id: 'chat',       label: 'Chat' },
+    { id: 'brain_dump', label: 'Brain Dump' },
     { id: 'meta_suite', label: 'Meta Suite' },
     { id: 'content',    label: 'Content' },
+    { id: 'marketing_pipeline',  label: 'Pipeline' },
+    { id: 'marketing_library',   label: 'Library' },
+    { id: 'marketing_channels',  label: 'Channels' },
+    { id: 'marketing_analytics', label: 'Analytics' },
     { id: 'executives', label: 'Executives' },
     { id: 'fleet',      label: 'Fleet' },
     { id: 'crm',        label: 'CRM' },
@@ -146,8 +165,9 @@ const TABS = [
 // small uppercase label, then the tab buttons. Mirrors the Command
 // Center pattern (OVERVIEW / BUSINESS / TECHNOLOGY / SYSTEM groupings).
 const NAV_SECTIONS = [
-    { label: 'WORKSPACE',     tabs: ['overview', 'chat'] },
-    { label: 'MARKETING',     tabs: ['meta_suite', 'content'] },
+    { label: 'WORKSPACE',     tabs: ['overview', 'chat', 'brain_dump'] },
+    { label: 'MARKETING',     tabs: ['marketing_pipeline', 'marketing_library', 'marketing_channels', 'marketing_analytics'] },
+    { label: 'CONTENT',       tabs: ['content'] },
     { label: 'OPERATIONS',    tabs: ['inbox', 'priorities', 'processes', 'sessions'] },
     { label: 'PEOPLE',        tabs: ['executives', 'fleet', 'crm'] },
     { label: 'KNOWLEDGE',     tabs: ['skills', 'memory'] },
@@ -155,6 +175,22 @@ const NAV_SECTIONS = [
 ];
 
 const storageKey = (email) => `centramind:${email || 'anon'}`;
+
+function MarketingAnalyticsPlaceholder() {
+    return (
+        <div className="border border-dashed border-white/10 rounded-xl p-10 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-white/[0.02] flex items-center justify-center mx-auto">
+                <svg className="w-6 h-6 text-gray-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" />
+                </svg>
+            </div>
+            <p className="text-sm font-mono text-gray-400">Analytics coming soon</p>
+            <p className="text-[11px] text-gray-600 max-w-xs mx-auto">
+                Campaign performance, engagement metrics, and content ROI will appear here once the analytics module is ported.
+            </p>
+        </div>
+    );
+}
 
 function loadState(email) {
     try {
@@ -197,6 +233,11 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
             if (!localStorage.getItem(LS_AGENT_MAX_TOKENS)) localStorage.setItem(LS_AGENT_MAX_TOKENS, String(DEFAULT_MAX_TOKENS));
         } catch { /* non-fatal */ }
     }, []);
+
+    // Redirect legacy meta_suite tab to the new marketing_channels tab.
+    useEffect(() => {
+        if (tab === 'meta_suite') setTab('marketing_channels');
+    }, [tab]);
 
     // Listen for in-app navigation requests (e.g. the Connected Agents tab's
     // Configure button on the foundation card deep-links to Settings).
@@ -440,6 +481,11 @@ export default function CentraMindDashboard({ blueprint, email, aiWorkspace, onR
                     {tab === 'chat'       && <ChatTab       blueprint={blueprint} />}
                     {tab === 'meta_suite' && <MetaSuiteTab />}
                     {tab === 'content'    && <ContentTab />}
+                    {tab === 'marketing_pipeline'  && <PipelineView />}
+                    {tab === 'marketing_library'   && <LibraryView />}
+                    {tab === 'marketing_channels'  && <ChannelsView />}
+                    {tab === 'marketing_analytics' && <MarketingAnalyticsPlaceholder />}
+                    {tab === 'brain_dump'          && <BrainDumpView />}
                     {tab === 'executives' && <ExecutivesTab workspace={workspace} />}
                     {tab === 'fleet'      && <FleetTab      workspace={workspace} />}
                     {tab === 'crm'        && <CRMTab        workspace={workspace} />}
