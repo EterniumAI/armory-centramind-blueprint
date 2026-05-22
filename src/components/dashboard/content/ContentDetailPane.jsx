@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import CarouselEditor from '../marketing/carousel/CarouselEditor';
 
 const STATUS_LABELS = {
     draft: 'Waiting for your review',
@@ -123,6 +124,19 @@ export default function ContentDetailPane({ draft, project, onEdit, onApprove, o
                     </div>
                 )}
             </div>
+
+            {/* Carousel Editor (when type is carousel or slides exist) */}
+            {(draft.type === 'carousel' || draft.platform_variants?.carousel?.slides?.length > 0) && (
+                <div className="mb-4">
+                    <CarouselEditor
+                        item={{
+                            ...draft,
+                            brand_slug: project?.slug || 'default',
+                            brand_project: project,
+                        }}
+                    />
+                </div>
+            )}
 
             {/* Confidence bar (inline, if present) */}
             {draft.confidence_score != null && (
