@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CentraMind Blueprint -- Claude Code Configuration
 
 ## Identity
