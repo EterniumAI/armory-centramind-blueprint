@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
-import { X, Link2, Upload, Library, Loader2 } from 'lucide-react';
+import { X, Link2, Upload, Library, Loader2, Search, ExternalLink, Play } from 'lucide-react';
+import { supabase } from '../../../../lib/supabase';
 
 const TABS = [
     { id: 'url', label: 'Paste URL', icon: Link2 },
     { id: 'upload', label: 'Upload', icon: Upload },
+    { id: 'research', label: 'From Research', icon: Search },
     { id: 'library', label: 'Brand Library', icon: Library },
 ];
 
@@ -17,13 +19,16 @@ function guessMediaType(url) {
     return 'photo';
 }
 
-export default function ResearchMediaPicker({ value, onChange, brandSlug }) {
+export default function ResearchMediaPicker({ value, onChange, brandSlug, item }) {
     const [activeTab, setActiveTab] = useState('url');
     const [urlInput, setUrlInput] = useState('');
     const [sourceUrl, setSourceUrl] = useState('');
     const [uploading, setUploading] = useState(false);
     const [libraryItems, setLibraryItems] = useState(null);
     const [libraryLoading, setLibraryLoading] = useState(false);
+    const [researchAssets, setResearchAssets] = useState(null);
+    const [researchSignal, setResearchSignal] = useState(null);
+    const [researchLoading, setResearchLoading] = useState(false);
 
     const handlePasteUrl = useCallback(() => {
         if (!urlInput.trim()) return;
@@ -85,13 +90,59 @@ export default function ResearchMediaPicker({ value, onChange, brandSlug }) {
         }
     }, [brandSlug, libraryItems]);
 
+    const loadResearchAssets = useCallback(async () => {
+        if (researchAssets !== null) return;
+        const signalId = item?.signal_id;
+        if (!signalId) {
+            setResearchAssets([]);
+            setResearchSignal(null);
+            return;
+        }
+        setResearchLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('market_signals')
+                .select('media_assets, headline, source_name, source_url')
+                .eq('id', signalId)
+                .single();
+            if (error) {
+                console.error('[ResearchMediaPicker] research load error:', error);
+                setResearchAssets([]);
+                setResearchSignal(null);
+            } else {
+                setResearchAssets(data?.media_assets || []);
+                setResearchSignal(data);
+            }
+        } catch (err) {
+            console.error('[ResearchMediaPicker] research load error:', err);
+            setResearchAssets([]);
+            setResearchSignal(null);
+        } finally {
+            setResearchLoading(false);
+        }
+    }, [item?.signal_id, researchAssets]);
+
     const handleTabChange = useCallback((tabId) => {
         setActiveTab(tabId);
         if (tabId === 'library') loadLibrary();
-    }, [loadLibrary]);
+        if (tabId === 'research') loadResearchAssets();
+    }, [loadLibrary, loadResearchAssets]);
 
     const handleClear = useCallback(() => {
         onChange(null);
+    }, [onChange]);
+
+    const handleResearchSelect = useCallback((asset) => {
+        onChange({
+            url: asset.url,
+            type: asset.type || guessMediaType(asset.url),
+            alt: asset.alt || null,
+            source_url: asset.source_url || null,
+            attribution: asset.attribution || null,
+            width: asset.width || null,
+            height: asset.height || null,
+            rank: asset.rank || null,
+        });
     }, [onChange]);
 
     if (value && value.url) {
@@ -135,7 +186,8 @@ export default function ResearchMediaPicker({ value, onChange, brandSlug }) {
                 Research Media
             </div>
 
-            <div className="flex gap-0.5 mb-3">
+            {/* Tab strip */}
+            <div className="flex flex-wrap gap-0.5 mb-3">
                 {TABS.map(tab => {
                     const Icon = tab.icon;
                     return (
@@ -155,6 +207,7 @@ export default function ResearchMediaPicker({ value, onChange, brandSlug }) {
                 })}
             </div>
 
+            {/* Paste URL tab */}
             {activeTab === 'url' && (
                 <div className="space-y-2">
                     <input
@@ -183,6 +236,7 @@ export default function ResearchMediaPicker({ value, onChange, brandSlug }) {
                 </div>
             )}
 
+            {/* Upload tab */}
             {activeTab === 'upload' && (
                 <div>
                     <label className="flex flex-col items-center justify-center w-full h-24 border border-dashed border-white/10 rounded-md cursor-pointer hover:border-[var(--color-primary)]/30 hover:bg-white/[0.02] transition-colors">
@@ -207,6 +261,97 @@ export default function ResearchMediaPicker({ value, onChange, brandSlug }) {
                 </div>
             )}
 
+            {/* From Research tab */}
+            {activeTab === 'research' && (
+                <div>
+                    {!item?.signal_id ? (
+                        <p className="text-xs text-gray-500 text-center py-4">
+                            No source story attached to this carousel.
+                        </p>
+                    ) : researchLoading ? (
+                        <div className="flex items-center justify-center py-6">
+                            <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                        </div>
+                    ) : (
+                        <>
+                            {researchSignal && (
+                                <div className="flex items-center gap-2 mb-3 px-1">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-[11px] font-medium text-gray-300 truncate">
+                                            {researchSignal.headline}
+                                        </p>
+                                        {researchSignal.source_name && (
+                                            <p className="text-[9px] text-gray-600 uppercase tracking-wider mt-0.5">
+                                                {researchSignal.source_name}
+                                            </p>
+                                        )}
+                                    </div>
+                                    {researchSignal.source_url && (
+                                        <a
+                                            href={researchSignal.source_url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="p-1.5 text-gray-500 hover:text-[var(--color-primary)] rounded transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center flex-shrink-0"
+                                            title="View source story"
+                                        >
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                        </a>
+                                    )}
+                                </div>
+                            )}
+
+                            {researchAssets && researchAssets.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
+                                    {researchAssets.map((asset, i) => (
+                                        <button
+                                            key={asset.url || i}
+                                            onClick={() => handleResearchSelect(asset)}
+                                            className="relative rounded-md overflow-hidden border border-white/10 hover:border-[var(--color-primary)]/40 transition-colors group"
+                                        >
+                                            <div className="aspect-square bg-black/40">
+                                                {asset.type === 'video' ? (
+                                                    <div className="relative w-full h-full">
+                                                        <video
+                                                            src={asset.url}
+                                                            preload="metadata"
+                                                            muted
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                                            <Play className="w-6 h-6 text-white/80" />
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <img
+                                                        src={asset.url}
+                                                        alt={asset.alt || ''}
+                                                        title={asset.alt || ''}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                )}
+                                            </div>
+                                            {asset.attribution && (
+                                                <div className="px-1.5 py-1 bg-black/60">
+                                                    <p className="text-[8px] text-gray-500 truncate">
+                                                        {asset.attribution}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-0 bg-[var(--color-primary)]/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-gray-500 text-center py-4">
+                                    No media assets found in the source story.
+                                </p>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* Brand Library tab */}
             {activeTab === 'library' && (
                 <div>
                     {libraryLoading ? (

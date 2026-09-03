@@ -18,6 +18,7 @@ export default function SlideEditor({
     generating,
     onRegenerate,
     slideCount,
+    item,
 }) {
     const [localGenerating, setLocalGenerating] = useState(false);
     const template = templates?.find(t => t.id === slide.template_id);
@@ -138,6 +139,7 @@ export default function SlideEditor({
                         value={slide.research_media}
                         onChange={(media) => onUpdateSlide(index, { research_media: media })}
                         brandSlug={brandSlug}
+                        item={item}
                     />
                 )}
             </div>

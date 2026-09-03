@@ -147,6 +147,7 @@ export default function CarouselEditor({ item, onChange }) {
                 activeIndex={activeIndex}
                 onSelect={setActiveIndex}
                 onAdd={addSlide}
+                onRemove={removeSlide}
             />
 
             {activeSlide && (
@@ -162,6 +163,7 @@ export default function CarouselEditor({ item, onChange }) {
                         generating={generatingSlides.has(activeSlide.id)}
                         onRegenerate={handleRegenerate}
                         slideCount={slides.length}
+                        item={item}
                     />
                 </div>
             )}
