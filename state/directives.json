@@ -22,6 +22,13 @@
       "priority": "medium",
       "rule": "Always read existing code and context before making changes. Understand what exists before modifying it.",
       "status": "active"
+    },
+    {
+      "id": "d-004",
+      "title": "Claim Before Work",
+      "priority": "high",
+      "rule": "Before starting work, find the existing task (never create a duplicate), check who holds it, claim it or coordinate with the holder, and keep its status, branch, PR and evidence current. If you cannot claim it, report the blocker instead of working untracked.",
+      "status": "active"
     }
   ]
 }

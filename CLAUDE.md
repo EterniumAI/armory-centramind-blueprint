@@ -33,7 +33,8 @@ CentraMind OS: AI agent memory, skills, context protocol, a Chat tab powered by 
 2. Read `OWNER.md` for user profile
 3. Read `TODO.md` for priorities
 4. Read `HEARTBEAT.md` for alerts
-5. Ready for instructions
+5. Before any work goes in flight, find, check and claim (or coordinate on) the task, per *How to take on work in CentraMind* in `AGENTS.md`
+6. Ready for instructions
 
 ## Commands
 ```bash
