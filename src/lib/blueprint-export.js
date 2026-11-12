@@ -167,10 +167,11 @@ You are in the root of a freshly cloned armory-centramind-blueprint repository. 
 }
 \`\`\`
 
-4. state/directives.json -- standing rules the AI should follow. Shape: { version, lastUpdated, directives: [{id, title, priority, rule, status}] }. Seed with at least these three, plus any others that make sense for the owner's processes:
+4. state/directives.json -- standing rules the AI should follow. Shape: { version, lastUpdated, directives: [{id, title, priority, rule, status}] }. Seed with at least these four, plus any others that make sense for the owner's processes:
 - "Session Handoff Required" (priority high) -- end every session with a handoff entry in session-log.json.
 - "Commit Before Context Switch" (priority medium) -- commit work before switching projects.
 - "Read Before Writing" (priority medium) -- read the relevant file before editing.
+- "Claim Before Work" (priority high) -- before starting work, find the existing task (never create a duplicate), check who holds it, claim it or coordinate with the holder, and keep its status current. If it cannot be claimed, report the blocker instead of working untracked.
 
 5. state/roster.json -- the executive + operator roster. Copy the roster block from the Blueprint JSON verbatim, marking every member with status "active" and adding an empty "directives" array so the dashboard can attach standing rules per role later:
 \`\`\`json
